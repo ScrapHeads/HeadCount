@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  --font-family-sans: "Segoe UI", Arial, sans-serif;
+  --app-background: #f3f7fb;
+  --app-surface: #ffffff;
+  --app-surface-muted: #e8f0fb;
+  --app-primary: #2563eb;
+  --app-primary-strong: #1d4ed8;
+  --app-text: #0f172a;
+  --app-text-muted: #475569;
+  --app-border: #cbd5e1;
+  --app-danger: #b91c1c;
+  --app-danger-surface: #fef2f2;
+  --app-danger-border: #fecaca;
+  --app-on-primary: #ffffff;
+}
+
+/* Expose the branding CSS variables as Tailwind theme tokens. */
+@theme inline {
+  --font-sans: var(--font-family-sans);
+  --color-background: var(--app-background);
+  --color-surface: var(--app-surface);
+  --color-surface-muted: var(--app-surface-muted);
+  --color-primary: var(--app-primary);
+  --color-primary-strong: var(--app-primary-strong);
+  --color-text: var(--app-text);
+  --color-text-muted: var(--app-text-muted);
+  --color-border: var(--app-border);
+  --color-danger: var(--app-danger);
+  --color-danger-surface: var(--app-danger-surface);
+  --color-danger-border: var(--app-danger-border);
+  --color-onPrimary: var(--app-on-primary);
+}
+
+@layer base {
+  html {
+    font-family: var(--font-family-sans);
+  }
+
+  body {
+    @apply m-0 min-h-screen bg-background text-text antialiased;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+}
