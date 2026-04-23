@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
 import { branding } from '../config/branding';
+import { useAuth } from '../features/auth/useAuth.jsx';
 
 const Login = () => {
   const [role, setRole] = useState('student');
@@ -10,33 +11,65 @@ const Login = () => {
   const [coachPassword, setCoachPassword] = useState('');
   const [studentId, setStudentId] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { coachUser, signInCoach, signInStudent, studentSession } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (coachUser) {
+      navigate('/coach/dashboard', { replace: true });
+    }
+  }, [coachUser, navigate]);
+
+  useEffect(() => {
+    if (studentSession) {
+      navigate('/student/checkin', { replace: true });
+    }
+  }, [studentSession, navigate]);
 
   const handleRoleChange = (e) => {
     setRole(e.target.value);
     setError('');
   };
 
-  const handleCoachLogin = (e) => {
+  const handleCoachLogin = async (e) => {
     e.preventDefault();
-    // TODO: Integrate with coach authentication logic
     if (!coachEmail || !coachPassword) {
       setError('Please enter both email and password.');
       return;
     }
-    // Simulate login success
-    navigate('/coach/dashboard');
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      await signInCoach({ email: coachEmail, password: coachPassword });
+      navigate('/coach/dashboard', { replace: true });
+    } catch (loginError) {
+      setError(loginError.message || 'Coach login failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleStudentLogin = (e) => {
+  const handleStudentLogin = async (e) => {
     e.preventDefault();
-    // TODO: Integrate with student authentication logic
     if (!studentId) {
       setError('Please enter your student ID.');
       return;
     }
-    // Simulate login success
-    navigate('/student/checkin');
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      await signInStudent({ studentId });
+      navigate('/student/checkin', { replace: true });
+    } catch (loginError) {
+      setError(loginError.message || 'Student login failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -131,7 +164,9 @@ const Login = () => {
                   placeholder="Enter your password"
                   required
                 />
-                <Button type="submit">Login as Coach</Button>
+                <Button disabled={isSubmitting} type="submit">
+                  {isSubmitting ? 'Signing In...' : 'Login as Coach'}
+                </Button>
               </form>
             ) : (
               <form className="space-y-4" onSubmit={handleStudentLogin}>
@@ -143,7 +178,9 @@ const Login = () => {
                   placeholder="Enter your student ID"
                   required
                 />
-                <Button type="submit">Login as Student</Button>
+                <Button disabled={isSubmitting} type="submit">
+                  {isSubmitting ? 'Checking ID...' : 'Login as Student'}
+                </Button>
               </form>
             )}
 
@@ -155,6 +192,9 @@ const Login = () => {
 
             <p className="mt-6 text-center text-xs leading-5 text-text-muted">
               Change brand colors in <code className="rounded bg-surface-muted px-1.5 py-0.5">src/config/branding.js</code>.
+            </p>
+            <p className="mt-3 text-center text-xs leading-5 text-text-muted">
+              Coaches authenticate with Firebase Auth. Students are matched against Firestore.
             </p>
           </div>
         </div>

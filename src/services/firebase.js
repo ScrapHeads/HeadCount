@@ -1,6 +1,6 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -11,4 +11,16 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+const missingConfig = Object.entries(firebaseConfig)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+
+if (missingConfig.length > 0) {
+  throw new Error(`Missing Firebase environment variables: ${missingConfig.join(', ')}`);
+}
+
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+export { app, auth, db };
