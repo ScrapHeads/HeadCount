@@ -1,56 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
 import { branding } from '../config/branding';
 import { useAuth } from '../features/auth/useAuth.jsx';
 
 const Login = () => {
-  const [role, setRole] = useState('student');
-  const [coachEmail, setCoachEmail] = useState('');
-  const [coachPassword, setCoachPassword] = useState('');
   const [studentId, setStudentId] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { coachUser, signInCoach, signInStudent, studentSession } = useAuth();
+  const { signInStudent, studentSession } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (coachUser) {
-      navigate('/coach/dashboard', { replace: true });
-    }
-  }, [coachUser, navigate]);
-
-  useEffect(() => {
     if (studentSession) {
-      navigate('/student/checkin', { replace: true });
+      navigate('/student/session', { replace: true });
     }
   }, [studentSession, navigate]);
-
-  const handleRoleChange = (e) => {
-    setRole(e.target.value);
-    setError('');
-  };
-
-  const handleCoachLogin = async (e) => {
-    e.preventDefault();
-    if (!coachEmail || !coachPassword) {
-      setError('Please enter both email and password.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError('');
-
-    try {
-      await signInCoach({ email: coachEmail, password: coachPassword });
-      navigate('/coach/dashboard', { replace: true });
-    } catch (loginError) {
-      setError(loginError.message || 'Coach login failed.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleStudentLogin = async (e) => {
     e.preventDefault();
@@ -64,7 +30,7 @@ const Login = () => {
 
     try {
       await signInStudent({ studentId });
-      navigate('/student/checkin', { replace: true });
+      navigate('/student/session', { replace: true });
     } catch (loginError) {
       setError(loginError.message || 'Student login failed.');
     } finally {
@@ -109,80 +75,29 @@ const Login = () => {
           <div className="mx-auto flex max-w-md flex-col">
             <div className="mb-8 space-y-2">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
-                Sign In
+                Student Hours
               </p>
               <h2 className="text-3xl font-semibold tracking-tight text-text">
-                Access team hours
+                Enter your student ID
               </h2>
               <p className="text-sm leading-6 text-text-muted">
-                Switch between student and coach sign-in to preview both entry points.
+                Start here for the main sign-in and sign-out workflow. Coach and demo access are still available from the secondary portal.
               </p>
             </div>
 
-            <div className="mb-6 inline-flex rounded-2xl bg-surface-muted p-1">
-              <label className="flex-1">
-                <input
-                  className="sr-only"
-                  type="radio"
-                  value="student"
-                  checked={role === 'student'}
-                  onChange={handleRoleChange}
-                />
-                <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'student' ? 'bg-surface text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>
-                  Student
-                </span>
-              </label>
-              <label className="flex-1">
-                <input
-                  className="sr-only"
-                  type="radio"
-                  value="coach"
-                  checked={role === 'coach'}
-                  onChange={handleRoleChange}
-                />
-                <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'coach' ? 'bg-surface text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>
-                  Coach
-                </span>
-              </label>
-            </div>
-
-            {role === 'coach' ? (
-              <form className="space-y-4" onSubmit={handleCoachLogin}>
-                <Input
-                  label="Email"
-                  type="email"
-                  value={coachEmail}
-                  onChange={e => setCoachEmail(e.target.value)}
-                  placeholder="coach@team.org"
-                  required
-                />
-                <Input
-                  label="Password"
-                  type="password"
-                  value={coachPassword}
-                  onChange={e => setCoachPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                />
-                <Button disabled={isSubmitting} type="submit">
-                  {isSubmitting ? 'Signing In...' : 'Login as Coach'}
-                </Button>
-              </form>
-            ) : (
-              <form className="space-y-4" onSubmit={handleStudentLogin}>
-                <Input
-                  label="Student ID"
-                  type="text"
-                  value={studentId}
-                  onChange={e => setStudentId(e.target.value)}
-                  placeholder="Enter your student ID"
-                  required
-                />
-                <Button disabled={isSubmitting} type="submit">
-                  {isSubmitting ? 'Checking ID...' : 'Login as Student'}
-                </Button>
-              </form>
-            )}
+            <form className="space-y-4" onSubmit={handleStudentLogin}>
+              <Input
+                label="Student ID"
+                type="text"
+                value={studentId}
+                onChange={e => setStudentId(e.target.value)}
+                placeholder="Enter your student ID"
+                required
+              />
+              <Button disabled={isSubmitting} type="submit">
+                {isSubmitting ? 'Checking ID...' : 'Continue to Sign In / Out form'}
+              </Button>
+            </form>
 
             {error && (
               <div className="mt-4 rounded-2xl border border-danger-border bg-danger-surface px-4 py-3 text-sm text-danger">
@@ -190,11 +105,18 @@ const Login = () => {
               </div>
             )}
 
+            <Link
+              className="mt-4 inline-flex items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-semibold text-text transition hover:bg-surface-muted"
+              to="/access"
+            >
+              Open coach and demo access
+            </Link>
+
             <p className="mt-6 text-center text-xs leading-5 text-text-muted">
               Change brand colors in <code className="rounded bg-surface-muted px-1.5 py-0.5">src/config/branding.js</code>.
             </p>
             <p className="mt-3 text-center text-xs leading-5 text-text-muted">
-              Coaches authenticate with Firebase Auth. Students are matched against Firestore.
+              Students are matched against Firestore before entering the hours form.
             </p>
           </div>
         </div>

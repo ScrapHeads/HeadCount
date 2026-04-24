@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { loginCoach, loginStudent, logoutCoach, watchCoachAuth } from './authServices';
+import {
+  loginCoach,
+  loginStudent,
+  logoutCoach,
+  updateStudentSessionState,
+  watchCoachAuth,
+} from './authServices';
 import { useStudentSession } from '../../hooks/useStudentSession';
 
 const AuthContext = createContext(null);
@@ -24,14 +30,33 @@ export const AuthProvider = ({ children }) => {
     return user;
   };
 
-  const signInStudent = async ({ studentId }) => {
-    const student = await loginStudent({ studentId });
+  const signInStudent = async ({ studentId, password, requirePassword }) => {
+    const student = await loginStudent({ studentId, password, requirePassword });
     setStudentSession(student);
     return student;
   };
 
   const signOutStudent = () => {
     setStudentSession(null);
+  };
+
+  const updateStudentSession = async (updates) => {
+    if (!studentSession?.id) {
+      throw new Error('No student session is available to update.');
+    }
+
+    const updatedFields = await updateStudentSessionState({
+      studentDocId: studentSession.id,
+      updates,
+    });
+
+    const updatedSession = {
+      ...studentSession,
+      ...updatedFields,
+    };
+
+    setStudentSession(updatedSession);
+    return updatedSession;
   };
 
   const signOutCurrentCoach = async () => {
@@ -49,6 +74,7 @@ export const AuthProvider = ({ children }) => {
         signInStudent,
         signOutStudent,
         studentSession,
+        updateStudentSession,
       }}
     >
       {children}

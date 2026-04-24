@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from '../features/auth/useAuth.jsx';
+import AccessPortal from '../pages/AccessPortal';
 import Login from '../pages/Login';
 import CoachDashboard from '../pages/CoachDashboard';
 import StudentCheckIn from '../pages/StudentCheckIn';
@@ -43,6 +44,7 @@ const App = () => (
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<Login />} />
+      <Route path="/access" element={<AccessPortal />} />
       <Route
         path="/coach/dashboard"
         element={(
@@ -52,12 +54,16 @@ const App = () => (
         )}
       />
       <Route
-        path="/student/checkin"
+        path="/student/session"
         element={(
           <StudentRoute>
             <StudentCheckIn />
           </StudentRoute>
         )}
+      />
+      <Route
+        path="/student/checkin"
+        element={<Navigate replace to="/student/session" />}
       />
       <Route
         path="/student/checkout"

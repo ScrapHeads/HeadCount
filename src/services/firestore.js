@@ -1,8 +1,13 @@
 import {
+  addDoc,
   collection,
+  doc,
   getDocs,
+  getDoc,
   limit,
   query,
+  serverTimestamp,
+  updateDoc,
   where,
 } from 'firebase/firestore';
 import { studentAuthConfig } from '../config/appConfig';
@@ -67,4 +72,52 @@ export const findStudentRecord = async (studentId) => {
   }
 
   return null;
+};
+
+export const updateStudentRecord = async (studentDocId, updates) => {
+  if (!studentDocId) {
+    throw new Error('Student document ID is required for updates.');
+  }
+
+  const studentDocRef = doc(db, studentAuthConfig.collectionName, studentDocId);
+  await updateDoc(studentDocRef, updates);
+};
+
+export const createDocument = async (collectionName, data) => {
+  const docRef = await addDoc(collection(db, collectionName), {
+    ...data,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  return docRef.id;
+};
+
+export const getDocument = async (collectionName, documentId) => {
+  if (!documentId) {
+    throw new Error('Document ID is required.');
+  }
+
+  const documentSnapshot = await getDoc(doc(db, collectionName, documentId));
+
+  if (!documentSnapshot.exists()) {
+    return null;
+  }
+
+  return {
+    id: documentSnapshot.id,
+    ...documentSnapshot.data(),
+  };
+};
+
+export const updateDocument = async (collectionName, documentId, updates) => {
+  if (!documentId) {
+    throw new Error('Document ID is required for updates.');
+  }
+
+  const documentRef = doc(db, collectionName, documentId);
+  await updateDoc(documentRef, {
+    ...updates,
+    updatedAt: serverTimestamp(),
+  });
 };

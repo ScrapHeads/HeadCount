@@ -62,6 +62,7 @@ Current authentication model:
 
 - Coaches sign in with Firebase Authentication using email/password.
 - Students sign in by entering a student ID that is checked against Firestore.
+- Students in the `/access` portal sign in with both student ID and password from Firestore.
 - Student sessions are stored in `sessionStorage` for the current browser tab.
 
 Main auth files:
@@ -70,7 +71,7 @@ Main auth files:
 - `src/services/auth.js`: coach sign-in and sign-out helpers.
 - `src/services/firestore.js`: student lookup against Firestore.
 - `src/features/auth/useAuth.jsx`: React auth context and shared session state.
-- `src/config/appConfig.js`: configurable Firestore collection name and student ID field.
+- `src/config/appConfig.js`: configurable Firestore collection name, student ID field, and student password field.
 
 ## Firestore Student Collection
 
@@ -86,12 +87,13 @@ Recommended student document shape:
 ```json
 {
   "studentId": "12345",
+  "password": "student-demo-password",
   "name": "Jane Doe",
   "active": true
 }
 ```
 
-If your Firestore schema uses a different collection name or a different student ID field, change `src/config/appConfig.js`.
+If your Firestore schema uses a different collection name, student ID field, or student password field, change `src/config/appConfig.js`.
 
 ## Notes For Teams
 
