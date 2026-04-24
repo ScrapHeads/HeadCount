@@ -5,6 +5,7 @@ export const useTasks = () => {
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -35,7 +36,12 @@ export const useTasks = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [reloadToken]);
 
-  return { tasks, isLoading, error };
+  return {
+    tasks,
+    isLoading,
+    error,
+    reloadTasks: () => setReloadToken((currentValue) => currentValue + 1),
+  };
 };

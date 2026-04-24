@@ -76,6 +76,8 @@ const StudentCheckIn = () => {
   }, [activeScheduledTaskIds, scheduledTasks, unscheduledTasks]);
 
   const currentStudentTask = useMemo(() => {
+    // Prefer the stable task id when it exists. The name fallback is only for
+    // older student documents that were saved before currentTaskId was added.
     if (studentSession?.[studentAuthConfig.currentTaskIdField]) {
       return tasks.find((task) => task.id === studentSession[studentAuthConfig.currentTaskIdField]) ?? null;
     }
@@ -143,6 +145,8 @@ const StudentCheckIn = () => {
           throw new Error('No active time log is stored for this student.');
         }
 
+        // Sign-out only requires the active log id. The selected task card is
+        // display-only so a missing task document does not block checkout.
         await endStudentSession({
           studentDocId: studentSession.id,
           timeLogId: activeTimeLogId,

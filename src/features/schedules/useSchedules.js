@@ -5,6 +5,7 @@ export const useSchedules = (taskId) => {
   const [schedules, setSchedules] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -37,7 +38,12 @@ export const useSchedules = (taskId) => {
     return () => {
       isMounted = false;
     };
-  }, [taskId]);
+  }, [reloadToken, taskId]);
 
-  return { schedules, isLoading, error };
+  return {
+    schedules,
+    isLoading,
+    error,
+    reloadSchedules: () => setReloadToken((currentValue) => currentValue + 1),
+  };
 };

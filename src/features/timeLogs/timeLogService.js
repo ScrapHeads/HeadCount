@@ -10,6 +10,8 @@ import { studentAuthConfig, taskConfig, timeLogConfig } from '../../config/appCo
 import { db } from '../../services/firebase';
 import { toDate } from '../../lib/dateUtils';
 
+// Duration is stored as a convenience field for analytics. We still keep the
+// raw timestamps so teams can recalculate later if they want different rules.
 const calculateDurationMinutes = (signInAt, signOutAt) => {
   const startedAt = toDate(signInAt);
   const endedAt = toDate(signOutAt);
@@ -36,6 +38,9 @@ export const startStudentSession = async ({ student, task, signInNotes }) => {
   const timeLogDocRef = doc(collection(db, timeLogConfig.collectionName));
   const batch = writeBatch(db);
 
+  // Create the historical record and update the student's live session state
+  // together so the app does not end up with an active log but no active
+  // student session, or the reverse.
   batch.set(timeLogDocRef, {
     [timeLogConfig.studentDocIdField]: student.id,
     [timeLogConfig.studentIdField]: student.studentId ?? student.id,
@@ -94,6 +99,8 @@ export const endStudentSession = async ({ studentDocId, timeLogId, signOutNotes 
   const studentDocRef = doc(db, studentAuthConfig.collectionName, studentDocId);
   const batch = writeBatch(db);
 
+  // Sign-out clears the live student fields in the same batch that closes the
+  // log. That keeps the coach dashboard and reporting views consistent.
   batch.update(timeLogDocRef, {
     [timeLogConfig.signOutAtField]: signOutAt,
     [timeLogConfig.signOutNotesField]: signOutNotes,
@@ -117,4 +124,25 @@ export const endStudentSession = async ({ studentDocId, timeLogId, signOutNotes 
     signOutAt,
     durationMinutes,
   };
+};
+
+// Coaches use the same close-session flow as students, but with a generated
+// note so the historical log shows the session was ended from the dashboard.
+export const endStudentSessionByCoach = async ({ student, coachEmail }) => {
+  if (!student?.id) {
+    throw new Error('A student record is required to end a session.');
+  }
+
+  const timeLogId = student[studentAuthConfig.activeTimeLogIdField];
+
+  if (!timeLogId) {
+    throw new Error('This student does not have an active time log.');
+  }
+
+  const noteSuffix = coachEmail ? ` by ${coachEmail}` : '';
+  return endStudentSession({
+    studentDocId: student.id,
+    timeLogId,
+    signOutNotes: `Session ended from coach dashboard${noteSuffix}.`,
+  });
 };

@@ -54,6 +54,8 @@ The `theme.colors` values are applied to CSS variables at startup, and Tailwind 
 4. `src/styles/globals.css` exposes those CSS variables to Tailwind with `@theme inline`.
 5. Components use Tailwind classes like `bg-primary`, `text-text`, and `border-border`, which automatically pick up the current branding values.
 
+When extending the demo, keep new styling inside this system. Prefer theme-backed classes such as `bg-surface`, `text-onPrimary`, `border-border`, and `bg-surface-muted` over hardcoded hex colors, `rgba(...)`, or one-off literal color utilities.
+
 ## Firebase Auth Setup
 
 Firebase config is read from `.env` through Vite environment variables in `src/services/firebase.js`.
@@ -95,8 +97,54 @@ Recommended student document shape:
 
 If your Firestore schema uses a different collection name, student ID field, or student password field, change `src/config/appConfig.js`.
 
+## Firestore Session Model
+
+Student sign-in and sign-out now use two Firestore data shapes:
+
+- `students`: current live session state for the student kiosk and coach dashboard.
+- `timeLogs`: historical session records used for reporting and analytics.
+
+Recommended live session fields on each student document:
+
+```json
+{
+  "signedIn": false,
+  "currentTask": null,
+  "currentTaskId": null,
+  "activeTimeLogId": null,
+  "signedInAt": null
+}
+```
+
+Recommended `timeLogs` document shape:
+
+```json
+{
+  "studentDocId": "abc123",
+  "studentId": "12345",
+  "studentName": "Jane Doe",
+  "taskId": "cad",
+  "taskName": "CAD",
+  "signInAt": "Firestore Timestamp",
+  "signOutAt": null,
+  "signInNotes": "Finish drivetrain plate layout",
+  "signOutNotes": null,
+  "status": "active",
+  "durationMinutes": null,
+  "createdAt": "Firestore Timestamp",
+  "updatedAt": "Firestore Timestamp"
+}
+```
+
+Implementation notes:
+
+- `currentTaskId` is the stable reference and should be preferred over task name matching.
+- `currentTask` is still kept as a readable snapshot for simpler displays and backwards compatibility.
+- Sign-in and sign-out are written as Firestore batches so the student live state and historical time log stay in sync.
+- `signedInAt` should be a Firestore timestamp while a session is active and `null` when it is not.
+
 ## Notes For Teams
 
 - If a team only wants new colors and text, they should not need to touch the page layout files.
-- The current dashboard and check-in/check-out pages are still placeholders intended for demo and extension work.
+- The coach dashboard is intentionally a shell with `Home`, `Schedule`, and `Analytics` sections so teams can drop in their own Firestore-powered panels without rebuilding the layout.
 - Shared UI code now lives under `src/components`.

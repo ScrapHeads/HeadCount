@@ -1,4 +1,4 @@
-import { isSameCalendarDay, toDate } from './dateUtils';
+import { toDate } from './dateUtils';
 
 const buildComparableTime = (source, target) => {
   return new Date(
@@ -27,5 +27,5 @@ export const isCurrentTimeWithinSchedule = ({ now, startTime, endTime, isRecurri
     return nowDate >= comparableStart && nowDate <= comparableEnd;
   }
 
-  return isSameCalendarDay(nowDate, startDate) && nowDate >= startDate && nowDate <= endDate;
+  return nowDate >= startDate && nowDate <= endDate;
 };
