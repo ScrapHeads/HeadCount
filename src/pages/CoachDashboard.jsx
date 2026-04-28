@@ -104,6 +104,42 @@ const dayOfMonthOptions = Array.from({ length: 31 }, (_, index) => ({
   label: String(index + 1),
 }));
 
+const taskSourceOptions = [
+  {
+    value: 'existing',
+    title: 'Use Existing',
+    description: 'Attach the event to a task that already exists in the system.',
+  },
+  {
+    value: 'new',
+    title: 'Create New',
+    description: 'Make a new scheduled task first, then attach the event to it.',
+  },
+];
+
+const scheduleTypeOptions = [
+  {
+    value: scheduleConfig.recurrenceTypes.oneTime,
+    title: 'One-Time',
+    description: 'A single event with explicit start and end dates.',
+  },
+  {
+    value: scheduleConfig.recurrenceTypes.weekly,
+    title: 'Weekly',
+    description: 'Repeats every week on the selected weekday.',
+  },
+  {
+    value: scheduleConfig.recurrenceTypes.monthly,
+    title: 'Monthly',
+    description: 'Repeats each month on the selected day of month.',
+  },
+  {
+    value: scheduleConfig.recurrenceTypes.yearly,
+    title: 'Yearly',
+    description: 'Repeats once a year on the selected month and day.',
+  },
+];
+
 const buildDateTimeFromForm = (dateValue, timeValue) => {
   if (!dateValue || !timeValue) {
     return null;
@@ -493,31 +529,18 @@ const CoachDashboard = () => {
                     {item.eyebrow}
                   </p>
                   <p className="mt-2 text-lg font-semibold text-onPrimary">{item.label}</p>
-                  <p className="mt-1 text-sm leading-5 text-onPrimary/75">{item.description}</p>
+                  {/* <p className="mt-1 text-sm leading-5 text-onPrimary/75">{item.description}</p> */}
                 </button>
               );
             })}
           </nav>
 
-          <div className="relative mt-6 rounded-2xl border border-onPrimary/15 bg-onPrimary/10 p-4 backdrop-blur-sm">
-            <p className="text-sm font-semibold">Current focus</p>
-            <p className="mt-2 text-sm leading-6 text-onPrimary/80">
-              The home tab now shows live sessions and lets coaches end a session directly from the dashboard table.
-            </p>
-          </div>
-
-          <div className="relative mt-6 flex flex-col gap-3 sm:flex-row lg:mt-auto lg:flex-col">
+          <div className="relative mt-6 flex flex-col gap-3 sm:flex-row lg:mt-auto lg:flex-col boarder-t border-border pt-6 boarder-t border-onPrimary/10">
             <Button className="bg-surface text-primary shadow-none hover:bg-surface-muted focus:ring-onPrimary/40 focus:ring-offset-primary" onClick={handleSignOut} type="button">
               Sign out
             </Button>
-            <button
-              className="inline-flex items-center justify-center rounded-xl border border-onPrimary/20 px-4 py-3 text-sm font-semibold text-onPrimary transition hover:bg-onPrimary/10"
-              onClick={() => navigate('/', { replace: true })}
-              type="button"
-            >
-              Return to login
-            </button>
           </div>
+
         </aside>
 
         <section className="flex min-h-full flex-col bg-background p-6 sm:p-8 lg:p-10">
@@ -534,16 +557,16 @@ const CoachDashboard = () => {
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[360px]">
-              <div className="rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Live Sessions</p>
+            <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px] xl:min-h-[120px] xl:grid-cols-2">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-surface px-4 py-4 text-center shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Signed in</p>
                 <p className="mt-2 text-2xl font-semibold text-text">{homeStats.activeCount}</p>
               </div>
-              <div className="rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm">
+              {/* <div className="rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Session Types</p>
                 <p className="mt-2 text-2xl font-semibold text-text">{homeStats.uniqueSessionTypes}</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm">
+              </div> */}
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-surface px-4 py-4 text-center shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Earliest Sign-In</p>
                 <p className="mt-2 text-2xl font-semibold text-text">
                   {homeStats.earliestSignIn ? formatSignedInAt(homeStats.earliestSignIn) : 'None'}
@@ -643,9 +666,6 @@ const CoachDashboard = () => {
                   <article className="rounded-[1.75rem] border border-border bg-surface p-6 shadow-lg">
                     <div className="border-b border-border pb-5">
                       <p className="text-lg font-semibold text-text">Scheduled task windows</p>
-                      <p className="mt-2 text-sm leading-6 text-text-muted">
-                        This list shows the next 10 scheduled events that have not ended yet.
-                      </p>
                     </div>
 
                     {(schedulesError || tasksError) && (
@@ -715,17 +735,30 @@ const CoachDashboard = () => {
                     </div>
 
                     <form className="mt-5 grid gap-4 md:grid-cols-2" onSubmit={handleScheduleSubmit}>
-                      <label className="flex flex-col gap-1.5 md:col-span-2">
+                      <div className="md:col-span-2">
                         <span className="text-sm font-medium text-text">Task source</span>
-                        <select
-                          className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                          onChange={(e) => handleScheduleFieldChange('taskMode', e.target.value)}
-                          value={scheduleForm.taskMode}
-                        >
-                          <option value="existing">Use existing task</option>
-                          <option value="new">Create new task</option>
-                        </select>
-                      </label>
+                        <div className="mt-2 grid gap-3 md:grid-cols-2">
+                          {taskSourceOptions.map((option) => {
+                            const isActive = scheduleForm.taskMode === option.value;
+
+                            return (
+                              <button
+                                key={option.value}
+                                className={`rounded-[1.5rem] border p-4 text-left transition ${
+                                  isActive
+                                    ? 'border-primary bg-surface-muted shadow-sm'
+                                    : 'border-border bg-surface hover:bg-surface-muted'
+                                }`}
+                                onClick={() => handleScheduleFieldChange('taskMode', option.value)}
+                                type="button"
+                              >
+                                <p className="text-base font-semibold text-text">{option.title}</p>
+                                <p className="mt-2 text-sm leading-6 text-text-muted">{option.description}</p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
 
                       {scheduleForm.taskMode === 'existing' ? (
                         <label className="flex flex-col gap-1.5 md:col-span-2">
@@ -758,19 +791,30 @@ const CoachDashboard = () => {
                         </label>
                       )}
 
-                      <label className="flex flex-col gap-1.5 md:col-span-2">
+                      <div className="md:col-span-2">
                         <span className="text-sm font-medium text-text">Schedule type</span>
-                        <select
-                          className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                          onChange={(e) => handleScheduleFieldChange('scheduleMode', e.target.value)}
-                          value={scheduleForm.scheduleMode}
-                        >
-                          <option value={scheduleConfig.recurrenceTypes.oneTime}>One-time event</option>
-                          <option value={scheduleConfig.recurrenceTypes.weekly}>Recurring weekly event</option>
-                          <option value={scheduleConfig.recurrenceTypes.monthly}>Recurring monthly event</option>
-                          <option value={scheduleConfig.recurrenceTypes.yearly}>Recurring yearly event</option>
-                        </select>
-                      </label>
+                        <div className="mt-2 grid gap-3 md:grid-cols-2">
+                          {scheduleTypeOptions.map((option) => {
+                            const isActive = scheduleForm.scheduleMode === option.value;
+
+                            return (
+                              <button
+                                key={option.value}
+                                className={`rounded-[1.5rem] border p-4 text-left transition ${
+                                  isActive
+                                    ? 'border-primary bg-surface-muted shadow-sm'
+                                    : 'border-border bg-surface hover:bg-surface-muted'
+                                }`}
+                                onClick={() => handleScheduleFieldChange('scheduleMode', option.value)}
+                                type="button"
+                              >
+                                <p className="text-base font-semibold text-text">{option.title}</p>
+                                <p className="mt-2 text-sm leading-6 text-text-muted">{option.description}</p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
 
                       {scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.weekly && (
                         <label className="flex flex-col gap-1.5 md:col-span-2">

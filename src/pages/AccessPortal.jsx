@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
@@ -13,20 +13,8 @@ const AccessPortal = () => {
   const [studentPassword, setStudentPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { coachUser, signInCoach, signInStudent, studentSession } = useAuth();
+  const { signInCoach, signInStudent } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (coachUser) {
-      navigate('/coach/dashboard', { replace: true });
-    }
-  }, [coachUser, navigate]);
-
-  useEffect(() => {
-    if (studentSession) {
-      navigate('/student/session', { replace: true });
-    }
-  }, [studentSession, navigate]);
 
   const handleCoachLogin = async (e) => {
     e.preventDefault();
