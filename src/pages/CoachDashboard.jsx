@@ -496,17 +496,17 @@ const CoachDashboard = () => {
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl overflow-hidden rounded-[2rem] border border-border bg-surface shadow-xl lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="relative flex flex-col border-b border-border bg-linear-to-b from-primary to-primary-strong p-6 text-onPrimary lg:border-b-0 lg:border-r lg:border-r-onPrimary/10">
+      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl overflow-hidden rounded-[2rem] border border-border bg-secondary shadow-xl shadow-primary/10 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="relative flex flex-col border-b border-border bg-primary p-6 text-on-primary lg:border-b-0 lg:border-r lg:border-r-on-primary/10">
           <div className="relative">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-onPrimary/75">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-on-primary/75">
               Coach Workspace
             </p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight">
               {branding.appName}
             </h1>
-            <p className="mt-3 text-sm leading-6 text-onPrimary/80">
-              Signed in as <span className="font-semibold text-onPrimary">{coachUser?.email}</span>.
+            <p className="mt-3 text-sm leading-6 text-on-primary/80">
+              Signed in as <span className="font-semibold text-on-primary">{coachUser?.email}</span>.
             </p>
           </div>
 
@@ -519,24 +519,24 @@ const CoachDashboard = () => {
                   key={item.id}
                   className={`rounded-2xl border px-4 py-4 text-left transition ${
                     isActive
-                      ? 'border-onPrimary/25 bg-onPrimary/14 shadow-lg backdrop-blur-sm'
-                      : 'border-onPrimary/10 bg-onPrimary/5 hover:bg-onPrimary/10'
+                      ? 'border-on-primary/25 bg-on-primary/14 shadow-lg backdrop-blur-sm'
+                      : 'border-on-primary/10 bg-on-primary/5 hover:bg-on-primary/10'
                   }`}
                   onClick={() => setActiveSection(item.id)}
                   type="button"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-onPrimary/65">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-on-primary/65">
                     {item.eyebrow}
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-onPrimary">{item.label}</p>
-                  {/* <p className="mt-1 text-sm leading-5 text-onPrimary/75">{item.description}</p> */}
+                  <p className="mt-2 text-lg font-semibold text-on-primary">{item.label}</p>
+                  {/* <p className="mt-1 text-sm leading-5 text-on-primary/75">{item.description}</p> */}
                 </button>
               );
             })}
           </nav>
 
-          <div className="relative mt-6 flex flex-col gap-3 sm:flex-row lg:mt-auto lg:flex-col boarder-t border-border pt-6 boarder-t border-onPrimary/10">
-            <Button className="bg-surface text-primary shadow-none hover:bg-surface-muted focus:ring-onPrimary/40 focus:ring-offset-primary" onClick={handleSignOut} type="button">
+          <div className="relative mt-6 flex flex-col gap-3 border-t border-on-primary/10 pt-6 sm:flex-row lg:mt-auto lg:flex-col">
+            <Button className="bg-secondary text-primary shadow-none hover:bg-accent/12 focus:ring-on-primary/40 focus:ring-offset-primary" onClick={handleSignOut} type="button">
               Sign out
             </Button>
           </div>
@@ -558,15 +558,15 @@ const CoachDashboard = () => {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px] xl:min-h-[120px] xl:grid-cols-2">
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-surface px-4 py-4 text-center shadow-sm">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-secondary px-4 py-4 text-center shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Signed in</p>
                 <p className="mt-2 text-2xl font-semibold text-text">{homeStats.activeCount}</p>
               </div>
-              {/* <div className="rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm">
+              {/* <div className="rounded-2xl border border-border bg-secondary px-4 py-4 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Session Types</p>
                 <p className="mt-2 text-2xl font-semibold text-text">{homeStats.uniqueSessionTypes}</p>
               </div> */}
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-surface px-4 py-4 text-center shadow-sm">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-secondary px-4 py-4 text-center shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Earliest Sign-In</p>
                 <p className="mt-2 text-2xl font-semibold text-text">
                   {homeStats.earliestSignIn ? formatSignedInAt(homeStats.earliestSignIn) : 'None'}
@@ -578,7 +578,7 @@ const CoachDashboard = () => {
           <div className="mt-8 grid gap-5">
             <div className="grid gap-5">
               {activeSection === 'home' ? (
-                <article className="rounded-[1.75rem] border border-border bg-surface p-6 shadow-lg">
+                <article className="rounded-[1.75rem] border border-border bg-secondary p-6 shadow-lg">
                   <div className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                       <p className="text-lg font-semibold text-text">Live team status</p>
@@ -589,13 +589,13 @@ const CoachDashboard = () => {
                   </div>
 
                   {homeStatusMessage && (
-                    <div className="mt-5 rounded-2xl border border-border bg-surface-muted px-4 py-3 text-sm text-text">
+                    <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-text">
                       {homeStatusMessage}
                     </div>
                   )}
 
                   {activeStudentsError && (
-                    <div className="mt-5 rounded-2xl border border-danger-border bg-danger-surface px-4 py-3 text-sm text-danger">
+                    <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-text">
                       {activeStudentsError}
                     </div>
                   )}
@@ -614,13 +614,13 @@ const CoachDashboard = () => {
                       <tbody>
                         {isLoadingActiveStudents ? (
                           <tr>
-                            <td className="rounded-2xl border border-border bg-surface-muted px-4 py-6 text-sm text-text-muted" colSpan={5}>
+                            <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-sm text-text-muted" colSpan={5}>
                               Loading active sessions...
                             </td>
                           </tr>
                         ) : activeStudents.length === 0 ? (
                           <tr>
-                            <td className="rounded-2xl border border-border bg-surface-muted px-4 py-6 text-sm text-text-muted" colSpan={5}>
+                            <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-sm text-text-muted" colSpan={5}>
                               No students are currently signed in.
                             </td>
                           </tr>
@@ -631,21 +631,21 @@ const CoachDashboard = () => {
 
                             return (
                               <tr key={student.id}>
-                                <td className="rounded-l-2xl border-y border-l border-border bg-surface px-4 py-4 text-sm text-text">
+                                <td className="rounded-l-2xl border-y border-l border-border bg-secondary px-4 py-4 text-sm text-text">
                                   <span className="font-semibold">{student.name ?? 'Student'}</span>
                                 </td>
-                                <td className="border-y border-border bg-surface px-4 py-4 text-sm text-text-muted">
+                                <td className="border-y border-border bg-secondary px-4 py-4 text-sm text-text-muted">
                                   {student.studentId ?? 'Not set'}
                                 </td>
-                                <td className="border-y border-border bg-surface px-4 py-4 text-sm text-text-muted">
+                                <td className="border-y border-border bg-secondary px-4 py-4 text-sm text-text-muted">
                                   {formatSignedInAt(student[studentAuthConfig.signedInAtField])}
                                 </td>
-                                <td className="border-y border-border bg-surface px-4 py-4 text-sm text-text-muted">
+                                <td className="border-y border-border bg-secondary px-4 py-4 text-sm text-text-muted">
                                   {sessionType}
                                 </td>
-                                <td className="rounded-r-2xl border-y border-r border-border bg-surface px-4 py-4 text-right">
+                                <td className="rounded-r-2xl border-y border-r border-border bg-secondary px-4 py-4 text-right">
                                   <button
-                                    className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-semibold text-text transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-semibold text-text transition hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
                                     disabled={isEnding}
                                     onClick={() => handleEndSession(student)}
                                     type="button"
@@ -663,13 +663,13 @@ const CoachDashboard = () => {
                 </article>
               ) : activeSection === 'schedule' ? (
                 <>
-                  <article className="rounded-[1.75rem] border border-border bg-surface p-6 shadow-lg">
+                  <article className="rounded-[1.75rem] border border-border bg-secondary p-6 shadow-lg">
                     <div className="border-b border-border pb-5">
                       <p className="text-lg font-semibold text-text">Scheduled task windows</p>
                     </div>
 
                     {(schedulesError || tasksError) && (
-                      <div className="mt-5 rounded-2xl border border-danger-border bg-danger-surface px-4 py-3 text-sm text-danger">
+                      <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-text">
                         {schedulesError || tasksError}
                       </div>
                     )}
@@ -687,13 +687,13 @@ const CoachDashboard = () => {
                         <tbody>
                           {(isLoadingSchedules || isLoadingTasks) ? (
                             <tr>
-                              <td className="rounded-2xl border border-border bg-surface-muted px-4 py-6 text-sm text-text-muted" colSpan={4}>
+                              <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-sm text-text-muted" colSpan={4}>
                                 Loading scheduled events...
                               </td>
                             </tr>
                           ) : upcomingSchedules.length === 0 ? (
                             <tr>
-                              <td className="rounded-2xl border border-border bg-surface-muted px-4 py-6 text-sm text-text-muted" colSpan={4}>
+                              <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-sm text-text-muted" colSpan={4}>
                                 No upcoming scheduled events found.
                               </td>
                             </tr>
@@ -703,18 +703,18 @@ const CoachDashboard = () => {
 
                               return (
                                 <tr key={schedule.id}>
-                                  <td className="rounded-l-2xl border-y border-l border-border bg-surface px-4 py-4 text-sm text-text">
+                                  <td className="rounded-l-2xl border-y border-l border-border bg-secondary px-4 py-4 text-sm text-text">
                                     <span className="font-semibold">
                                       {task?.[taskConfig.nameField] ?? schedule[scheduleConfig.taskIdField] ?? 'Task'}
                                     </span>
                                   </td>
-                                  <td className="border-y border-border bg-surface px-4 py-4 text-sm text-text-muted">
+                                  <td className="border-y border-border bg-secondary px-4 py-4 text-sm text-text-muted">
                                     {schedule.displayType}
                                   </td>
-                                  <td className="border-y border-border bg-surface px-4 py-4 text-sm text-text-muted">
+                                  <td className="border-y border-border bg-secondary px-4 py-4 text-sm text-text-muted">
                                     {formatScheduleDateTime(schedule.resolvedStartTime)}
                                   </td>
-                                  <td className="rounded-r-2xl border-y border-r border-border bg-surface px-4 py-4 text-sm text-text-muted">
+                                  <td className="rounded-r-2xl border-y border-r border-border bg-secondary px-4 py-4 text-sm text-text-muted">
                                     {formatScheduleDateTime(schedule.resolvedEndTime)}
                                   </td>
                                 </tr>
@@ -726,7 +726,7 @@ const CoachDashboard = () => {
                     </div>
                   </article>
 
-                  <article className="rounded-[1.75rem] border border-border bg-surface p-6 shadow-lg">
+                  <article className="rounded-[1.75rem] border border-border bg-secondary p-6 shadow-lg">
                     <div className="border-b border-border pb-5">
                       <p className="text-lg font-semibold text-text">Add scheduled event</p>
                       <p className="mt-2 text-sm leading-6 text-text-muted">
@@ -746,8 +746,8 @@ const CoachDashboard = () => {
                                 key={option.value}
                                 className={`rounded-[1.5rem] border p-4 text-left transition ${
                                   isActive
-                                    ? 'border-primary bg-surface-muted shadow-sm'
-                                    : 'border-border bg-surface hover:bg-surface-muted'
+                                    ? 'border-accent bg-accent/12 shadow-sm'
+                                    : 'border-border bg-secondary hover:bg-accent/10'
                                 }`}
                                 onClick={() => handleScheduleFieldChange('taskMode', option.value)}
                                 type="button"
@@ -764,7 +764,7 @@ const CoachDashboard = () => {
                         <label className="flex flex-col gap-1.5 md:col-span-2">
                           <span className="text-sm font-medium text-text">Task</span>
                           <select
-                            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                             onChange={(e) => handleScheduleFieldChange('taskId', e.target.value)}
                             required
                             value={scheduleForm.taskId}
@@ -781,7 +781,7 @@ const CoachDashboard = () => {
                         <label className="flex flex-col gap-1.5 md:col-span-2">
                           <span className="text-sm font-medium text-text">New task name</span>
                           <input
-                            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                             onChange={(e) => handleScheduleFieldChange('newTaskName', e.target.value)}
                             placeholder="Example: CAD Workshop"
                             required
@@ -802,8 +802,8 @@ const CoachDashboard = () => {
                                 key={option.value}
                                 className={`rounded-[1.5rem] border p-4 text-left transition ${
                                   isActive
-                                    ? 'border-primary bg-surface-muted shadow-sm'
-                                    : 'border-border bg-surface hover:bg-surface-muted'
+                                    ? 'border-accent bg-accent/12 shadow-sm'
+                                    : 'border-border bg-secondary hover:bg-accent/10'
                                 }`}
                                 onClick={() => handleScheduleFieldChange('scheduleMode', option.value)}
                                 type="button"
@@ -820,7 +820,7 @@ const CoachDashboard = () => {
                         <label className="flex flex-col gap-1.5 md:col-span-2">
                           <span className="text-sm font-medium text-text">Recurring day</span>
                           <select
-                            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                             onChange={(e) => handleScheduleFieldChange('recurringDayOfWeek', e.target.value)}
                             value={scheduleForm.recurringDayOfWeek}
                           >
@@ -837,7 +837,7 @@ const CoachDashboard = () => {
                         <label className="flex flex-col gap-1.5 md:col-span-2">
                           <span className="text-sm font-medium text-text">Recurring day of month</span>
                           <select
-                            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                             onChange={(e) => handleScheduleFieldChange('recurringDayOfMonth', e.target.value)}
                             value={scheduleForm.recurringDayOfMonth}
                           >
@@ -855,7 +855,7 @@ const CoachDashboard = () => {
                           <label className="flex flex-col gap-1.5">
                             <span className="text-sm font-medium text-text">Recurring month</span>
                             <select
-                              className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('recurringMonthOfYear', e.target.value)}
                               value={scheduleForm.recurringMonthOfYear}
                             >
@@ -870,7 +870,7 @@ const CoachDashboard = () => {
                           <label className="flex flex-col gap-1.5">
                             <span className="text-sm font-medium text-text">Recurring day of month</span>
                             <select
-                              className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('recurringDayOfMonth', e.target.value)}
                               value={scheduleForm.recurringDayOfMonth}
                             >
@@ -889,7 +889,7 @@ const CoachDashboard = () => {
                           <label className="flex flex-col gap-1.5">
                             <span className="text-sm font-medium text-text">Start date</span>
                             <input
-                              className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('startDate', e.target.value)}
                               required
                               type="date"
@@ -900,7 +900,7 @@ const CoachDashboard = () => {
                           <label className="flex flex-col gap-1.5">
                             <span className="text-sm font-medium text-text">Start time</span>
                             <input
-                              className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('startTime', e.target.value)}
                               required
                               type="time"
@@ -911,7 +911,7 @@ const CoachDashboard = () => {
                           <label className="flex flex-col gap-1.5">
                             <span className="text-sm font-medium text-text">End date</span>
                             <input
-                              className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('endDate', e.target.value)}
                               required
                               type="date"
@@ -922,7 +922,7 @@ const CoachDashboard = () => {
                           <label className="flex flex-col gap-1.5">
                             <span className="text-sm font-medium text-text">End time</span>
                             <input
-                              className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('endTime', e.target.value)}
                               required
                               type="time"
@@ -935,7 +935,7 @@ const CoachDashboard = () => {
                           <label className="flex flex-col gap-1.5">
                             <span className="text-sm font-medium text-text">Start time</span>
                             <input
-                              className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('startTime', e.target.value)}
                               required
                               type="time"
@@ -946,7 +946,7 @@ const CoachDashboard = () => {
                           <label className="flex flex-col gap-1.5">
                             <span className="text-sm font-medium text-text">End time</span>
                             <input
-                              className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('endTime', e.target.value)}
                               required
                               type="time"
@@ -964,7 +964,7 @@ const CoachDashboard = () => {
                     </form>
 
                     {scheduleStatusMessage && (
-                      <div className="mt-5 rounded-2xl border border-border bg-surface-muted px-4 py-3 text-sm text-text">
+                      <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-text">
                         {scheduleStatusMessage}
                       </div>
                     )}
@@ -974,7 +974,7 @@ const CoachDashboard = () => {
                 sectionCards.map((card) => (
                   <article
                     key={card.title}
-                    className="rounded-[1.75rem] border border-border bg-surface p-6 shadow-lg"
+                    className="rounded-[1.75rem] border border-border bg-secondary p-6 shadow-lg"
                   >
                     <p className="text-lg font-semibold text-text">{card.title}</p>
                     <p className="mt-3 text-sm leading-7 text-text-muted">{card.body}</p>

@@ -2,35 +2,29 @@
 
 :root {
   --font-family-sans: "Segoe UI", Arial, sans-serif;
-  --app-background: #f3f7fb;
-  --app-surface: #ffffff;
-  --app-surface-muted: #e8f0fb;
-  --app-primary: #2563eb;
-  --app-primary-strong: #1d4ed8;
-  --app-text: #0f172a;
-  --app-text-muted: #475569;
-  --app-border: #cbd5e1;
-  --app-danger: #b91c1c;
-  --app-danger-surface: #fef2f2;
-  --app-danger-border: #fecaca;
+  --app-primary: #132840;
+  --app-secondary: #ffffff;
+  --app-accent: #7da6cc;
+  --app-background: #eef3f9;
+  --app-text: #132840;
+  --app-text-muted: #53687f;
+  --app-border: #d5dde6;
   --app-on-primary: #ffffff;
+  --app-on-accent: #132840;
 }
 
 /* Expose the branding CSS variables as Tailwind theme tokens. */
 @theme inline {
   --font-sans: var(--font-family-sans);
-  --color-background: var(--app-background);
-  --color-surface: var(--app-surface);
-  --color-surface-muted: var(--app-surface-muted);
   --color-primary: var(--app-primary);
-  --color-primary-strong: var(--app-primary-strong);
+  --color-secondary: var(--app-secondary);
+  --color-accent: var(--app-accent);
+  --color-background: var(--app-background);
   --color-text: var(--app-text);
   --color-text-muted: var(--app-text-muted);
   --color-border: var(--app-border);
-  --color-danger: var(--app-danger);
-  --color-danger-surface: var(--app-danger-surface);
-  --color-danger-border: var(--app-danger-border);
-  --color-onPrimary: var(--app-on-primary);
+  --color-on-primary: var(--app-on-primary);
+  --color-on-accent: var(--app-on-accent);
 }
 
 @layer base {
