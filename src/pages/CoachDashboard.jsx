@@ -495,9 +495,16 @@ const CoachDashboard = () => {
   };
 
   return (
-    <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl overflow-hidden rounded-[2rem] border border-border bg-secondary shadow-xl shadow-primary/10 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="relative flex flex-col border-b border-border bg-primary p-6 text-on-primary lg:border-b-0 lg:border-r lg:border-r-on-primary/10">
+    <main className="relative min-h-screen overflow-hidden bg-background px-4 py-6 sm:px-6 lg:px-8">
+
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_color-mix(in_oklab,_var(--app-secondary)_25%,_transparent)_0%,_transparent_45%)]" />
+      <div className="absolute -left-20 top-40 h-48 w-48 rounded-full bg-secondary/15 blur-3xl" />
+      <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-secondary/17 blur-3xl" />
+
+      <div className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl overflow-hidden rounded-[2rem] border border-border/70 bg-secondary shadow-2xl shadow-primary/10 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="relative flex flex-col border-b border-border 
+          bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_50%,var(--app-accent)_100%)] 
+          p-6 text-on-primary lg:border-b-0 lg:border-r lg:border-r-on-primary/10">
           <div className="relative">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-on-primary/75">
               Coach Workspace
@@ -543,7 +550,7 @@ const CoachDashboard = () => {
 
         </aside>
 
-        <section className="flex min-h-full flex-col bg-background p-6 sm:p-8 lg:p-10">
+        <section className="flex min-h-full flex-col bg-primary p-6 sm:p-8 lg:p-10">
           <div className="flex flex-col gap-6 border-b border-border pb-8 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">

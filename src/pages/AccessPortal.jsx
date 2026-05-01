@@ -66,8 +66,10 @@ const AccessPortal = () => {
       <div className="absolute -left-20 top-10 h-48 w-48 rounded-full bg-primary/15 blur-3xl" />
       <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-accent/18 blur-3xl" />
 
-      <section className="relative grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-border/70 bg-secondary shadow-2xl shadow-primary/10 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="flex flex-col justify-between bg-primary p-8 text-on-primary sm:p-10">
+      <section className="relative grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-border/70 bg-primary shadow-2xl shadow-primary/10 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="flex flex-col justify-between 
+          bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_50%,var(--app-accent)_100%)]
+          p-8 text-on-primary sm:p-10">
           <div className="space-y-5">
             <p className="inline-flex w-fit rounded-full border border-on-primary/20 bg-on-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
               Demo Template
@@ -107,6 +109,7 @@ const AccessPortal = () => {
             <div className="mb-6 inline-flex rounded-2xl bg-accent/10 p-1">
               <label className="flex-1">
                 <input
+                  className='placeholder:!text-text'
                   className="sr-only"
                   type="radio"
                   value="student"
@@ -122,6 +125,7 @@ const AccessPortal = () => {
               </label>
               <label className="flex-1">
                 <input
+                  className='placeholder:!text-text'
                   className="sr-only"
                   type="radio"
                   value="coach"
@@ -140,6 +144,7 @@ const AccessPortal = () => {
             {role === 'coach' ? (
               <form className="space-y-4" onSubmit={handleCoachLogin}>
                 <Input
+                className='placeholder:!text-text'
                   label="Email"
                   type="email"
                   value={coachEmail}
@@ -148,6 +153,7 @@ const AccessPortal = () => {
                   required
                 />
                 <Input
+                  className='placeholder:!text-text'  
                   label="Password"
                   type="password"
                   value={coachPassword}
@@ -155,13 +161,14 @@ const AccessPortal = () => {
                   placeholder="Enter your password"
                   required
                 />
-                <Button disabled={isSubmitting} type="submit">
+                <Button disabled={isSubmitting} type="submit" className="bg-secondary border border-accent">
                   {isSubmitting ? 'Signing In...' : 'Login as Coach'}
                 </Button>
               </form>
             ) : (
               <form className="space-y-4" onSubmit={handleStudentLogin}>
                 <Input
+                  className='placeholder:!text-text'    
                   label="Student ID"
                   type="text"
                   value={studentId}
@@ -170,6 +177,7 @@ const AccessPortal = () => {
                   required
                 />
                 <Input
+                  className='placeholder:!text-text'
                   label="Password"
                   type="password"
                   value={studentPassword}
@@ -177,7 +185,7 @@ const AccessPortal = () => {
                   placeholder="Enter your student password"
                   required
                 />
-                <Button disabled={isSubmitting} type="submit">
+                <Button disabled={isSubmitting} type="submit" className="bg-secondary border border-accent">
                   {isSubmitting ? 'Checking credentials...' : 'Continue as Student'}
                 </Button>
               </form>

@@ -40,12 +40,12 @@ const Login = () => {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_color-mix(in_oklab,_var(--app-primary)_18%,_transparent)_0%,_transparent_45%)]" />
-      <div className="absolute -left-20 top-10 h-48 w-48 rounded-full bg-primary/15 blur-3xl" />
-      <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-accent/18 blur-3xl" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_color-mix(in_oklab,_var(--app-secondary)_25%,_transparent)_0%,_transparent_45%)]" />
+      <div className="absolute -left-20 top-40 h-48 w-48 rounded-full bg-secondary/15 blur-3xl" />
+      <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-secondary/17 blur-3xl" />
 
-      <section className="relative grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-border/70 bg-secondary shadow-2xl shadow-primary/10 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="flex flex-col justify-between bg-primary p-8 text-on-primary sm:p-10">
+      <section className="relative grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-border/70 bg-primary shadow-2xl shadow-primary/10 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="flex flex-col justify-between bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_48%,var(--app-accent)_100%)] p-8 text-on-primary sm:p-10">
           <div className="space-y-5">
             <p className="inline-flex w-fit rounded-full border border-on-primary/20 bg-on-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
               Demo Template
@@ -87,6 +87,7 @@ const Login = () => {
 
             <form className="space-y-4" onSubmit={handleStudentLogin}>
               <Input
+                className="placeholder:!text-text focus:border-accent focus:ring-accent/15"
                 label="Student ID"
                 type="text"
                 value={studentId}
@@ -94,7 +95,7 @@ const Login = () => {
                 placeholder="Enter your student ID"
                 required
               />
-              <Button disabled={isSubmitting} type="submit">
+              <Button className="bg-secondary border-2 border-transparent hover:border-accent" disabled={isSubmitting} type="submit">
                 {isSubmitting ? 'Checking ID...' : 'Continue to Sign In / Out form'}
               </Button>
             </form>

@@ -164,8 +164,12 @@ const StudentCheckIn = () => {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
-      <section className="w-full max-w-3xl rounded-[2rem] border border-border bg-secondary p-8 shadow-2xl shadow-primary/10">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_color-mix(in_oklab,_var(--app-secondary)_25%,_transparent)_0%,_transparent_45%)]" />
+      <div className="absolute -left-20 top-40 h-48 w-48 rounded-full bg-secondary/15 blur-3xl" />
+      <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-secondary/17 blur-3xl" />
+
+      <section className="relative w-full max-w-3xl rounded-[2rem] border border-border/70 bg-[linear-gradient(135deg,var(--app-primary)_20%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_80%,var(--app-accent)_100%)] p-8 shadow-2xl shadow-primary/10">
         <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Student Hours</p>
@@ -187,7 +191,7 @@ const StudentCheckIn = () => {
           <p className="text-sm font-medium text-text" align="left">
             Current action:
           </p>
-          <p className="mt-1 text-base font-semibold text-primary" align="left ">
+          <p className="mt-1 text-base font-semibold text-secondary" align="left ">
             {formMode === 'sign-in' ? 'Sign In' : 'Sign Out'}
           </p>
         </div>
@@ -198,7 +202,7 @@ const StudentCheckIn = () => {
               <p className="text-sm font-medium text-text">Current task</p>
               <div className="rounded-2xl border border-primary bg-primary px-4 py-3 text-on-primary shadow-lg shadow-primary/20">
                 <div className="grid gap-3 sm:grid-cols-2 "></div>
-                  <p className="text-sm font-semibold" >
+                  <p className="text-sm-var(--app-primary) font-semibold" >
                     {currentStudentTask?.[taskConfig.nameField] ?? 'No current task found'}
                     </p>
               </div>
@@ -217,21 +221,21 @@ const StudentCheckIn = () => {
                     key={task.id}
                     className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
                       selectedTaskId === task.id
-                        ? 'border-primary bg-primary text-on-primary shadow-lg shadow-primary/20'
+                        ? 'border-secondary bg-primary text-on-primary shadow-lg shadow-primary/20'
                         : 'border-border bg-secondary text-text hover:bg-accent/10'
                     }`}
                     onClick={() => setSelectedTaskId(task.id)}
                     type="button"
                   >
                     <span className="block">{task[taskConfig.nameField]}</span>
-                    <span className={`mt-1 block text-xs ${selectedTaskId === task.id ? 'text-on-primary/80' : 'text-text-muted'}`}>
+                    <span className={`mt-1 block text-sm ${selectedTaskId === task.id ? 'text-on-primary/80' : 'text-text-primary'}`}>
                       {task[taskConfig.scheduledField] ? 'Scheduled task' : 'Open task'}
                     </span>
                   </button>
                 ))}
               </div>
               {!isLoadingTasks && availableTasks.length === 0 && (
-                <p className="text-sm text-text-muted">No tasks are currently available.</p>
+                <p className="text-sm text-text">No tasks are currently available.</p>
               )}
               {(isLoadingTasks || isLoadingSchedules) && <p className="text-sm text-text-muted">Loading tasks...</p>}
               {(tasksError || schedulesError) && (
@@ -240,7 +244,7 @@ const StudentCheckIn = () => {
                 </p>
               )}
               {!selectedTaskId && availableTasks.length > 0 && (
-                <p className="text-sm text-text-muted">Select one task to continue.</p>
+                <p className="text-sm text-text">Select one task to continue.</p>
               )}
             </div>
           )}
@@ -252,7 +256,7 @@ const StudentCheckIn = () => {
                 : `Completed for ${taskDisplayName}`}
             </label>
             <textarea
-              className="min-h-32 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition placeholder:text-text-muted/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
+              className="placeholder:!text-white min-h-32 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition placeholder:text-text-muted/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
               id="student-notes"
               required
               onChange={(e) => setNotes(e.target.value)}
