@@ -506,13 +506,13 @@ const CoachDashboard = () => {
           bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_50%,var(--app-accent)_100%)] 
           p-6 text-on-primary lg:border-b-0 lg:border-r lg:border-r-on-primary/10">
           <div className="relative">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-on-primary/75">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-on-primary/90">
               Coach Workspace
             </p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight">
               {branding.appName}
             </h1>
-            <p className="mt-3 text-sm leading-6 text-on-primary/80">
+            <p className="mt-3 text-sm leading-6 text-on-primary/90">
               Signed in as <span className="font-semibold text-on-primary">{coachUser?.email}</span>.
             </p>
           </div>
@@ -532,7 +532,7 @@ const CoachDashboard = () => {
                   onClick={() => setActiveSection(item.id)}
                   type="button"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-on-primary/65">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-on-primary/90">
                     {item.eyebrow}
                   </p>
                   <p className="mt-2 text-lg font-semibold text-on-primary">{item.label}</p>
@@ -543,7 +543,7 @@ const CoachDashboard = () => {
           </nav>
 
           <div className="relative mt-6 flex flex-col gap-3 border-t border-on-primary/10 pt-6 sm:flex-row lg:mt-auto lg:flex-col">
-            <Button className="bg-secondary text-primary shadow-none hover:bg-accent/12 focus:ring-on-primary/40 focus:ring-offset-primary" onClick={handleSignOut} type="button">
+            <Button className="bg-secondary text-on-secondary shadow-none hover:bg-accent/12 focus:ring-on-primary/40 focus:ring-offset-primary" onClick={handleSignOut} type="button">
               Sign out
             </Button>
           </div>
@@ -553,29 +553,29 @@ const CoachDashboard = () => {
         <section className="flex min-h-full flex-col bg-primary p-6 sm:p-8 lg:p-10">
           <div className="flex flex-col gap-6 border-b border-border pb-8 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">
                 {activeNavItem.eyebrow}
               </p>
-              <h2 className="mt-3 text-4xl font-semibold tracking-tight text-text">
+              <h2 className="mt-3 text-4xl font-semibold tracking-tight text-on-primary">
                 {activeNavItem.title}
               </h2>
-              <p className="mt-4 text-sm leading-7 text-text-muted sm:text-base">
+              <p className="mt-4 text-sm leading-7 text-on-primary-muted sm:text-base">
                 {activeNavItem.description}
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px] xl:min-h-[120px] xl:grid-cols-2">
               <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-secondary px-4 py-4 text-center shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Signed in</p>
-                <p className="mt-2 text-2xl font-semibold text-text">{homeStats.activeCount}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary">Signed in</p>
+                <p className="mt-2 text-2xl font-semibold text-on-secondary">{homeStats.activeCount}</p>
               </div>
               {/* <div className="rounded-2xl border border-border bg-secondary px-4 py-4 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Session Types</p>
-                <p className="mt-2 text-2xl font-semibold text-text">{homeStats.uniqueSessionTypes}</p>
+                <p className="mt-2 text-2xl font-semibold text-on-secondary">{homeStats.uniqueSessionTypes}</p>
               </div> */}
               <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-secondary px-4 py-4 text-center shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Earliest Sign-In</p>
-                <p className="mt-2 text-2xl font-semibold text-text">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary">Earliest Sign-In</p>
+                <p className="mt-2 text-2xl font-semibold text-on-secondary">
                   {homeStats.earliestSignIn ? formatSignedInAt(homeStats.earliestSignIn) : 'None'}
                 </p>
               </div>
@@ -588,7 +588,7 @@ const CoachDashboard = () => {
                 <article className="rounded-[1.75rem] border border-border bg-secondary p-6 shadow-lg">
                   <div className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                      <p className="text-lg font-semibold text-text">Live team status</p>
+                      <p className="text-lg font-semibold text-on-secondary">Live team status</p>
                       <p className="mt-2 text-sm leading-6 text-text-muted">
                         Coaches can review active sessions here and end a session directly if a student leaves without signing out.
                       </p>
@@ -596,13 +596,13 @@ const CoachDashboard = () => {
                   </div>
 
                   {homeStatusMessage && (
-                    <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-text">
+                    <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-secondary">
                       {homeStatusMessage}
                     </div>
                   )}
 
                   {activeStudentsError && (
-                    <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-text">
+                    <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-secondary">
                       {activeStudentsError}
                     </div>
                   )}
@@ -638,7 +638,7 @@ const CoachDashboard = () => {
 
                             return (
                               <tr key={student.id}>
-                                <td className="rounded-l-2xl border-y border-l border-border bg-secondary px-4 py-4 text-sm text-text">
+                                <td className="rounded-l-2xl border-y border-l border-border bg-secondary px-4 py-4 text-sm text-on-secondary">
                                   <span className="font-semibold">{student.name ?? 'Student'}</span>
                                 </td>
                                 <td className="border-y border-border bg-secondary px-4 py-4 text-sm text-text-muted">
@@ -652,7 +652,7 @@ const CoachDashboard = () => {
                                 </td>
                                 <td className="rounded-r-2xl border-y border-r border-border bg-secondary px-4 py-4 text-right">
                                   <button
-                                    className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-semibold text-text transition hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-semibold text-on-secondary transition hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
                                     disabled={isEnding}
                                     onClick={() => handleEndSession(student)}
                                     type="button"
@@ -672,11 +672,11 @@ const CoachDashboard = () => {
                 <>
                   <article className="rounded-[1.75rem] border border-border bg-secondary p-6 shadow-lg">
                     <div className="border-b border-border pb-5">
-                      <p className="text-lg font-semibold text-text">Scheduled task windows</p>
+                      <p className="text-lg font-semibold text-on-secondary">Scheduled task windows</p>
                     </div>
 
                     {(schedulesError || tasksError) && (
-                      <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-text">
+                      <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-secondary">
                         {schedulesError || tasksError}
                       </div>
                     )}
@@ -685,16 +685,16 @@ const CoachDashboard = () => {
                       <table className="min-w-full border-separate border-spacing-y-3">
                         <thead>
                           <tr>
-                            <th className="px-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Task</th>
-                            <th className="px-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Type</th>
-                            <th className="px-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Start</th>
-                            <th className="px-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">End</th>
+                            <th className="px-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary">Task</th>
+                            <th className="px-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary">Type</th>
+                            <th className="px-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary">Start</th>
+                            <th className="px-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary">End</th>
                           </tr>
                         </thead>
                         <tbody>
                           {(isLoadingSchedules || isLoadingTasks) ? (
                             <tr>
-                              <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-sm text-text-muted" colSpan={4}>
+                              <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-sm text-on-secondary-muted" colSpan={4}>
                                 Loading scheduled events...
                               </td>
                             </tr>
@@ -710,18 +710,18 @@ const CoachDashboard = () => {
 
                               return (
                                 <tr key={schedule.id}>
-                                  <td className="rounded-l-2xl border-y border-l border-border bg-secondary px-4 py-4 text-sm text-text">
+                                  <td className="rounded-l-2xl border-y border-l border-border bg-secondary px-4 py-4 text-sm text-on-secondary">
                                     <span className="font-semibold">
                                       {task?.[taskConfig.nameField] ?? schedule[scheduleConfig.taskIdField] ?? 'Task'}
                                     </span>
                                   </td>
-                                  <td className="border-y border-border bg-secondary px-4 py-4 text-sm text-text-muted">
+                                  <td className="border-y border-border bg-secondary px-4 py-4 text-sm text-on-secondary-muted">
                                     {schedule.displayType}
                                   </td>
-                                  <td className="border-y border-border bg-secondary px-4 py-4 text-sm text-text-muted">
+                                  <td className="border-y border-border bg-secondary px-4 py-4 text-sm text-on-secondary-muted">
                                     {formatScheduleDateTime(schedule.resolvedStartTime)}
                                   </td>
-                                  <td className="rounded-r-2xl border-y border-r border-border bg-secondary px-4 py-4 text-sm text-text-muted">
+                                  <td className="rounded-r-2xl border-y border-r border-border bg-secondary px-4 py-4 text-sm text-on-secondary-muted">
                                     {formatScheduleDateTime(schedule.resolvedEndTime)}
                                   </td>
                                 </tr>
@@ -735,15 +735,15 @@ const CoachDashboard = () => {
 
                   <article className="rounded-[1.75rem] border border-border bg-secondary p-6 shadow-lg">
                     <div className="border-b border-border pb-5">
-                      <p className="text-lg font-semibold text-text">Add scheduled event</p>
-                      <p className="mt-2 text-sm leading-6 text-text-muted">
+                      <p className="text-lg font-semibold text-on-secondary">Add scheduled event</p>
+                      <p className="mt-2 text-sm leading-6 text-on-secondary-muted">
                         Create a one-time or recurring event and either attach it to an existing task or create a new scheduled task.
                       </p>
                     </div>
 
                     <form className="mt-5 grid gap-4 md:grid-cols-2" onSubmit={handleScheduleSubmit}>
                       <div className="md:col-span-2">
-                        <span className="text-sm font-medium text-text">Task source</span>
+                        <span className="text-sm font-medium text-on-secondary">Task source</span>
                         <div className="mt-2 grid gap-3 md:grid-cols-2">
                           {taskSourceOptions.map((option) => {
                             const isActive = scheduleForm.taskMode === option.value;
@@ -759,8 +759,8 @@ const CoachDashboard = () => {
                                 onClick={() => handleScheduleFieldChange('taskMode', option.value)}
                                 type="button"
                               >
-                                <p className="text-base font-semibold text-text">{option.title}</p>
-                                <p className="mt-2 text-sm leading-6 text-text-muted">{option.description}</p>
+                                <p className="text-base font-semibold text-on-secondary">{option.title}</p>
+                                <p className="mt-2 text-sm leading-6 text-on-secondary-muted">{option.description}</p>
                               </button>
                             );
                           })}
@@ -769,9 +769,9 @@ const CoachDashboard = () => {
 
                       {scheduleForm.taskMode === 'existing' ? (
                         <label className="flex flex-col gap-1.5 md:col-span-2">
-                          <span className="text-sm font-medium text-text">Task</span>
+                          <span className="text-sm font-medium text-on-secondary">Task</span>
                           <select
-                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                             onChange={(e) => handleScheduleFieldChange('taskId', e.target.value)}
                             required
                             value={scheduleForm.taskId}
@@ -786,9 +786,9 @@ const CoachDashboard = () => {
                         </label>
                       ) : (
                         <label className="flex flex-col gap-1.5 md:col-span-2">
-                          <span className="text-sm font-medium text-text">New task name</span>
+                          <span className="text-sm font-medium text-on-secondary">New task name</span>
                           <input
-                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                             onChange={(e) => handleScheduleFieldChange('newTaskName', e.target.value)}
                             placeholder="Example: CAD Workshop"
                             required
@@ -799,7 +799,7 @@ const CoachDashboard = () => {
                       )}
 
                       <div className="md:col-span-2">
-                        <span className="text-sm font-medium text-text">Schedule type</span>
+                        <span className="text-sm font-medium text-on-secondary">Schedule type</span>
                         <div className="mt-2 grid gap-3 md:grid-cols-2">
                           {scheduleTypeOptions.map((option) => {
                             const isActive = scheduleForm.scheduleMode === option.value;
@@ -815,8 +815,8 @@ const CoachDashboard = () => {
                                 onClick={() => handleScheduleFieldChange('scheduleMode', option.value)}
                                 type="button"
                               >
-                                <p className="text-base font-semibold text-text">{option.title}</p>
-                                <p className="mt-2 text-sm leading-6 text-text-muted">{option.description}</p>
+                                <p className="text-base font-semibold text-on-secondary">{option.title}</p>
+                                <p className="mt-2 text-sm leading-6 text-on-secondary-muted">{option.description}</p>
                               </button>
                             );
                           })}
@@ -825,9 +825,9 @@ const CoachDashboard = () => {
 
                       {scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.weekly && (
                         <label className="flex flex-col gap-1.5 md:col-span-2">
-                          <span className="text-sm font-medium text-text">Recurring day</span>
+                          <span className="text-sm font-medium text-on-secondary">Recurring day</span>
                           <select
-                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                             onChange={(e) => handleScheduleFieldChange('recurringDayOfWeek', e.target.value)}
                             value={scheduleForm.recurringDayOfWeek}
                           >
@@ -842,9 +842,9 @@ const CoachDashboard = () => {
 
                       {scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.monthly && (
                         <label className="flex flex-col gap-1.5 md:col-span-2">
-                          <span className="text-sm font-medium text-text">Recurring day of month</span>
+                          <span className="text-sm font-medium text-on-secondary">Recurring day of month</span>
                           <select
-                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                             onChange={(e) => handleScheduleFieldChange('recurringDayOfMonth', e.target.value)}
                             value={scheduleForm.recurringDayOfMonth}
                           >
@@ -860,9 +860,9 @@ const CoachDashboard = () => {
                       {scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.yearly && (
                         <>
                           <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-text">Recurring month</span>
+                            <span className="text-sm font-medium text-on-secondary">Recurring month</span>
                             <select
-                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('recurringMonthOfYear', e.target.value)}
                               value={scheduleForm.recurringMonthOfYear}
                             >
@@ -875,9 +875,9 @@ const CoachDashboard = () => {
                           </label>
 
                           <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-text">Recurring day of month</span>
+                            <span className="text-sm font-medium text-on-secondary">Recurring day of month</span>
                             <select
-                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('recurringDayOfMonth', e.target.value)}
                               value={scheduleForm.recurringDayOfMonth}
                             >
@@ -894,9 +894,9 @@ const CoachDashboard = () => {
                       {scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.oneTime ? (
                         <>
                           <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-text">Start date</span>
+                            <span className="text-sm font-medium text-on-secondary">Start date</span>
                             <input
-                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('startDate', e.target.value)}
                               required
                               type="date"
@@ -905,9 +905,9 @@ const CoachDashboard = () => {
                           </label>
 
                           <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-text">Start time</span>
+                            <span className="text-sm font-medium text-on-secondary">Start time</span>
                             <input
-                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('startTime', e.target.value)}
                               required
                               type="time"
@@ -916,9 +916,9 @@ const CoachDashboard = () => {
                           </label>
 
                           <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-text">End date</span>
+                            <span className="text-sm font-medium text-on-secondary">End date</span>
                             <input
-                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('endDate', e.target.value)}
                               required
                               type="date"
@@ -927,9 +927,9 @@ const CoachDashboard = () => {
                           </label>
 
                           <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-text">End time</span>
+                            <span className="text-sm font-medium text-on-secondary">End time</span>
                             <input
-                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('endTime', e.target.value)}
                               required
                               type="time"
@@ -940,9 +940,9 @@ const CoachDashboard = () => {
                       ) : (
                         <>
                           <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-text">Start time</span>
+                            <span className="text-sm font-medium text-on-secondary">Start time</span>
                             <input
-                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('startTime', e.target.value)}
                               required
                               type="time"
@@ -951,9 +951,9 @@ const CoachDashboard = () => {
                           </label>
 
                           <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-text">End time</span>
+                            <span className="text-sm font-medium text-on-secondary">End time</span>
                             <input
-                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
+                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
                               onChange={(e) => handleScheduleFieldChange('endTime', e.target.value)}
                               required
                               type="time"
@@ -971,7 +971,7 @@ const CoachDashboard = () => {
                     </form>
 
                     {scheduleStatusMessage && (
-                      <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-text">
+                      <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-secondary">
                         {scheduleStatusMessage}
                       </div>
                     )}
@@ -983,7 +983,7 @@ const CoachDashboard = () => {
                     key={card.title}
                     className="rounded-[1.75rem] border border-border bg-secondary p-6 shadow-lg"
                   >
-                    <p className="text-lg font-semibold text-text">{card.title}</p>
+                    <p className="text-lg font-semibold text-on-secondary">{card.title}</p>
                     <p className="mt-3 text-sm leading-7 text-text-muted">{card.body}</p>
                   </article>
                 ))

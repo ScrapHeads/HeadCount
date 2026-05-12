@@ -101,7 +101,7 @@ const AccessPortal = () => {
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
                 Access Portal
               </p>
-              <h2 className="text-3xl font-semibold tracking-tight text-text">
+              <h2 className="text-3xl font-semibold tracking-tight text-on-secondary">
                 Choose sign-in type
               </h2>
             </div>
@@ -109,7 +109,6 @@ const AccessPortal = () => {
             <div className="mb-6 inline-flex rounded-2xl bg-accent/10 p-1">
               <label className="flex-1">
                 <input
-                  className='placeholder:!text-text'
                   className="sr-only"
                   type="radio"
                   value="student"
@@ -119,13 +118,12 @@ const AccessPortal = () => {
                     setError('');
                   }}
                 />
-                <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'student' ? 'bg-secondary text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>
+                <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'student' ? 'bg-secondary text-on-secondary shadow-sm' : 'text-text-muted hover:text-on-secondary'}`}>
                   Student
                 </span>
               </label>
               <label className="flex-1">
                 <input
-                  className='placeholder:!text-text'
                   className="sr-only"
                   type="radio"
                   value="coach"
@@ -135,7 +133,7 @@ const AccessPortal = () => {
                     setError('');
                   }}
                 />
-                <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'coach' ? 'bg-secondary text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>
+                <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'coach' ? 'bg-secondary text-on-secondary shadow-sm' : 'text-text-muted hover:text-on-secondary'}`}>
                   Coach
                 </span>
               </label>
@@ -144,7 +142,7 @@ const AccessPortal = () => {
             {role === 'coach' ? (
               <form className="space-y-4" onSubmit={handleCoachLogin}>
                 <Input
-                className='placeholder:!text-text'
+                className='placeholder:!text-on-secondary'
                   label="Email"
                   type="email"
                   value={coachEmail}
@@ -153,7 +151,7 @@ const AccessPortal = () => {
                   required
                 />
                 <Input
-                  className='placeholder:!text-text'  
+                  className='placeholder:!text-on-secondary'  
                   label="Password"
                   type="password"
                   value={coachPassword}
@@ -161,14 +159,14 @@ const AccessPortal = () => {
                   placeholder="Enter your password"
                   required
                 />
-                <Button disabled={isSubmitting} type="submit" className="bg-secondary border border-accent">
+                <Button disabled={isSubmitting} type="submit" className="bg-secondary border border-accent text-on-secondary">
                   {isSubmitting ? 'Signing In...' : 'Login as Coach'}
                 </Button>
               </form>
             ) : (
               <form className="space-y-4" onSubmit={handleStudentLogin}>
                 <Input
-                  className='placeholder:!text-text'    
+                  className='placeholder:!text-on-secondary'    
                   label="Student ID"
                   type="text"
                   value={studentId}
@@ -177,7 +175,7 @@ const AccessPortal = () => {
                   required
                 />
                 <Input
-                  className='placeholder:!text-text'
+                  className='placeholder:!text-on-secondary'
                   label="Password"
                   type="password"
                   value={studentPassword}
@@ -185,14 +183,14 @@ const AccessPortal = () => {
                   placeholder="Enter your student password"
                   required
                 />
-                <Button disabled={isSubmitting} type="submit" className="bg-secondary border border-accent">
+                <Button disabled={isSubmitting} type="submit" className="bg-secondary border border-accent text-on-secondary">
                   {isSubmitting ? 'Checking credentials...' : 'Continue as Student'}
                 </Button>
               </form>
             )}
 
             {error && (
-              <div className="mt-4 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-text">
+              <div className="mt-4 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-secondary">
                 {error}
               </div>
             )}

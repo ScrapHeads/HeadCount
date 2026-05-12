@@ -74,20 +74,20 @@ const Login = () => {
         <div className="p-6 sm:p-10">
           <div className="mx-auto flex max-w-md flex-col">
             <div className="mb-8 space-y-2">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">
                 Student Hours
               </p>
-              <h2 className="text-3xl font-semibold tracking-tight text-text">
+              <h2 className="text-3xl font-semibold tracking-tight text-on-primary">
                 Enter your student ID
               </h2>
-              <p className="text-sm leading-6 text-text-muted">
+              <p className="text-sm leading-6 text-on-primary">
                 Start here for the main sign-in and sign-out workflow. Coach and demo access are still available from the secondary portal.
               </p>
             </div>
 
             <form className="space-y-4" onSubmit={handleStudentLogin}>
               <Input
-                className="placeholder:!text-text focus:border-accent focus:ring-accent/15"
+                className="placeholder:!text-on-secondary focus:border-accent focus:ring-accent/15"
                 label="Student ID"
                 type="text"
                 value={studentId}
@@ -95,28 +95,28 @@ const Login = () => {
                 placeholder="Enter your student ID"
                 required
               />
-              <Button className="bg-secondary border-2 border-transparent hover:border-accent" disabled={isSubmitting} type="submit">
+              <Button className="bg-secondary border-2 border-transparent text-on-secondary hover:border-accent" disabled={isSubmitting} type="submit">
                 {isSubmitting ? 'Checking ID...' : 'Continue to Sign In / Out form'}
               </Button>
             </form>
 
             {error && (
-              <div className="mt-4 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-text">
+              <div className="mt-4 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
                 {error}
               </div>
             )}
 
             <Link
-              className="mt-4 inline-flex items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-semibold text-text transition hover:bg-accent/10"
+              className="mt-4 inline-flex items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-semibold text-on-primary transition hover:bg-accent/10"
               to="/access"
             >
               Open coach and demo access
             </Link>
 
-            <p className="mt-6 text-center text-xs leading-5 text-text-muted">
+            <p className="mt-6 text-center text-xs leading-5 text-on-primary">
               Change brand colors in <code className="rounded bg-accent/10 px-1.5 py-0.5">src/config/branding.js</code>.
             </p>
-            <p className="mt-3 text-center text-xs leading-5 text-text-muted">
+            <p className="mt-3 text-center text-xs leading-5 text-on-primary">
               Students are matched against Firestore before entering the hours form.
             </p>
           </div>

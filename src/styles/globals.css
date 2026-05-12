@@ -3,14 +3,14 @@
 :root {
   --font-family-sans: "Segoe UI", Arial, sans-serif;
   --app-primary: #132840;
-  --app-secondary: #ffffff;
-  --app-accent: #7da6cc;
-  --app-background: #eef3f9;
-  --app-text: #132840;
-  --app-text-muted: #53687f;
-  --app-border: #d5dde6;
-  --app-on-primary: #ffffff;
-  --app-on-accent: #132840;
+  --app-secondary: #527fc7;
+  --app-accent: #bd5361;
+  --app-background: #0c121a;
+  --app-text-muted: #a9b6c6;
+  --app-border: #5c83c9;
+  --app-on-primary: #eef3f9;
+  --app-on-secondary: #eef3f9;
+  --app-on-accent: #ffffff;
 }
 
 /* Expose the branding CSS variables as Tailwind theme tokens. */
@@ -20,10 +20,11 @@
   --color-secondary: var(--app-secondary);
   --color-accent: var(--app-accent);
   --color-background: var(--app-background);
-  --color-text: var(--app-text);
+  --color-text: var(--app-on-secondary);
   --color-text-muted: var(--app-text-muted);
   --color-border: var(--app-border);
   --color-on-primary: var(--app-on-primary);
+  --color-on-secondary: var(--app-on-secondary);
   --color-on-accent: var(--app-on-accent);
 }
 
@@ -33,7 +34,7 @@
   }
 
   body {
-    @apply m-0 min-h-screen bg-background text-text antialiased;
+    @apply m-0 min-h-screen bg-background text-on-primary antialiased;
   }
 
   #root {

@@ -8,10 +8,11 @@ export const branding = {
     fontFamily: '"Segoe UI", Arial, sans-serif',
     colors: {
       primary: '#132840',
-      secondary: '#7590BB',
-      accent: '#D46A79',
+      secondary: '#3969b6',
+      accent: '#c44e5d',
       background: '#0c121a',
-      text: '#eef3f9',
+      textOnPrimary: '#ffffff',
+      textOnSecondary: '#ffffff',
     },
   },
 };
@@ -97,9 +98,10 @@ const pickReadableTextColor = (backgroundColor) => (
 
 const deriveThemeColors = (colors) => ({
   ...colors,
-  border: mixHexColors(colors.text, colors.secondary, 0.82),
-  textMuted: mixHexColors(colors.text, colors.background, 0.3),
-  onPrimary: pickReadableTextColor(colors.primary),
+  border: mixHexColors(colors.textOnSecondary, colors.secondary, 0.82),
+  textMuted: mixHexColors(colors.textOnSecondary, colors.background, 0.3),
+  onPrimary: colors.textOnPrimary || pickReadableTextColor(colors.primary),
+  onSecondary: colors.textOnSecondary || pickReadableTextColor(colors.secondary),
   onAccent: pickReadableTextColor(colors.accent),
 });
 
@@ -116,10 +118,10 @@ export const applyBrandingTheme = (root = document.documentElement) => {
     '--app-secondary': derivedColors.secondary,
     '--app-accent': derivedColors.accent,
     '--app-background': derivedColors.background,
-    '--app-text': derivedColors.text,
     '--app-text-muted': derivedColors.textMuted,
     '--app-border': derivedColors.border,
     '--app-on-primary': derivedColors.onPrimary,
+    '--app-on-secondary': derivedColors.onSecondary,
     '--app-on-accent': derivedColors.onAccent,
   };
 

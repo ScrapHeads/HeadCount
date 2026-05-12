@@ -172,12 +172,12 @@ const StudentCheckIn = () => {
       <section className="relative w-full max-w-3xl rounded-[2rem] border border-border/70 bg-[linear-gradient(135deg,var(--app-primary)_20%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_80%,var(--app-accent)_100%)] p-8 shadow-2xl shadow-primary/10">
         <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Student Hours</p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-text">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">Student Hours</p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-on-primary">
               {formMode === 'sign-in' ? 'Sign in to your session' : 'Sign out of your session'}
             </h1>
-            <p className="mt-3 text-sm leading-6 text-text-muted">
-              Signed in as <span className="font-semibold text-text">{studentSession?.name}</span> with student ID <span className="font-semibold text-text">{studentSession?.studentId}</span>.
+            <p className="mt-3 text-sm leading-6 text-on-primary-muted">
+              Signed in as <span className="font-semibold text-on-primary">{studentSession?.name}</span> with student ID <span className="font-semibold text-on-primary">{studentSession?.studentId}</span>.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:w-auto">
@@ -187,34 +187,47 @@ const StudentCheckIn = () => {
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-accent/25 bg-accent/10 px-4 py-3">
-          <p className="text-sm font-medium text-text" align="left">
-            Current action:
-          </p>
-          <p className="mt-1 text-base font-semibold text-secondary" align="left ">
-            {formMode === 'sign-in' ? 'Sign In' : 'Sign Out'}
-          </p>
-        </div>
+        {formMode === 'sign-out' ? (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-accent/25 bg-accent/10 px-4 py-3">
+              <p className="text-sm font-medium text-on-primary" align="left">
+                Current action:
+              </p>
+              <p className="mt-1 text-base font-semibold text-on-primary" align="left ">
+                Sign Out
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-primary bg-primary px-4 py-3 text-on-primary shadow-lg shadow-primary/20">
+              <p className="text-sm font-medium text-on-primary">Current task</p>
+              <p className="mt-1 text-base font-semibold text-on-primary">
+                {currentStudentTask?.[taskConfig.nameField] ?? 'No current task found'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl border border-accent/25 bg-accent/10 px-4 py-3">
+            <p className="text-sm font-medium text-on-primary" align="left">
+              Current action:
+            </p>
+            <p className="mt-1 text-base font-semibold text-on-primary" align="left ">
+              Sign In
+            </p>
+          </div>
+        )}
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           {formMode === 'sign-out' ? (
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-text">Current task</p>
-              <div className="rounded-2xl border border-primary bg-primary px-4 py-3 text-on-primary shadow-lg shadow-primary/20">
-                <div className="grid gap-3 sm:grid-cols-2 "></div>
-                  <p className="text-sm-var(--app-primary) font-semibold" >
-                    {currentStudentTask?.[taskConfig.nameField] ?? 'No current task found'}
-                    </p>
-              </div>
+            <>
               {!currentStudentTask && (
-                <p className="rounded-xl border border-accent/25 bg-accent/10 px-4 py-3 text-sm text-text">
+                <p className="rounded-xl border border-accent/25 bg-accent/10 px-4 py-3 text-sm text-on-primary">
                   No matching task was found for the student {studentAuthConfig.currentTaskField} value.
                 </p>
               )}
-            </div>
+            </>
           ) : (
             <div className="space-y-2">
-              <p className="text-sm font-medium text-text">Task</p>
+              <p className="text-sm font-medium text-on-primary">Task</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 {availableTasks.map((task) => (
                   <button
@@ -222,41 +235,41 @@ const StudentCheckIn = () => {
                     className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
                       selectedTaskId === task.id
                         ? 'border-secondary bg-primary text-on-primary shadow-lg shadow-primary/20'
-                        : 'border-border bg-secondary text-text hover:bg-accent/10'
+                        : 'border-border bg-secondary text-on-secondary hover:bg-accent/10'
                     }`}
                     onClick={() => setSelectedTaskId(task.id)}
                     type="button"
                   >
                     <span className="block">{task[taskConfig.nameField]}</span>
-                    <span className={`mt-1 block text-sm ${selectedTaskId === task.id ? 'text-on-primary/80' : 'text-text-primary'}`}>
+                    <span className={`mt-1 block text-sm ${selectedTaskId === task.id ? 'text-on-primary/80' : 'text-on-secondary'}`}>
                       {task[taskConfig.scheduledField] ? 'Scheduled task' : 'Open task'}
                     </span>
                   </button>
                 ))}
               </div>
               {!isLoadingTasks && availableTasks.length === 0 && (
-                <p className="text-sm text-text">No tasks are currently available.</p>
+                <p className="text-sm text-on-secondary">No tasks are currently available.</p>
               )}
               {(isLoadingTasks || isLoadingSchedules) && <p className="text-sm text-text-muted">Loading tasks...</p>}
               {(tasksError || schedulesError) && (
-                <p className="rounded-xl border border-accent/25 bg-accent/10 px-4 py-3 text-sm text-text">
+                <p className="rounded-xl border border-accent/25 bg-accent/10 px-4 py-3 text-sm text-on-secondary">
                   {tasksError || schedulesError}
                 </p>
               )}
               {!selectedTaskId && availableTasks.length > 0 && (
-                <p className="text-sm text-text">Select one task to continue.</p>
+                <p className="text-sm text-on-secondary">Select one task to continue.</p>
               )}
             </div>
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-text" htmlFor="student-notes">
+            <label className="text-sm font-medium text-on-primary" htmlFor="student-notes">
               {formMode === 'sign-in'
                 ? `Goal for ${taskDisplayName}`
                 : `Completed for ${taskDisplayName}`}
             </label>
             <textarea
-              className="placeholder:!text-white min-h-32 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-text outline-none transition placeholder:text-text-muted/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
+              className="placeholder:!text-on-secondary min-h-32 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition placeholder:text-text-muted/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
               id="student-notes"
               required
               onChange={(e) => setNotes(e.target.value)}
@@ -278,7 +291,7 @@ const StudentCheckIn = () => {
         </form>
 
         {statusMessage && (
-          <div className="mt-4 rounded-2xl border border-accent/25 bg-accent/10 px-4 py-3 text-sm text-text">
+          <div className="mt-4 rounded-2xl border border-accent/25 bg-accent/10 px-4 py-3 text-sm text-on-secondary">
             {statusMessage}
           </div>
         )}
