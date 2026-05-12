@@ -104,6 +104,8 @@ const dayOfMonthOptions = Array.from({ length: 31 }, (_, index) => ({
   label: String(index + 1),
 }));
 
+const sectionPanelClassName = 'rounded-[1.75rem] border border-on-primary/15 bg-[linear-gradient(135deg,color-mix(in_oklab,var(--app-primary)_88%,transparent)_0%,color-mix(in_oklab,var(--app-primary)_72%,var(--app-accent))_58%,color-mix(in_oklab,var(--app-accent)_72%,transparent)_100%)] p-6 shadow-lg shadow-primary/15 backdrop-blur-sm';
+
 const taskSourceOptions = [
   {
     value: 'existing',
@@ -585,7 +587,7 @@ const CoachDashboard = () => {
           <div className="mt-8 grid gap-5">
             <div className="grid gap-5">
               {activeSection === 'home' ? (
-                <article className="rounded-[1.75rem] border border-border bg-secondary p-6 shadow-lg">
+                <article className={sectionPanelClassName}>
                   <div className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                       <p className="text-lg font-semibold text-on-secondary">Live team status</p>
@@ -670,7 +672,7 @@ const CoachDashboard = () => {
                 </article>
               ) : activeSection === 'schedule' ? (
                 <>
-                  <article className="rounded-[1.75rem] border border-border bg-secondary p-6 shadow-lg">
+                  <article className={sectionPanelClassName}>
                     <div className="border-b border-border pb-5">
                       <p className="text-lg font-semibold text-on-secondary">Scheduled task windows</p>
                     </div>
@@ -733,7 +735,7 @@ const CoachDashboard = () => {
                     </div>
                   </article>
 
-                  <article className="rounded-[1.75rem] border border-border bg-secondary p-6 shadow-lg">
+                  <article className={sectionPanelClassName}>
                     <div className="border-b border-border pb-5">
                       <p className="text-lg font-semibold text-on-secondary">Add scheduled event</p>
                       <p className="mt-2 text-sm leading-6 text-on-secondary-muted">
@@ -981,7 +983,7 @@ const CoachDashboard = () => {
                 sectionCards.map((card) => (
                   <article
                     key={card.title}
-                    className="rounded-[1.75rem] border border-border bg-secondary p-6 shadow-lg"
+                    className={sectionPanelClassName}
                   >
                     <p className="text-lg font-semibold text-on-secondary">{card.title}</p>
                     <p className="mt-3 text-sm leading-7 text-text-muted">{card.body}</p>

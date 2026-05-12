@@ -8,8 +8,8 @@ export const branding = {
     fontFamily: '"Segoe UI", Arial, sans-serif',
     colors: {
       primary: '#132840',
-      secondary: '#3969b6',
-      accent: '#c44e5d',
+      secondary: '#a83a49',
+      accent: '#2a8294',
       background: '#0c121a',
       textOnPrimary: '#ffffff',
       textOnSecondary: '#ffffff',
