@@ -64,30 +64,32 @@ const AccessPortal = () => {
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_color-mix(in_oklab,_var(--app-primary)_18%,_transparent)_0%,_transparent_45%)]" />
       <div className="absolute -left-20 top-10 h-48 w-48 rounded-full bg-primary/15 blur-3xl" />
-      <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-surface-muted blur-3xl" />
+      <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-accent/18 blur-3xl" />
 
-      <section className="relative grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-border/70 bg-surface shadow-[0_30px_100px_-40px_rgba(15,23,42,0.45)] lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="flex flex-col justify-between bg-linear-to-br from-primary to-primary-strong p-8 text-onPrimary sm:p-10">
+      <section className="relative grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-border/70 bg-primary shadow-2xl shadow-primary/10 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="flex flex-col justify-between 
+          bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_50%,var(--app-accent)_100%)]
+          p-8 text-on-primary sm:p-10">
           <div className="space-y-5">
-            <p className="inline-flex w-fit rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
+            <p className="inline-flex w-fit rounded-full border border-on-primary/20 bg-on-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
               Demo Template
             </p>
             <div className="space-y-3">
-              <p className="text-sm font-medium uppercase tracking-[0.2em] text-white/75">
+              <p className="text-sm font-medium uppercase tracking-[0.2em] text-on-primary/75">
                 {branding.teamLabel}
               </p>
               <h1 className="max-w-md text-4xl font-semibold tracking-tight sm:text-5xl">
                 {branding.appName}
               </h1>
-              <p className="max-w-lg text-sm leading-6 text-white/80 sm:text-base">
+              <p className="max-w-lg text-sm leading-6 text-on-primary/80 sm:text-base">
                 {branding.tagline}
               </p>
             </div>
           </div>
 
-          <div className="mt-10 rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
+          <div className="mt-10 rounded-2xl border border-on-primary/15 bg-on-primary/10 p-5 backdrop-blur-sm">
             <p className="text-sm font-semibold">Alternative access</p>
-            <p className="mt-2 text-sm leading-6 text-white/80">
+            <p className="mt-2 text-sm leading-6 text-on-primary/80">
               This page preserves the original multi-role entry point for demos, staff access, and testing.
             </p>
           </div>
@@ -99,12 +101,12 @@ const AccessPortal = () => {
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
                 Access Portal
               </p>
-              <h2 className="text-3xl font-semibold tracking-tight text-text">
+              <h2 className="text-3xl font-semibold tracking-tight text-on-secondary">
                 Choose sign-in type
               </h2>
             </div>
 
-            <div className="mb-6 inline-flex rounded-2xl bg-surface-muted p-1">
+            <div className="mb-6 inline-flex rounded-2xl bg-accent/10 p-1">
               <label className="flex-1">
                 <input
                   className="sr-only"
@@ -116,7 +118,7 @@ const AccessPortal = () => {
                     setError('');
                   }}
                 />
-                <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'student' ? 'bg-surface text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>
+                <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'student' ? 'bg-secondary text-on-secondary shadow-sm' : 'text-text-muted hover:text-on-secondary'}`}>
                   Student
                 </span>
               </label>
@@ -131,7 +133,7 @@ const AccessPortal = () => {
                     setError('');
                   }}
                 />
-                <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'coach' ? 'bg-surface text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>
+                <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'coach' ? 'bg-secondary text-on-secondary shadow-sm' : 'text-text-muted hover:text-on-secondary'}`}>
                   Coach
                 </span>
               </label>
@@ -140,6 +142,7 @@ const AccessPortal = () => {
             {role === 'coach' ? (
               <form className="space-y-4" onSubmit={handleCoachLogin}>
                 <Input
+                className='placeholder:!text-on-secondary'
                   label="Email"
                   type="email"
                   value={coachEmail}
@@ -148,6 +151,7 @@ const AccessPortal = () => {
                   required
                 />
                 <Input
+                  className='placeholder:!text-on-secondary'  
                   label="Password"
                   type="password"
                   value={coachPassword}
@@ -155,13 +159,14 @@ const AccessPortal = () => {
                   placeholder="Enter your password"
                   required
                 />
-                <Button disabled={isSubmitting} type="submit">
+                <Button disabled={isSubmitting} type="submit" className="bg-secondary border border-accent text-on-secondary">
                   {isSubmitting ? 'Signing In...' : 'Login as Coach'}
                 </Button>
               </form>
             ) : (
               <form className="space-y-4" onSubmit={handleStudentLogin}>
                 <Input
+                  className='placeholder:!text-on-secondary'    
                   label="Student ID"
                   type="text"
                   value={studentId}
@@ -170,6 +175,7 @@ const AccessPortal = () => {
                   required
                 />
                 <Input
+                  className='placeholder:!text-on-secondary'
                   label="Password"
                   type="password"
                   value={studentPassword}
@@ -177,14 +183,14 @@ const AccessPortal = () => {
                   placeholder="Enter your student password"
                   required
                 />
-                <Button disabled={isSubmitting} type="submit">
+                <Button disabled={isSubmitting} type="submit" className="bg-secondary border border-accent text-on-secondary">
                   {isSubmitting ? 'Checking credentials...' : 'Continue as Student'}
                 </Button>
               </form>
             )}
 
             {error && (
-              <div className="mt-4 rounded-2xl border border-danger-border bg-danger-surface px-4 py-3 text-sm text-danger">
+              <div className="mt-4 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-secondary">
                 {error}
               </div>
             )}

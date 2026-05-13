@@ -10,7 +10,7 @@ import NotFound from '../pages/NotFound';
 
 const FullScreenMessage = ({ message }) => (
   <main className="flex min-h-screen items-center justify-center bg-background px-4">
-    <div className="rounded-2xl border border-border bg-surface px-6 py-5 text-sm text-text-muted shadow-sm">
+    <div className="rounded-2xl border border-border bg-secondary px-6 py-5 text-sm text-text-muted shadow-sm">
       {message}
     </div>
   </main>
