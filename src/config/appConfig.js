@@ -1,7 +1,7 @@
 export const studentAuthConfig = {
   collectionName: 'students',
   idField: 'studentId',
-  passwordField: 'password',
+  authEmailDomain: 'myapp.internal',
   signedInField: 'signedIn',
   currentTaskField: 'currentTask',
   // Store the task id separately so sessions survive task renames.

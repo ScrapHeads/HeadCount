@@ -112,8 +112,8 @@ const StudentCheckIn = () => {
     setStatusMessage('');
   }, [formMode, selectedTaskId, notes]);
 
-  const handleSignOut = () => {
-    signOutStudent();
+  const handleSignOut = async () => {
+    await signOutStudent();
     navigate('/', { replace: true });
   };
 
@@ -135,7 +135,7 @@ const StudentCheckIn = () => {
           task: currentlySelectedTask,
           signInNotes: notes,
         });
-        signOutStudent();
+        await signOutStudent();
         navigate('/', { replace: true });
         return;
       } else {
@@ -152,7 +152,7 @@ const StudentCheckIn = () => {
           timeLogId: activeTimeLogId,
           signOutNotes: notes,
         });
-        signOutStudent();
+        await signOutStudent();
         navigate('/', { replace: true });
         return;
       }

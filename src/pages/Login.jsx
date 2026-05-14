@@ -14,7 +14,7 @@ const Login = () => {
 
   useEffect(() => {
     if (studentSession) {
-      navigate('/student/session', { replace: true });
+      navigate(studentSession.isFirebaseAuthenticated ? '/student/dashboard' : '/student/session', { replace: true });
     }
   }, [studentSession, navigate]);
 

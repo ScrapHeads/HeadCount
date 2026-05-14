@@ -52,7 +52,7 @@ const AccessPortal = () => {
         password: studentPassword,
         requirePassword: true,
       });
-      navigate('/student/session', { replace: true });
+      navigate('/student/dashboard', { replace: true });
     } catch (loginError) {
       setError(loginError.message || 'Student login failed.');
     } finally {
@@ -184,7 +184,7 @@ const AccessPortal = () => {
                   required
                 />
                 <Button disabled={isSubmitting} type="submit" className="bg-secondary border border-accent text-on-secondary">
-                  {isSubmitting ? 'Checking credentials...' : 'Continue as Student'}
+                  {isSubmitting ? 'Opening dashboard...' : 'Continue as Student'}
                 </Button>
               </form>
             )}

@@ -2,9 +2,13 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
+  orderBy,
+  query,
   Timestamp,
   writeBatch,
   serverTimestamp,
+  where,
 } from 'firebase/firestore';
 import { studentAuthConfig, taskConfig, timeLogConfig } from '../../config/appConfig';
 import { db } from '../../services/firebase';
@@ -145,4 +149,26 @@ export const endStudentSessionByCoach = async ({ student, coachEmail }) => {
     timeLogId,
     signOutNotes: `Session ended from coach dashboard${noteSuffix}.`,
   });
+};
+
+export const listTimeLogsBySignInRange = async ({ startDate, endDate }) => {
+  const start = toDate(startDate);
+  const end = toDate(endDate);
+
+  if (!start || !end) {
+    throw new Error('A valid start and end date are required to load analytics.');
+  }
+
+  const timeLogsQuery = query(
+    collection(db, timeLogConfig.collectionName),
+    where(timeLogConfig.signInAtField, '>=', Timestamp.fromDate(start)),
+    where(timeLogConfig.signInAtField, '<=', Timestamp.fromDate(end)),
+    orderBy(timeLogConfig.signInAtField, 'asc'),
+  );
+  const timeLogsSnapshot = await getDocs(timeLogsQuery);
+
+  return timeLogsSnapshot.docs.map((timeLogDoc) => ({
+    id: timeLogDoc.id,
+    ...timeLogDoc.data(),
+  }));
 };
