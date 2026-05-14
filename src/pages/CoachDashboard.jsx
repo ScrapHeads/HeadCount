@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AnalyticsDashboard from '../components/dashboard/AnalyticsDashboard';
 import Button from '../components/shared/Button';
 import { branding } from '../config/branding';
 import { scheduleConfig, studentAuthConfig, taskConfig } from '../config/appConfig';
@@ -34,20 +35,14 @@ const navItems = [
     title: 'Hours and trends',
     description: 'Review team participation, compare sessions over time, and surface students who may need follow-up.',
   },
+  {
+    id: 'student management',
+    label: 'Students',
+    eyebrow: 'Team',
+    title: 'Student management',
+    description: 'Add or archive students, reset passwords, and manage student details.',
+  }
 ];
-
-const dashboardCards = {
-  analytics: [
-    {
-      title: 'Hours summary',
-      body: 'This section should aggregate completed time logs by student, task, date range, and total minutes so coaches can review participation quickly.',
-    },
-    {
-      title: 'Trend views',
-      body: 'Useful charts here would include hours by week, most-selected tasks, and students with open sessions that never reached sign-out.',
-    },
-  ],
-};
 
 const signedInFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -359,11 +354,6 @@ const CoachDashboard = () => {
 
   const activeNavItem = useMemo(
     () => navItems.find((item) => item.id === activeSection) ?? navItems[0],
-    [activeSection],
-  );
-
-  const sectionCards = useMemo(
-    () => dashboardCards[activeSection] ?? [],
     [activeSection],
   );
 
@@ -979,16 +969,10 @@ const CoachDashboard = () => {
                     )}
                   </article>
                 </>
+              ) : activeSection === 'analytics' ? (
+                <AnalyticsDashboard cardClassName={sectionPanelClassName} />
               ) : (
-                sectionCards.map((card) => (
-                  <article
-                    key={card.title}
-                    className={sectionPanelClassName}
-                  >
-                    <p className="text-lg font-semibold text-on-primary">{card.title}</p>
-                    <p className="mt-3 text-sm leading-7 text-on-primary/80">{card.body}</p>
-                  </article>
-                ))
+                null
               )}
             </div>
 
