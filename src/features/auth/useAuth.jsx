@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
+  isStudentAuthEmail,
   loginCoach,
   loginStudent,
   logoutCoach,
+  logoutStudent,
   updateStudentSessionState,
   watchCoachAuth,
 } from './authServices';
@@ -17,7 +19,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = watchCoachAuth((user) => {
-      setCoachUser(user);
+      setCoachUser(user && !isStudentAuthEmail(user.email) ? user : null);
       setIsLoadingCoachAuth(false);
     });
 
@@ -32,12 +34,18 @@ export const AuthProvider = ({ children }) => {
 
   const signInStudent = async ({ studentId, password, requirePassword }) => {
     const student = await loginStudent({ studentId, password, requirePassword });
+
+    if (student.isFirebaseAuthenticated) {
+      setCoachUser(null);
+    }
+
     setStudentSession(student);
     return student;
   };
 
-  const signOutStudent = () => {
+  const signOutStudent = async () => {
     setStudentSession(null);
+    await logoutStudent();
   };
 
   const updateStudentSession = async (updates) => {

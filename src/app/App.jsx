@@ -4,6 +4,7 @@ import { useAuth } from '../features/auth/useAuth.jsx';
 import AccessPortal from '../pages/AccessPortal';
 import Login from '../pages/Login';
 import CoachDashboard from '../pages/CoachDashboard';
+import StudentDashboard from '../pages/StudentDashboard';
 import StudentCheckIn from '../pages/StudentCheckIn';
 import StudentCheckOut from '../pages/StudentCheckOut';
 import NotFound from '../pages/NotFound';
@@ -51,6 +52,14 @@ const App = () => (
           <CoachRoute>
             <CoachDashboard />
           </CoachRoute>
+        )}
+      />
+      <Route
+        path="/student/dashboard"
+        element={(
+          <StudentRoute>
+            <StudentDashboard />
+          </StudentRoute>
         )}
       />
       <Route
