@@ -63,8 +63,8 @@ Firebase config is read from `.env` through Vite environment variables in `src/s
 Current authentication model:
 
 - Coaches sign in with Firebase Authentication using email/password.
-- Students sign in by entering a student ID that is checked against Firestore.
-- Students in the `/access` portal sign in with both student ID and password from Firestore.
+- Students sign in with a student ID and password. The app turns the student ID into a generated Firebase Authentication email.
+- Student passwords live only in Firebase Authentication. Firestore stores the student ID and profile/session fields.
 - Student sessions are stored in `sessionStorage` for the current browser tab.
 
 Main auth files:
@@ -73,7 +73,7 @@ Main auth files:
 - `src/services/auth.js`: coach sign-in and sign-out helpers.
 - `src/services/firestore.js`: student lookup against Firestore.
 - `src/features/auth/useAuth.jsx`: React auth context and shared session state.
-- `src/config/appConfig.js`: configurable Firestore collection name, student ID field, and student password field.
+- `src/config/appConfig.js`: configurable Firestore collection name, student ID field, and roster/session fields.
 
 ## Firestore Student Collection
 
@@ -89,13 +89,17 @@ Recommended student document shape:
 ```json
 {
   "studentId": "12345",
-  "password": "student-demo-password",
   "name": "Jane Doe",
-  "active": true
+  "currentMember": true,
+  "signedIn": false,
+  "currentTask": null,
+  "currentTaskId": null,
+  "activeTimeLogId": null,
+  "signedInAt": null
 }
 ```
 
-If your Firestore schema uses a different collection name, student ID field, or student password field, change `src/config/appConfig.js`.
+If your Firestore schema uses a different collection name or student ID field, change `src/config/appConfig.js`.
 
 ## Firestore Session Model
 

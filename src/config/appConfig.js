@@ -10,6 +10,8 @@ export const studentAuthConfig = {
   activeTimeLogIdField: 'activeTimeLogId',
   // Convenience field for dashboards showing who is currently active.
   signedInAtField: 'signedInAt',
+  // Coaches use this roster flag to show students who are current team members.
+  currentMemberField: 'currentMember',
   // 'auto' tries the raw string first and then a numeric match when possible.
   idValueType: 'auto',
 };

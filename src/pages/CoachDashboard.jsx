@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AnalyticsDashboard from '../components/dashboard/AnalyticsDashboard';
+import StudentManagementDashboard from '../components/dashboard/StudentManagementDashboard';
 import Button from '../components/shared/Button';
 import { branding } from '../config/branding';
 import { scheduleConfig, studentAuthConfig, taskConfig } from '../config/appConfig';
@@ -40,7 +41,7 @@ const navItems = [
     label: 'Students',
     eyebrow: 'Team',
     title: 'Student management',
-    description: 'Add or archive students, reset passwords, and manage student details.',
+    description: 'Add students, manage roster status, and update student details.',
   }
 ];
 
@@ -971,6 +972,8 @@ const CoachDashboard = () => {
                 </>
               ) : activeSection === 'analytics' ? (
                 <AnalyticsDashboard cardClassName={sectionPanelClassName} />
+              ) : activeSection === 'student management' ? (
+                <StudentManagementDashboard cardClassName={sectionPanelClassName} />
               ) : (
                 null
               )}

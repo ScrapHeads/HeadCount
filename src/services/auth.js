@@ -1,12 +1,25 @@
 import {
+  createUserWithEmailAndPassword,
+  deleteUser,
+  getAuth,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth';
+import { getApps, initializeApp } from 'firebase/app';
 import { studentAuthConfig } from '../config/appConfig';
-import { auth } from './firebase';
+import { auth, firebaseConfig } from './firebase';
 
 const studentEmailSuffix = `@${studentAuthConfig.authEmailDomain}`;
+const studentManagementAppName = 'student-management';
+
+const getStudentManagementApp = () => {
+  const existingApp = getApps().find((candidateApp) => candidateApp.name === studentManagementAppName);
+
+  return existingApp ?? initializeApp(firebaseConfig, studentManagementAppName);
+};
+
+const getStudentManagementAuth = () => getAuth(getStudentManagementApp());
 
 export const normalizeStudentAuthId = (studentId) => String(studentId ?? '').trim().toLowerCase();
 
@@ -45,6 +58,22 @@ const mapStudentAuthError = (error) => {
   throw error;
 };
 
+const mapStudentCreationError = (error) => {
+  if (error?.code === 'auth/email-already-in-use') {
+    throw new Error('A Firebase Authentication account already exists for this student ID.');
+  }
+
+  if (error?.code === 'auth/weak-password') {
+    throw new Error('Student passwords must be at least 6 characters.');
+  }
+
+  if (error?.code === 'auth/invalid-email') {
+    throw new Error('This student ID cannot be used for Firebase Authentication.');
+  }
+
+  throw error;
+};
+
 export const signInCoachWithEmail = async ({ email, password }) => {
   const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
   return credential.user;
@@ -68,6 +97,40 @@ export const signInStudentWithGeneratedEmail = async ({ studentId, password }) =
   }
 
   return null;
+};
+
+export const createStudentAuthAccount = async ({ studentId, password }) => {
+  if (!password) {
+    throw new Error('Student password is required.');
+  }
+
+  try {
+    const credential = await createUserWithEmailAndPassword(
+      getStudentManagementAuth(),
+      buildStudentAuthEmail(studentId),
+      password,
+    );
+
+    return credential.user;
+  } catch (error) {
+    mapStudentCreationError(error);
+  }
+
+  return null;
+};
+
+export const deleteStudentAuthAccount = (studentAuthUser) => {
+  if (!studentAuthUser) {
+    return Promise.resolve();
+  }
+
+  return deleteUser(studentAuthUser);
+};
+
+export const signOutStudentManagementAuth = () => signOut(getStudentManagementAuth());
+
+export const updateExistingStudentAuthPassword = async () => {
+  throw new Error('Changing an existing student password requires a trusted Firebase Admin backend.');
 };
 
 export const signOutCurrentAuthUser = () => signOut(auth);

@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   orderBy,
   query,
   Timestamp,
@@ -26,6 +27,177 @@ const calculateDurationMinutes = (signInAt, signOutAt) => {
 
   const elapsedMs = endedAt.getTime() - startedAt.getTime();
   return Math.max(0, Math.round(elapsedMs / 60000));
+};
+
+const nullableString = (value) => {
+  const trimmedValue = String(value ?? '').trim();
+
+  return trimmedValue || null;
+};
+
+const isNumericString = (value) => /^-?\d+(\.\d+)?$/.test(value);
+
+const getStudentLogIdCandidates = (student) => {
+  const rawValues = [
+    student?.[studentAuthConfig.idField],
+    student?.studentId,
+  ];
+  const candidates = new Set();
+
+  rawValues.forEach((value) => {
+    const stringValue = String(value ?? '').trim();
+
+    if (!stringValue) {
+      return;
+    }
+
+    candidates.add(stringValue);
+
+    if (studentAuthConfig.idValueType === 'auto' && isNumericString(stringValue)) {
+      candidates.add(Number(stringValue));
+    }
+  });
+
+  return [...candidates];
+};
+
+const sortLogsByNewestSignIn = (logs) => [...logs].sort((left, right) => {
+  const leftTime = toDate(left?.[timeLogConfig.signInAtField])?.getTime() ?? 0;
+  const rightTime = toDate(right?.[timeLogConfig.signInAtField])?.getTime() ?? 0;
+
+  return rightTime - leftTime;
+});
+
+export const listTimeLogsForStudent = async ({ student }) => {
+  if (!student?.id && !getStudentLogIdCandidates(student).length) {
+    throw new Error('A student record is required to load time logs.');
+  }
+
+  const logsById = new Map();
+  const timeLogsCollection = collection(db, timeLogConfig.collectionName);
+  const queries = [];
+
+  if (student?.id) {
+    queries.push(query(
+      timeLogsCollection,
+      where(timeLogConfig.studentDocIdField, '==', student.id),
+    ));
+  }
+
+  getStudentLogIdCandidates(student).forEach((studentId) => {
+    queries.push(query(
+      timeLogsCollection,
+      where(timeLogConfig.studentIdField, '==', studentId),
+    ));
+  });
+
+  const snapshots = await Promise.all(queries.map((timeLogsQuery) => getDocs(timeLogsQuery)));
+
+  snapshots.forEach((snapshot) => {
+    snapshot.docs.forEach((timeLogDoc) => {
+      logsById.set(timeLogDoc.id, {
+        id: timeLogDoc.id,
+        ...timeLogDoc.data(),
+      });
+    });
+  });
+
+  return sortLogsByNewestSignIn([...logsById.values()]);
+};
+
+export const updateTimeLogByCoach = async ({
+  signInAt,
+  signInNotes,
+  signOutAt,
+  signOutNotes,
+  student,
+  taskName,
+  timeLogId,
+}) => {
+  if (!timeLogId) {
+    throw new Error('A time log is required for updates.');
+  }
+
+  const signInDate = toDate(signInAt);
+  const signOutDate = signOutAt ? toDate(signOutAt) : null;
+  const trimmedTaskName = String(taskName ?? '').trim();
+
+  if (!signInDate) {
+    throw new Error('Start time must be a valid date and time.');
+  }
+
+  if (signOutAt && !signOutDate) {
+    throw new Error('End time must be a valid date and time.');
+  }
+
+  if (signOutDate && signOutDate < signInDate) {
+    throw new Error('End time must be after start time.');
+  }
+
+  if (!trimmedTaskName) {
+    throw new Error('Task name is required.');
+  }
+
+  const timeLogDocRef = doc(db, timeLogConfig.collectionName, timeLogId);
+  const existingTimeLogSnapshot = await getDoc(timeLogDocRef);
+
+  if (!existingTimeLogSnapshot.exists()) {
+    throw new Error('The time log could not be found.');
+  }
+
+  const existingTimeLog = existingTimeLogSnapshot.data();
+  const isSelectedStudentActiveLog = student?.[studentAuthConfig.activeTimeLogIdField] === timeLogId;
+
+  if (
+    !signOutDate
+    && existingTimeLog[timeLogConfig.statusField] === timeLogConfig.completedStatus
+    && !isSelectedStudentActiveLog
+  ) {
+    throw new Error('Completed logs need an end time.');
+  }
+
+  const signInTimestamp = Timestamp.fromDate(signInDate);
+  const signOutTimestamp = signOutDate ? Timestamp.fromDate(signOutDate) : null;
+  const durationMinutes = signOutDate ? calculateDurationMinutes(signInDate, signOutDate) : null;
+  const batch = writeBatch(db);
+
+  batch.update(timeLogDocRef, {
+    [timeLogConfig.signInAtField]: signInTimestamp,
+    [timeLogConfig.signOutAtField]: signOutTimestamp,
+    [timeLogConfig.signInNotesField]: nullableString(signInNotes),
+    [timeLogConfig.signOutNotesField]: nullableString(signOutNotes),
+    [timeLogConfig.taskNameField]: trimmedTaskName,
+    [timeLogConfig.statusField]: signOutDate ? timeLogConfig.completedStatus : timeLogConfig.activeStatus,
+    [timeLogConfig.durationMinutesField]: durationMinutes,
+    [timeLogConfig.updatedAtField]: serverTimestamp(),
+  });
+
+  if (isSelectedStudentActiveLog) {
+    const studentDocRef = doc(db, studentAuthConfig.collectionName, student.id);
+
+    batch.update(studentDocRef, signOutDate
+      ? {
+        [studentAuthConfig.currentTaskField]: null,
+        [studentAuthConfig.currentTaskIdField]: null,
+        [studentAuthConfig.activeTimeLogIdField]: null,
+        [studentAuthConfig.signedInAtField]: null,
+        [studentAuthConfig.signedInField]: false,
+      }
+      : {
+        [studentAuthConfig.currentTaskField]: trimmedTaskName,
+        [studentAuthConfig.signedInAtField]: signInTimestamp,
+        [studentAuthConfig.signedInField]: true,
+      });
+  }
+
+  await batch.commit();
+
+  return {
+    id: timeLogId,
+    durationMinutes,
+    signInAt: signInTimestamp,
+    signOutAt: signOutTimestamp,
+  };
 };
 
 export const startStudentSession = async ({ student, task, signInNotes }) => {
@@ -171,4 +343,24 @@ export const listTimeLogsBySignInRange = async ({ startDate, endDate }) => {
     id: timeLogDoc.id,
     ...timeLogDoc.data(),
   }));
+};
+
+export const watchCompletedTimeLogs = (callback, onError) => {
+  const completedLogsQuery = query(
+    collection(db, timeLogConfig.collectionName),
+    where(timeLogConfig.statusField, '==', timeLogConfig.completedStatus),
+  );
+
+  return onSnapshot(
+    completedLogsQuery,
+    (snapshot) => {
+      callback(
+        snapshot.docs.map((timeLogDoc) => ({
+          id: timeLogDoc.id,
+          ...timeLogDoc.data(),
+        })),
+      );
+    },
+    onError,
+  );
 };
