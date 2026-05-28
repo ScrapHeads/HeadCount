@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
+  isKioskAuthEmail,
   isStudentAuthEmail,
   loginCoach,
+  loginKiosk,
   loginStudent,
   logoutCoach,
+  logoutKiosk,
   logoutStudent,
   updateStudentSessionState,
   watchCoachAuth,
@@ -14,12 +17,14 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [coachUser, setCoachUser] = useState(null);
+  const [kioskUser, setKioskUser] = useState(null);
   const [isLoadingCoachAuth, setIsLoadingCoachAuth] = useState(true);
   const { studentSession, setStudentSession } = useStudentSession();
 
   useEffect(() => {
     const unsubscribe = watchCoachAuth((user) => {
-      setCoachUser(user && !isStudentAuthEmail(user.email) ? user : null);
+      setCoachUser(user && !isStudentAuthEmail(user.email) && !isKioskAuthEmail(user.email) ? user : null);
+      setKioskUser(user && isKioskAuthEmail(user.email) ? user : null);
       setIsLoadingCoachAuth(false);
     });
 
@@ -29,6 +34,14 @@ export const AuthProvider = ({ children }) => {
   const signInCoach = async ({ email, password }) => {
     const user = await loginCoach({ email, password });
     setCoachUser(user);
+    setKioskUser(null);
+    return user;
+  };
+
+  const signInKiosk = async ({ email, password }) => {
+    const user = await loginKiosk({ email, password });
+    setCoachUser(null);
+    setKioskUser(user);
     return user;
   };
 
@@ -37,6 +50,7 @@ export const AuthProvider = ({ children }) => {
 
     if (student.isFirebaseAuthenticated) {
       setCoachUser(null);
+      setKioskUser(null);
     }
 
     setStudentSession(student);
@@ -44,8 +58,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signOutStudent = async () => {
+    const activeStudentSession = studentSession;
+
     setStudentSession(null);
-    await logoutStudent();
+
+    if (activeStudentSession?.authMode === 'student') {
+      await logoutStudent();
+    }
   };
 
   const updateStudentSession = async (updates) => {
@@ -72,13 +91,22 @@ export const AuthProvider = ({ children }) => {
     setCoachUser(null);
   };
 
+  const signOutCurrentKiosk = async () => {
+    setStudentSession(null);
+    await logoutKiosk();
+    setKioskUser(null);
+  };
+
   return (
     <AuthContext.Provider
       value={{
         coachUser,
         isLoadingCoachAuth,
+        kioskUser,
         signInCoach,
+        signInKiosk,
         signOutCoach: signOutCurrentCoach,
+        signOutKiosk: signOutCurrentKiosk,
         signInStudent,
         signOutStudent,
         studentSession,

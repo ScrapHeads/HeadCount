@@ -62,8 +62,14 @@ const getStudentLogIdCandidates = (student) => {
 };
 
 const sortLogsByNewestSignIn = (logs) => [...logs].sort((left, right) => {
-  const leftTime = toDate(left?.[timeLogConfig.signInAtField])?.getTime() ?? 0;
-  const rightTime = toDate(right?.[timeLogConfig.signInAtField])?.getTime() ?? 0;
+  const leftTime = (
+    toDate(left?.[timeLogConfig.signInAtField])
+    ?? toDate(left?.[timeLogConfig.createdAtField])
+  )?.getTime() ?? 0;
+  const rightTime = (
+    toDate(right?.[timeLogConfig.signInAtField])
+    ?? toDate(right?.[timeLogConfig.createdAtField])
+  )?.getTime() ?? 0;
 
   return rightTime - leftTime;
 });
@@ -200,6 +206,53 @@ export const updateTimeLogByCoach = async ({
   };
 };
 
+export const createExtraHoursTimeLog = async ({
+  enteredBy,
+  hours,
+  reason,
+  student,
+}) => {
+  if (!student?.id) {
+    throw new Error('A student record is required to add extra hours.');
+  }
+
+  const numericHours = Number(hours);
+  const trimmedReason = String(reason ?? '').trim();
+
+  if (!Number.isFinite(numericHours) || numericHours <= 0) {
+    throw new Error('Extra hours must be greater than zero.');
+  }
+
+  if (!trimmedReason) {
+    throw new Error('A reason is required to add extra hours.');
+  }
+
+  const durationMinutes = Math.round(numericHours * 60);
+  const timeLogDocRef = doc(collection(db, timeLogConfig.collectionName));
+  const studentId = student[studentAuthConfig.idField] ?? student.studentId ?? student.id;
+  const batch = writeBatch(db);
+
+  batch.set(timeLogDocRef, {
+    [timeLogConfig.createdAtField]: serverTimestamp(),
+    [timeLogConfig.updatedAtField]: serverTimestamp(),
+    [timeLogConfig.durationMinutesField]: durationMinutes,
+    [timeLogConfig.studentDocIdField]: student.id,
+    [timeLogConfig.studentIdField]: studentId,
+    [timeLogConfig.studentNameField]: student.name ?? 'Student',
+    [timeLogConfig.statusField]: timeLogConfig.completedStatus,
+    [timeLogConfig.taskNameField]: timeLogConfig.extraTimeTaskName,
+    [timeLogConfig.reasonField]: trimmedReason,
+    [timeLogConfig.enteredByField]: nullableString(enteredBy) ?? 'Coach',
+  });
+
+  await batch.commit();
+
+  return {
+    id: timeLogDocRef.id,
+    durationMinutes,
+  };
+};
+
 export const startStudentSession = async ({ student, task, signInNotes }) => {
   if (!student?.id) {
     throw new Error('A student record is required to create a time log.');
@@ -331,18 +384,40 @@ export const listTimeLogsBySignInRange = async ({ startDate, endDate }) => {
     throw new Error('A valid start and end date are required to load analytics.');
   }
 
-  const timeLogsQuery = query(
-    collection(db, timeLogConfig.collectionName),
+  const timeLogsCollection = collection(db, timeLogConfig.collectionName);
+  const timeLogsById = new Map();
+  const signInTimeLogsQuery = query(
+    timeLogsCollection,
     where(timeLogConfig.signInAtField, '>=', Timestamp.fromDate(start)),
     where(timeLogConfig.signInAtField, '<=', Timestamp.fromDate(end)),
     orderBy(timeLogConfig.signInAtField, 'asc'),
   );
-  const timeLogsSnapshot = await getDocs(timeLogsQuery);
+  const createdTimeLogsQuery = query(
+    timeLogsCollection,
+    where(timeLogConfig.createdAtField, '>=', Timestamp.fromDate(start)),
+    where(timeLogConfig.createdAtField, '<=', Timestamp.fromDate(end)),
+    orderBy(timeLogConfig.createdAtField, 'asc'),
+  );
+  const snapshots = await Promise.all([
+    getDocs(signInTimeLogsQuery),
+    getDocs(createdTimeLogsQuery),
+  ]);
 
-  return timeLogsSnapshot.docs.map((timeLogDoc) => ({
-    id: timeLogDoc.id,
-    ...timeLogDoc.data(),
-  }));
+  snapshots.forEach((snapshot) => {
+    snapshot.docs.forEach((timeLogDoc) => {
+      timeLogsById.set(timeLogDoc.id, {
+        id: timeLogDoc.id,
+        ...timeLogDoc.data(),
+      });
+    });
+  });
+
+  return [...timeLogsById.values()].sort((left, right) => {
+    const leftDate = toDate(left[timeLogConfig.signInAtField]) ?? toDate(left[timeLogConfig.createdAtField]);
+    const rightDate = toDate(right[timeLogConfig.signInAtField]) ?? toDate(right[timeLogConfig.createdAtField]);
+
+    return (leftDate?.getTime() ?? 0) - (rightDate?.getTime() ?? 0);
+  });
 };
 
 export const watchCompletedTimeLogs = (callback, onError) => {

@@ -51,6 +51,11 @@ export const getEndOfDay = (value) => {
   return endOfDay;
 };
 
+const getLogDate = (log) => (
+  toDate(log?.[timeLogConfig.signInAtField])
+  ?? toDate(log?.[timeLogConfig.createdAtField])
+);
+
 export const getLogsInDateRange = (logs, startDate, endDate) => {
   const start = getStartOfDay(startDate);
   const end = getEndOfDay(endDate);
@@ -60,9 +65,9 @@ export const getLogsInDateRange = (logs, startDate, endDate) => {
   }
 
   return logs.filter((log) => {
-    const signInAt = toDate(log?.[timeLogConfig.signInAtField]);
+    const logDate = getLogDate(log);
 
-    return Boolean(signInAt && signInAt >= start && signInAt <= end);
+    return Boolean(logDate && logDate >= start && logDate <= end);
   });
 };
 
@@ -88,7 +93,7 @@ export const getDurationMinutes = (log) => {
 export const isCompletedLog = (log) => {
   return (
     log?.[timeLogConfig.statusField] === timeLogConfig.completedStatus
-    && Boolean(toDate(log?.[timeLogConfig.signOutAtField]))
+    && Boolean(toDate(log?.[timeLogConfig.signOutAtField]) || getLogDate(log))
     && getDurationMinutes(log) > 0
   );
 };
@@ -214,7 +219,7 @@ export const calculateTeamHoursOverTime = (logs) => {
   const weekTotals = new Map();
 
   getCompletedLogs(logs).forEach((log) => {
-    const weekStartDate = getWeekStartDate(log?.[timeLogConfig.signInAtField]);
+    const weekStartDate = getWeekStartDate(getLogDate(log));
 
     if (!weekStartDate) {
       return;

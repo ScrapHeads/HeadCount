@@ -16,6 +16,10 @@ export const studentAuthConfig = {
   idValueType: 'auto',
 };
 
+export const kioskAuthConfig = {
+  email: import.meta.env.VITE_KIOSK_AUTH_EMAIL ?? '',
+};
+
 export const taskConfig = {
   collectionName: 'tasks',
   nameField: 'name',
@@ -57,6 +61,9 @@ export const timeLogConfig = {
   durationMinutesField: 'durationMinutes',
   createdAtField: 'createdAt',
   updatedAtField: 'updatedAt',
+  reasonField: 'reason',
+  enteredByField: 'enteredBy',
+  extraTimeTaskName: 'extraTime',
   activeStatus: 'active',
   completedStatus: 'completed',
 };

@@ -7,7 +7,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { getApps, initializeApp } from 'firebase/app';
-import { studentAuthConfig } from '../config/appConfig';
+import { kioskAuthConfig, studentAuthConfig } from '../config/appConfig';
 import { auth, firebaseConfig } from './firebase';
 
 const studentEmailSuffix = `@${studentAuthConfig.authEmailDomain}`;
@@ -45,6 +45,13 @@ export const getStudentIdFromAuthEmail = (email) => {
 
 export const isStudentAuthEmail = (email) => Boolean(getStudentIdFromAuthEmail(email));
 
+export const isKioskAuthEmail = (email) => {
+  const configuredKioskEmail = String(kioskAuthConfig.email ?? '').trim().toLowerCase();
+  const normalizedEmail = String(email ?? '').trim().toLowerCase();
+
+  return Boolean(configuredKioskEmail && normalizedEmail === configuredKioskEmail);
+};
+
 const mapStudentAuthError = (error) => {
   if (
     error?.code === 'auth/invalid-credential'
@@ -75,6 +82,11 @@ const mapStudentCreationError = (error) => {
 };
 
 export const signInCoachWithEmail = async ({ email, password }) => {
+  const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+  return credential.user;
+};
+
+export const signInKioskWithEmail = async ({ email, password }) => {
   const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
   return credential.user;
 };
@@ -136,13 +148,18 @@ export const updateExistingStudentAuthPassword = async () => {
 export const signOutCurrentAuthUser = () => signOut(auth);
 
 export const signOutCoach = () => signOutCurrentAuthUser();
+export const signOutKiosk = () => signOutCurrentAuthUser();
 
 export const signOutStudentAuth = async () => {
-  if (!isStudentAuthEmail(auth.currentUser?.email)) {
+  const currentUser = auth.currentUser;
+
+  if (!isStudentAuthEmail(currentUser?.email)) {
     return;
   }
 
   await signOut(auth);
 };
+
+export const getCurrentAuthUser = () => auth.currentUser;
 
 export const subscribeToCoachAuth = (callback) => onAuthStateChanged(auth, callback);

@@ -9,12 +9,22 @@ const Login = () => {
   const [studentId, setStudentId] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signInStudent, studentSession } = useAuth();
+  const {
+    isLoadingCoachAuth,
+    kioskUser,
+    signInStudent,
+    signOutKiosk,
+    studentSession,
+  } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (studentSession) {
-      navigate(studentSession.isFirebaseAuthenticated ? '/student/dashboard' : '/student/session', { replace: true });
+      const destination = studentSession.isFirebaseAuthenticated
+        ? '/student/dashboard'
+        : '/student/session';
+
+      navigate(destination, { replace: true });
     }
   }, [studentSession, navigate]);
 
@@ -25,12 +35,21 @@ const Login = () => {
       return;
     }
 
+    if (!kioskUser) {
+      setError('This device must be signed in as the student kiosk before students can use ID-only sign-in.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
 
     try {
-      await signInStudent({ studentId });
-      navigate('/student/session', { replace: true });
+      const student = await signInStudent({ studentId });
+      const destination = student.isFirebaseAuthenticated
+        ? '/student/dashboard'
+        : '/student/session';
+
+      navigate(destination, { replace: true });
     } catch (loginError) {
       setError(loginError.message || 'Student login failed.');
     } finally {
@@ -81,9 +100,32 @@ const Login = () => {
                 Enter your student ID
               </h2>
               <p className="text-sm leading-6 text-on-primary">
-                Start here for the main sign-in and sign-out workflow. Coach and demo access are still available from the secondary portal.
+                Start here for the main sign-in and sign-out workflow. Coach and kiosk access are still available from the secondary portal.
               </p>
             </div>
+
+            {!isLoadingCoachAuth && kioskUser && (
+              <div className="mb-4 rounded-2xl border border-accent/25 bg-accent/10 px-4 py-3 text-sm text-on-primary">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <span>
+                    Kiosk signed in as <span className="font-semibold">{kioskUser.email}</span>.
+                  </span>
+                  <button
+                    className="text-left text-sm font-semibold text-on-primary underline-offset-4 hover:underline sm:text-right"
+                    onClick={signOutKiosk}
+                    type="button"
+                  >
+                    Sign out kiosk
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!isLoadingCoachAuth && !kioskUser && (
+              <div className="mb-4 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
+                Sign in this device as the student kiosk before using ID-only student sign-in.
+              </div>
+            )}
 
             <form className="space-y-4" onSubmit={handleStudentLogin}>
               <Input
@@ -95,7 +137,7 @@ const Login = () => {
                 placeholder="Enter your student ID"
                 required
               />
-              <Button className="bg-secondary border-2 border-transparent text-on-secondary hover:border-accent" disabled={isSubmitting} type="submit">
+              <Button className="bg-secondary border-2 border-transparent text-on-secondary hover:border-accent" disabled={isSubmitting || isLoadingCoachAuth || !kioskUser} type="submit">
                 {isSubmitting ? 'Checking ID...' : 'Continue to Sign In / Out form'}
               </Button>
             </form>
@@ -110,7 +152,7 @@ const Login = () => {
               className="mt-4 inline-flex items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-semibold text-on-primary transition hover:bg-accent/10"
               to="/access"
             >
-              Open coach and demo access
+              Open coach, kiosk, and demo access
             </Link>
 
             <p className="mt-6 text-center text-xs leading-5 text-on-primary">

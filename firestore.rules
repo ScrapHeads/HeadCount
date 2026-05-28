@@ -1,0 +1,132 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null && request.auth.token.email is string;
+    }
+
+    function kioskEmail() {
+      return 'kiosk@yourteam.org';
+    }
+
+    function isKiosk() {
+      return signedIn() && request.auth.token.email == kioskEmail();
+    }
+
+    function isStudentAuth() {
+      return signedIn() && request.auth.token.email.matches('.*@myapp\\.internal$');
+    }
+
+    function isCoach() {
+      return signedIn() && !isKiosk() && !isStudentAuth();
+    }
+
+    function studentAuthId() {
+      return request.auth.token.email.split('@')[0];
+    }
+
+    function ownsStudent(data) {
+      return isStudentAuth() && data.studentId == studentAuthId();
+    }
+
+    function ownsTimeLog(data) {
+      return isStudentAuth()
+        && (
+          data.studentId == studentAuthId()
+          || get(/databases/$(database)/documents/students/$(data.studentDocId)).data.studentId == studentAuthId()
+        );
+    }
+
+    function onlySessionFieldsChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'signedIn',
+        'signedInAt',
+        'currentTask',
+        'currentTaskId',
+        'activeTimeLogId'
+      ]);
+    }
+
+    function validStudentSessionUpdate() {
+      return onlySessionFieldsChanged()
+        && (
+          request.resource.data.signedIn == true
+          || request.resource.data.signedIn == false
+          || request.resource.data.signedIn == null
+        );
+    }
+
+    function validActiveTimeLogCreate() {
+      return request.resource.data.keys().hasAll([
+        'studentDocId',
+        'studentId',
+        'studentName',
+        'taskId',
+        'taskName',
+        'signInAt',
+        'signOutAt',
+        'signInNotes',
+        'signOutNotes',
+        'status',
+        'durationMinutes',
+        'createdAt',
+        'updatedAt'
+      ])
+        && request.resource.data.status == 'active'
+        && request.resource.data.signInAt is timestamp
+        && request.resource.data.signOutAt == null
+        && request.resource.data.signOutNotes == null
+        && request.resource.data.durationMinutes == null
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function validTimeLogCheckoutUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'signOutAt',
+        'signOutNotes',
+        'status',
+        'durationMinutes',
+        'updatedAt'
+      ])
+        && resource.data.status == 'active'
+        && request.resource.data.status == 'completed'
+        && request.resource.data.signOutAt is timestamp
+        && request.resource.data.durationMinutes is number
+        && request.resource.data.durationMinutes >= 0
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    match /students/{studentId} {
+      allow get, list: if isCoach() || isKiosk() || ownsStudent(resource.data);
+      allow create, delete: if isCoach();
+      allow update: if isCoach()
+        || ((isKiosk() || ownsStudent(resource.data)) && validStudentSessionUpdate());
+    }
+
+    match /tasks/{taskId} {
+      allow get, list: if signedIn();
+      allow create, update, delete: if isCoach();
+    }
+
+    match /schedules/{scheduleId} {
+      allow get, list: if signedIn();
+      allow create, update, delete: if isCoach();
+    }
+
+    match /timeLogs/{timeLogId} {
+      allow get: if isCoach() || isKiosk() || ownsTimeLog(resource.data);
+      allow list: if isCoach() || ownsTimeLog(resource.data);
+      allow create: if isCoach()
+        || ((isKiosk() || ownsTimeLog(request.resource.data)) && validActiveTimeLogCreate());
+      allow update: if isCoach()
+        || ((isKiosk() || ownsTimeLog(resource.data)) && validTimeLogCheckoutUpdate());
+      allow delete: if isCoach();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

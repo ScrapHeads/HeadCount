@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { scheduleConfig, studentAuthConfig, taskConfig, timeLogConfig } from '../../config/appConfig';
+import { useAuth } from '../../features/auth/useAuth.jsx';
 import { isScheduleActive } from '../../features/schedules/validateSchedule';
 import { useSchedules } from '../../features/schedules/useSchedules';
 import { createStudent, updateStudent } from '../../features/students/studentService';
@@ -7,6 +8,7 @@ import { useStudents } from '../../features/students/useStudents';
 import { useTasks } from '../../features/tasks/useTasks';
 import { useCompletedTimeLogs } from '../../features/timeLogs/useCompletedTimeLogs';
 import {
+  createExtraHoursTimeLog,
   listTimeLogsForStudent,
   startStudentSession,
   updateTimeLogByCoach,
@@ -559,6 +561,149 @@ const SignInStudentCard = ({
   );
 };
 
+const ExtraHoursCard = ({
+  cardClassName,
+  enteredBy,
+  error,
+  isLoading,
+  students,
+}) => {
+  const sortedStudents = useMemo(() => sortStudentsByName(students), [students]);
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [hours, setHours] = useState('');
+  const [reason, setReason] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [status, setStatus] = useState({ message: '', tone: 'muted' });
+
+  const selectedStudent = useMemo(
+    () => sortedStudents.find((student) => student.id === selectedStudentId) ?? null,
+    [selectedStudentId, sortedStudents],
+  );
+
+  useEffect(() => {
+    if (sortedStudents.length === 0) {
+      setSelectedStudentId('');
+      return;
+    }
+
+    const selectedStudentStillExists = sortedStudents.some((student) => student.id === selectedStudentId);
+
+    if (!selectedStudentStillExists) {
+      setSelectedStudentId(sortedStudents[0].id);
+    }
+  }, [selectedStudentId, sortedStudents]);
+
+  const clearStatus = () => setStatus({ message: '', tone: 'muted' });
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!selectedStudent) {
+      setStatus({ message: 'Select a student before adding extra hours.', tone: 'error' });
+      return;
+    }
+
+    setIsSaving(true);
+    clearStatus();
+
+    try {
+      await createExtraHoursTimeLog({
+        enteredBy,
+        hours,
+        reason,
+        student: selectedStudent,
+      });
+
+      setHours('');
+      setReason('');
+      setStatus({ message: `Extra hours added for ${getStudentName(selectedStudent)}.`, tone: 'muted' });
+    } catch (submitError) {
+      setStatus({
+        message: submitError?.message || 'Failed to add extra hours.',
+        tone: 'error',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <article className={cardClassName}>
+      <div className="border-b border-border pb-5">
+        <h3 className="text-lg font-semibold text-on-primary">Extra Hours</h3>
+        <p className="mt-2 text-sm leading-6 text-on-primary/80">
+          Add completed manual hours with a reason for reports.
+        </p>
+      </div>
+
+      {isLoading ? (
+        <CardMessage>Loading students...</CardMessage>
+      ) : error ? (
+        <CardMessage tone="error">{error}</CardMessage>
+      ) : sortedStudents.length === 0 ? (
+        <CardMessage>No students found.</CardMessage>
+      ) : (
+        <form className="mt-5 grid gap-4" onSubmit={handleSubmit}>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-on-primary">Student</span>
+            <select
+              className={inputClassName}
+              onChange={(event) => {
+                setSelectedStudentId(event.target.value);
+                clearStatus();
+              }}
+              value={selectedStudentId}
+            >
+              {sortedStudents.map((student) => (
+                <option key={student.id} value={student.id}>
+                  {getStudentName(student)} ({getStudentId(student) || 'No ID'})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-on-primary">Hours</span>
+            <input
+              className={inputClassName}
+              min="0.01"
+              onChange={(event) => {
+                setHours(event.target.value);
+                clearStatus();
+              }}
+              placeholder="1.5"
+              required
+              step="0.01"
+              type="number"
+              value={hours}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-on-primary">Reason</span>
+            <textarea
+              className="min-h-28 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition placeholder:text-on-secondary/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
+              onChange={(event) => {
+                setReason(event.target.value);
+                clearStatus();
+              }}
+              placeholder="Why these hours are being added"
+              required
+              value={reason}
+            />
+          </label>
+
+          <Button disabled={isSaving} type="submit">
+            {isSaving ? 'Adding Hours...' : 'Add Extra Hours'}
+          </Button>
+        </form>
+      )}
+
+      {status.message && <CardMessage tone={status.tone}>{status.message}</CardMessage>}
+    </article>
+  );
+};
+
 const EditStudentCard = ({
   cardClassName,
   error,
@@ -1067,10 +1212,12 @@ const StudentTimeLogsCard = ({
 };
 
 const StudentManagementDashboard = ({ cardClassName = defaultCardClassName }) => {
+  const { coachUser } = useAuth();
   const { students, isLoading: isLoadingStudents, error: studentsError } = useStudents();
   const { tasks, isLoading: isLoadingTasks, error: tasksError } = useTasks();
   const { schedules, isLoading: isLoadingSchedules, error: schedulesError } = useSchedules();
   const { logs, isLoading: isLoadingLogs, error: logsError } = useCompletedTimeLogs();
+  const enteredBy = coachUser?.email ?? coachUser?.displayName ?? 'Coach';
 
   const signInTasks = useMemo(
     () => getAvailableSignInTasks(tasks, schedules),
@@ -1113,6 +1260,13 @@ const StudentManagementDashboard = ({ cardClassName = defaultCardClassName }) =>
           isLoading={isLoadingStudents || isLoadingTasks || isLoadingSchedules}
           students={students}
           tasks={signInTasks}
+        />
+        <ExtraHoursCard
+          cardClassName={cardClassName}
+          enteredBy={enteredBy}
+          error={studentsError}
+          isLoading={isLoadingStudents}
+          students={students}
         />
       </div>
 

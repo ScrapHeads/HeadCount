@@ -32,10 +32,20 @@ const CoachRoute = ({ children }) => {
 };
 
 const StudentRoute = ({ children }) => {
-  const { studentSession } = useAuth();
+  const { isLoadingCoachAuth, kioskUser, studentSession } = useAuth();
 
   if (!studentSession) {
     return <Navigate replace to="/" />;
+  }
+
+  if (studentSession.authMode === 'kiosk') {
+    if (isLoadingCoachAuth) {
+      return <FullScreenMessage message="Checking kiosk session..." />;
+    }
+
+    if (!kioskUser) {
+      return <Navigate replace to="/" />;
+    }
   }
 
   return children;

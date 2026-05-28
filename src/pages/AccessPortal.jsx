@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
+import { kioskAuthConfig } from '../config/appConfig';
 import { branding } from '../config/branding';
 import { useAuth } from '../features/auth/useAuth.jsx';
 
@@ -9,11 +10,13 @@ const AccessPortal = () => {
   const [role, setRole] = useState('student');
   const [coachEmail, setCoachEmail] = useState('');
   const [coachPassword, setCoachPassword] = useState('');
+  const [kioskEmail, setKioskEmail] = useState(kioskAuthConfig.email);
+  const [kioskPassword, setKioskPassword] = useState('');
   const [studentId, setStudentId] = useState('');
   const [studentPassword, setStudentPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signInCoach, signInStudent } = useAuth();
+  const { signInCoach, signInKiosk, signInStudent } = useAuth();
   const navigate = useNavigate();
 
   const handleCoachLogin = async (e) => {
@@ -31,6 +34,26 @@ const AccessPortal = () => {
       navigate('/coach/dashboard', { replace: true });
     } catch (loginError) {
       setError(loginError.message || 'Coach login failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleKioskLogin = async (e) => {
+    e.preventDefault();
+    if (!kioskEmail || !kioskPassword) {
+      setError('Please enter both kiosk email and password.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      await signInKiosk({ email: kioskEmail, password: kioskPassword });
+      navigate('/', { replace: true });
+    } catch (loginError) {
+      setError(loginError.message || 'Kiosk login failed.');
     } finally {
       setIsSubmitting(false);
     }
@@ -106,7 +129,7 @@ const AccessPortal = () => {
               </h2>
             </div>
 
-            <div className="mb-6 inline-flex rounded-2xl bg-accent/10 p-1">
+            <div className="mb-6 grid grid-cols-3 rounded-2xl bg-accent/10 p-1">
               <label className="flex-1">
                 <input
                   className="sr-only"
@@ -120,6 +143,21 @@ const AccessPortal = () => {
                 />
                 <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'student' ? 'bg-secondary text-on-secondary shadow-sm' : 'text-text-muted hover:text-on-secondary'}`}>
                   Student
+                </span>
+              </label>
+              <label className="flex-1">
+                <input
+                  className="sr-only"
+                  type="radio"
+                  value="kiosk"
+                  checked={role === 'kiosk'}
+                  onChange={(e) => {
+                    setRole(e.target.value);
+                    setError('');
+                  }}
+                />
+                <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'kiosk' ? 'bg-secondary text-on-secondary shadow-sm' : 'text-text-muted hover:text-on-secondary'}`}>
+                  Kiosk
                 </span>
               </label>
               <label className="flex-1">
@@ -161,6 +199,30 @@ const AccessPortal = () => {
                 />
                 <Button disabled={isSubmitting} type="submit" className="bg-secondary border border-accent text-on-secondary">
                   {isSubmitting ? 'Signing In...' : 'Login as Coach'}
+                </Button>
+              </form>
+            ) : role === 'kiosk' ? (
+              <form className="space-y-4" onSubmit={handleKioskLogin}>
+                <Input
+                  className="placeholder:!text-on-secondary"
+                  label="Kiosk email"
+                  type="email"
+                  value={kioskEmail}
+                  onChange={(e) => setKioskEmail(e.target.value)}
+                  placeholder={kioskAuthConfig.email || 'kiosk@team.org'}
+                  required
+                />
+                <Input
+                  className="placeholder:!text-on-secondary"
+                  label="Kiosk password"
+                  type="password"
+                  value={kioskPassword}
+                  onChange={(e) => setKioskPassword(e.target.value)}
+                  placeholder="Enter kiosk password"
+                  required
+                />
+                <Button disabled={isSubmitting} type="submit" className="bg-secondary border border-accent text-on-secondary">
+                  {isSubmitting ? 'Signing in kiosk...' : 'Enable Student Kiosk'}
                 </Button>
               </form>
             ) : (
