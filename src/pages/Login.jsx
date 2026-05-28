@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
 import { branding } from '../config/branding';
@@ -57,6 +57,11 @@ const Login = () => {
     }
   };
 
+  const handleKioskSignOut = async () => {
+    await signOutKiosk();
+    navigate('/', { replace: true });
+  };
+
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_color-mix(in_oklab,_var(--app-secondary)_25%,_transparent)_0%,_transparent_45%)]" />
@@ -100,7 +105,7 @@ const Login = () => {
                 Enter your student ID
               </h2>
               <p className="text-sm leading-6 text-on-primary">
-                Start here for the main sign-in and sign-out workflow. Coach and kiosk access are still available from the secondary portal.
+                This kiosk is ready for student sign-in and sign-out. Sign out of the kiosk to return to the access portal.
               </p>
             </div>
 
@@ -112,7 +117,7 @@ const Login = () => {
                   </span>
                   <button
                     className="text-left text-sm font-semibold text-on-primary underline-offset-4 hover:underline sm:text-right"
-                    onClick={signOutKiosk}
+                    onClick={handleKioskSignOut}
                     type="button"
                   >
                     Sign out kiosk
@@ -147,13 +152,6 @@ const Login = () => {
                 {error}
               </div>
             )}
-
-            <Link
-              className="mt-4 inline-flex items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-semibold text-on-primary transition hover:bg-accent/10"
-              to="/access"
-            >
-              Open coach, kiosk, and demo access
-            </Link>
 
             <p className="mt-6 text-center text-xs leading-5 text-on-primary">
               Change brand colors in <code className="rounded bg-accent/10 px-1.5 py-0.5">src/config/branding.js</code>.

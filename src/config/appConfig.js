@@ -63,7 +63,7 @@ export const timeLogConfig = {
   updatedAtField: 'updatedAt',
   reasonField: 'reason',
   enteredByField: 'enteredBy',
-  extraTimeTaskName: 'extraTime',
+  extraTimeTaskName: 'Extra Hours',
   activeStatus: 'active',
   completedStatus: 'completed',
 };

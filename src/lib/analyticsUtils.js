@@ -4,8 +4,40 @@ import { toDate } from './dateUtils';
 const UNKNOWN_STUDENT_NAME = 'Unknown student';
 const MISSING_STUDENT_ID = 'Not set';
 const UNCATEGORIZED_TASK_NAME = 'Uncategorized';
+const EXTRA_HOURS_TASK_LABEL = 'Extra Hours';
 
 const padDatePart = (value) => String(value).padStart(2, '0');
+const normalizeTaskNameKey = (value) => String(value ?? '')
+  .trim()
+  .toLowerCase()
+  .replace(/[\s_-]+/g, '');
+
+export const isExtraHoursTaskName = (value) => {
+  const taskNameKey = normalizeTaskNameKey(value);
+
+  return Boolean(taskNameKey) && (
+    taskNameKey === 'extrahours'
+    || taskNameKey === 'extratime'
+    || taskNameKey === normalizeTaskNameKey(timeLogConfig.extraTimeTaskName)
+  );
+};
+
+export const formatTaskName = (value, fallback = UNCATEGORIZED_TASK_NAME) => {
+  const taskName = String(value ?? '').trim();
+
+  if (!taskName) {
+    return fallback;
+  }
+
+  if (isExtraHoursTaskName(taskName)) {
+    return EXTRA_HOURS_TASK_LABEL;
+  }
+
+  return taskName
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
 
 export const formatDateKey = (value) => {
   const date = toDate(value);
@@ -138,12 +170,16 @@ const getCategoryKey = (log) => {
     return `task:${taskId}`;
   }
 
+  if (isExtraHoursTaskName(taskName)) {
+    return 'task-name:extra-hours';
+  }
+
   return `task-name:${taskName || UNCATEGORIZED_TASK_NAME}`;
 };
 
 const getCategoryDisplay = (log) => ({
   categoryKey: getCategoryKey(log),
-  taskName: String(log?.[timeLogConfig.taskNameField] ?? '').trim() || UNCATEGORIZED_TASK_NAME,
+  taskName: formatTaskName(log?.[timeLogConfig.taskNameField]),
 });
 
 const getCompletedLogs = (logs) => logs.filter(isCompletedLog);

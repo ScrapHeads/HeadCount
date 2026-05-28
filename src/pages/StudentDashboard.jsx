@@ -30,8 +30,10 @@ const StudentDashboard = () => {
   };
 
   const handleDashboardSignOut = async () => {
+    const destination = studentSession?.authMode === 'kiosk' ? '/kiosk' : '/';
+
     await signOutStudent();
-    navigate('/access', { replace: true });
+    navigate(destination, { replace: true });
   };
 
   return (

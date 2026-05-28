@@ -113,8 +113,10 @@ const StudentCheckIn = () => {
   }, [formMode, selectedTaskId, notes]);
 
   const handleSignOut = async () => {
+    const destination = studentSession?.authMode === 'kiosk' ? '/kiosk' : '/';
+
     await signOutStudent();
-    navigate('/', { replace: true });
+    navigate(destination, { replace: true });
   };
 
   const handleSubmit = async (e) => {
@@ -129,6 +131,8 @@ const StudentCheckIn = () => {
     setIsSubmitting(true);
 
     try {
+      const destination = studentSession?.authMode === 'kiosk' ? '/kiosk' : '/';
+
       if (formMode === 'sign-in') {
         await startStudentSession({
           student: studentSession,
@@ -136,7 +140,7 @@ const StudentCheckIn = () => {
           signInNotes: notes,
         });
         await signOutStudent();
-        navigate('/', { replace: true });
+        navigate(destination, { replace: true });
         return;
       } else {
         const activeTimeLogId = studentSession?.[studentAuthConfig.activeTimeLogIdField];
@@ -153,7 +157,7 @@ const StudentCheckIn = () => {
           signOutNotes: notes,
         });
         await signOutStudent();
-        navigate('/', { replace: true });
+        navigate(destination, { replace: true });
         return;
       }
     } catch (submitError) {

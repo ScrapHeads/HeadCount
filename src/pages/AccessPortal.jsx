@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
@@ -16,8 +16,20 @@ const AccessPortal = () => {
   const [studentPassword, setStudentPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signInCoach, signInKiosk, signInStudent } = useAuth();
+  const {
+    isLoadingCoachAuth,
+    kioskUser,
+    signInCoach,
+    signInKiosk,
+    signInStudent,
+  } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoadingCoachAuth && kioskUser) {
+      navigate('/kiosk', { replace: true });
+    }
+  }, [isLoadingCoachAuth, kioskUser, navigate]);
 
   const handleCoachLogin = async (e) => {
     e.preventDefault();
@@ -51,7 +63,7 @@ const AccessPortal = () => {
 
     try {
       await signInKiosk({ email: kioskEmail, password: kioskPassword });
-      navigate('/', { replace: true });
+      navigate('/kiosk', { replace: true });
     } catch (loginError) {
       setError(loginError.message || 'Kiosk login failed.');
     } finally {
@@ -111,9 +123,9 @@ const AccessPortal = () => {
           </div>
 
           <div className="mt-10 rounded-2xl border border-on-primary/15 bg-on-primary/10 p-5 backdrop-blur-sm">
-            <p className="text-sm font-semibold">Alternative access</p>
+            <p className="text-sm font-semibold">Access portal</p>
             <p className="mt-2 text-sm leading-6 text-on-primary/80">
-              This page preserves the original multi-role entry point for demos, staff access, and testing.
+              Choose coach access, enable the kiosk device, or use password-based student access.
             </p>
           </div>
         </div>

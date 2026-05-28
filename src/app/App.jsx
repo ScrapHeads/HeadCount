@@ -31,18 +31,32 @@ const CoachRoute = ({ children }) => {
   return children;
 };
 
-const StudentRoute = ({ children }) => {
-  const { isLoadingCoachAuth, kioskUser, studentSession } = useAuth();
+const KioskRoute = ({ children }) => {
+  const { isLoadingCoachAuth, kioskUser } = useAuth();
 
-  if (!studentSession) {
+  if (isLoadingCoachAuth) {
+    return <FullScreenMessage message="Checking kiosk session..." />;
+  }
+
+  if (!kioskUser) {
     return <Navigate replace to="/" />;
   }
 
-  if (studentSession.authMode === 'kiosk') {
-    if (isLoadingCoachAuth) {
-      return <FullScreenMessage message="Checking kiosk session..." />;
-    }
+  return children;
+};
 
+const StudentRoute = ({ children }) => {
+  const { isLoadingCoachAuth, kioskUser, studentSession } = useAuth();
+
+  if (isLoadingCoachAuth && (!studentSession || studentSession.authMode === 'kiosk')) {
+    return <FullScreenMessage message="Checking kiosk session..." />;
+  }
+
+  if (!studentSession) {
+    return <Navigate replace to={kioskUser ? '/kiosk' : '/'} />;
+  }
+
+  if (studentSession.authMode === 'kiosk') {
     if (!kioskUser) {
       return <Navigate replace to="/" />;
     }
@@ -54,8 +68,16 @@ const StudentRoute = ({ children }) => {
 const App = () => (
   <BrowserRouter>
     <Routes>
-      <Route path="/" element={<Login />} />
-      <Route path="/access" element={<AccessPortal />} />
+      <Route path="/" element={<AccessPortal />} />
+      <Route path="/access" element={<Navigate replace to="/" />} />
+      <Route
+        path="/kiosk"
+        element={(
+          <KioskRoute>
+            <Login />
+          </KioskRoute>
+        )}
+      />
       <Route
         path="/coach/dashboard"
         element={(

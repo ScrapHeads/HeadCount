@@ -13,7 +13,13 @@ import {
   startStudentSession,
   updateTimeLogByCoach,
 } from '../../features/timeLogs/timeLogService';
-import { getDurationMinutes, isCompletedLog, minutesToHours } from '../../lib/analyticsUtils';
+import {
+  formatTaskName,
+  getDurationMinutes,
+  isCompletedLog,
+  isExtraHoursTaskName,
+  minutesToHours,
+} from '../../lib/analyticsUtils';
 import { toDate } from '../../lib/dateUtils';
 import Button from '../shared/Button';
 
@@ -119,12 +125,18 @@ const toDateTimeLocalValue = (value) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
+const getTimeLogTaskNameFormValue = (value) => {
+  const taskName = String(value ?? '').trim();
+
+  return isExtraHoursTaskName(taskName) ? formatTaskName(taskName) : taskName;
+};
+
 const buildTimeLogForm = (log) => ({
   signInAt: toDateTimeLocalValue(log?.[timeLogConfig.signInAtField]),
   signInNotes: log?.[timeLogConfig.signInNotesField] ?? '',
   signOutAt: toDateTimeLocalValue(log?.[timeLogConfig.signOutAtField]),
   signOutNotes: log?.[timeLogConfig.signOutNotesField] ?? '',
-  taskName: log?.[timeLogConfig.taskNameField] ?? '',
+  taskName: getTimeLogTaskNameFormValue(log?.[timeLogConfig.taskNameField]),
 });
 
 const buildStudentHourTotals = (logs) => {
@@ -1132,7 +1144,7 @@ const StudentTimeLogsCard = ({
                     >
                       <div className="flex flex-col gap-2 border-b border-on-primary/15 pb-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
-                          <p className="text-sm font-semibold text-on-primary">{form.taskName || 'Task'}</p>
+                          <p className="text-sm font-semibold text-on-primary">{formatTaskName(form.taskName, 'Task')}</p>
                           <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-on-primary/70">
                             {statusLabel}
                             {durationMinutes > 0 ? ` - ${minutesToHours(durationMinutes).toFixed(1)} hours` : ''}
