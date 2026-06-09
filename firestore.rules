@@ -117,7 +117,7 @@ service cloud.firestore {
 
     match /timeLogs/{timeLogId} {
       allow get: if isCoach() || isKiosk() || ownsTimeLog(resource.data);
-      allow list: if isCoach() || ownsTimeLog(resource.data);
+      allow list: if isCoach() || isKiosk() || ownsTimeLog(resource.data);
       allow create: if isCoach()
         || ((isKiosk() || ownsTimeLog(request.resource.data)) && validActiveTimeLogCreate());
       allow update: if isCoach()

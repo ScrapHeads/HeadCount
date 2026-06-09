@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import { studentAuthConfig } from '../config/appConfig';
 import { branding } from '../config/branding';
 import { useAuth } from '../features/auth/useAuth.jsx';
+import { useStudentTimeLogs } from '../features/timeLogs/useStudentTimeLogs';
+import {
+  calculateHoursByCategory,
+  getEndOfDay,
+  getLogsInDateRange,
+  getStartOfDay,
+} from '../lib/analyticsUtils';
 import { toDate } from '../lib/dateUtils';
 
 const signedInFormatter = new Intl.DateTimeFormat('en-US', {
@@ -18,12 +25,155 @@ const formatSignedInAt = (value) => {
   return parsedDate ? signedInFormatter.format(parsedDate) : 'Not recorded';
 };
 
+const toDateInputValue = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
+const getDefaultDateRange = () => {
+  const endDate = new Date();
+  const startDate = new Date(endDate);
+  startDate.setDate(endDate.getDate() - 29);
+
+  return {
+    startDate: toDateInputValue(startDate),
+    endDate: toDateInputValue(endDate),
+  };
+};
+
+const formatHours = (hours) => Number(hours || 0).toFixed(1);
+
+const inputClassName = 'w-full rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/20';
+
+const StudentAnalyticsCard = ({
+  analytics,
+  dateRange,
+  error,
+  isLoading,
+  onDateChange,
+}) => (
+  <article className="rounded-2xl border border-border bg-secondary p-5 text-on-secondary shadow-sm">
+    <div className="flex flex-col gap-5 border-b border-border pb-5 lg:flex-row lg:items-start lg:justify-between">
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-text-muted">
+          Your Hours
+        </p>
+        <p className="mt-3 text-3xl font-semibold tracking-tight">
+          {formatHours(analytics.totalHours)} hours
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[360px]">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Start Date</span>
+          <input
+            className={inputClassName}
+            onChange={(event) => onDateChange('startDate', event.target.value)}
+            type="date"
+            value={dateRange.startDate}
+          />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">End Date</span>
+          <input
+            className={inputClassName}
+            onChange={(event) => onDateChange('endDate', event.target.value)}
+            type="date"
+            value={dateRange.endDate}
+          />
+        </label>
+      </div>
+    </div>
+
+    {isLoading ? (
+      <p className="mt-5 rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary/80">
+        Loading your hours...
+      </p>
+    ) : error ? (
+      <p className="mt-5 rounded-xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-secondary">
+        {error}
+      </p>
+    ) : analytics.categories.length === 0 ? (
+      <p className="mt-5 rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary/80">
+        No completed hours were found for this date range.
+      </p>
+    ) : (
+      <div className="mt-5 space-y-4">
+        {analytics.categories.map((category) => (
+          <div key={category.categoryKey}>
+            <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+              <span className="min-w-0 truncate font-medium">{category.taskName}</span>
+              <span className="shrink-0 tabular-nums">
+                {formatHours(category.totalHours)} hrs
+              </span>
+            </div>
+            <div className="h-3 rounded-full bg-primary/55">
+              <div
+                aria-label={`${category.taskName}: ${formatHours(category.totalHours)} hours`}
+                className="h-3 rounded-full bg-accent"
+                role="img"
+                style={{ width: `${Math.max(4, category.percentage)}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </article>
+);
+
 const StudentDashboard = () => {
   const { signOutStudent, studentSession } = useAuth();
+  const [dateRange, setDateRange] = useState(getDefaultDateRange);
   const navigate = useNavigate();
   const isSignedIn = Boolean(studentSession?.[studentAuthConfig.signedInField]);
   const studentId = studentSession?.[studentAuthConfig.idField] ?? studentSession?.studentId ?? 'Not set';
   const currentTask = studentSession?.[studentAuthConfig.currentTaskField] ?? 'No active task';
+  const parsedDateRange = useMemo(() => {
+    const startDate = getStartOfDay(dateRange.startDate);
+    const endDate = getEndOfDay(dateRange.endDate);
+    let error = '';
+
+    if (!startDate || !endDate) {
+      error = 'Select a valid start date and end date.';
+    } else if (startDate > endDate) {
+      error = 'Start date must be on or before end date.';
+    }
+
+    return {
+      startDate,
+      endDate,
+      error,
+    };
+  }, [dateRange.endDate, dateRange.startDate]);
+  const {
+    logs,
+    isLoading: isLoadingTimeLogs,
+    error: timeLogsError,
+  } = useStudentTimeLogs({
+    student: studentSession,
+    enabled: Boolean(studentSession?.id) && !parsedDateRange.error,
+  });
+  const analyticsError = parsedDateRange.error || timeLogsError;
+  const logsInDateRange = useMemo(() => (
+    analyticsError
+      ? []
+      : getLogsInDateRange(logs, parsedDateRange.startDate, parsedDateRange.endDate)
+  ), [analyticsError, logs, parsedDateRange.endDate, parsedDateRange.startDate]);
+  const hoursAnalytics = useMemo(
+    () => calculateHoursByCategory(logsInDateRange),
+    [logsInDateRange],
+  );
+
+  const handleDateChange = (field, value) => {
+    setDateRange((currentRange) => ({
+      ...currentRange,
+      [field]: value,
+    }));
+  };
 
   const handleOpenHoursForm = () => {
     navigate('/student/session');
@@ -109,6 +259,14 @@ const StudentDashboard = () => {
                 </div>
               </dl>
             </article>
+
+            <StudentAnalyticsCard
+              analytics={hoursAnalytics}
+              dateRange={dateRange}
+              error={analyticsError}
+              isLoading={isLoadingTimeLogs}
+              onDateChange={handleDateChange}
+            />
           </section>
 
           <aside className="flex flex-col gap-4">
