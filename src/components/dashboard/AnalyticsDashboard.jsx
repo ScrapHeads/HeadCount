@@ -10,6 +10,11 @@ import {
   getLogsInDateRange,
   getStartOfDay,
 } from '../../lib/analyticsUtils';
+import {
+  DASHBOARD_CARD_CLASS_NAME,
+  DASHBOARD_TABLE_HEADER_CLASS_NAME,
+  FORM_INPUT_CLASS_NAME,
+} from '../../styles/classNames';
 import Dropdown from '../shared/Dropdown';
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -52,9 +57,7 @@ const formatHours = (hours) => Number(hours || 0).toFixed(1);
 
 const formatStudentCount = (count) => `${count} ${count === 1 ? 'student' : 'students'}`;
 
-const inputClassName = 'w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15';
-const tableHeaderClassName = 'px-4 py-2 text-left text-xs font-semibold uppercase tracking-[0.18em] text-on-primary';
-const tableCellClassName = 'border-y border-border bg-secondary px-4 py-3 text-sm text-on-secondary';
+const tableCellClassName = 'border-y border-border bg-transparent px-5 py-3 text-on-primary text-center';
 const categoryColors = [
   'var(--app-accent)',
   'var(--app-secondary)',
@@ -94,7 +97,7 @@ const CardMessage = ({ children, tone = 'muted' }) => (
     className={`mt-5 rounded-2xl border px-4 py-4 text-sm ${
       tone === 'error'
         ? 'border-accent/30 bg-accent/12 text-on-primary'
-        : 'border-border bg-accent/10 text-on-primary/80'
+        : 'border-border bg-accent/10 text-on-primary/90'
     }`}
   >
     {children}
@@ -109,13 +112,13 @@ const AnalyticsCard = ({
   isEmpty,
   isLoading,
   title,
-  cardClassName = defaultCardClassName,
+  cardClassName = DASHBOARD_CARD_CLASS_NAME,
 }) => (
   <article className={cardClassName}>
     <div>
       <h3 className="text-lg font-semibold text-on-primary">{title}</h3>
       {description && (
-        <p className="mt-2 text-sm leading-6 text-on-primary/80">{description}</p>
+        <p className="mt-2 text-sm leading-6 text-on-primary/90">{description}</p>
       )}
     </div>
 
@@ -132,9 +135,9 @@ const AnalyticsCard = ({
 );
 
 const SummaryMetric = ({ label, value }) => (
-  <div className="flex min-h-[120px] flex-col items-center justify-center rounded-2xl border border-border bg-secondary px-4 py-4 text-center shadow-sm">
-    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary/80">{label}</p>
-    <p className="mt-2 max-w-full break-words text-xl font-semibold leading-snug text-on-secondary sm:text-2xl">{value}</p>
+  <div className="flex min-h-[120px] flex-col items-center justify-center rounded-2xl border border-border bg-transparent px-4 py-4 text-center shadow-sm">
+    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-primary/90">{label}</p>
+    <p className="mt-2 max-w-full break-words text-xl font-semibold leading-snug text-on-primary/90 sm:text-2xl">{value}</p>
   </div>
 );
 
@@ -147,7 +150,7 @@ const SummaryGrid = ({ metrics }) => (
 );
 
 const AnalyticsDateRangeCard = ({
-  cardClassName = defaultCardClassName,
+  cardClassName = DASHBOARD_CARD_CLASS_NAME,
   dateRange,
   error,
   onDateChange,
@@ -155,7 +158,7 @@ const AnalyticsDateRangeCard = ({
   <article className={cardClassName}>
     <div>
       <h3 className="text-lg font-semibold text-on-primary">Analytics Date Range</h3>
-      <p className="mt-2 text-sm leading-6 text-on-primary/80">
+      <p className="mt-2 leading-6 text-on-primary/90">
         Showing logs from {formatDate(dateRange.startDate)} through {formatDate(dateRange.endDate)}.
       </p>
     </div>
@@ -164,7 +167,7 @@ const AnalyticsDateRangeCard = ({
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-on-primary">Start date</span>
         <input
-          className={inputClassName}
+          className={FORM_INPUT_CLASS_NAME}
           onChange={(event) => onDateChange('startDate', event.target.value)}
           type="date"
           value={dateRange.startDate}
@@ -174,7 +177,7 @@ const AnalyticsDateRangeCard = ({
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-on-primary">End date</span>
         <input
-          className={inputClassName}
+          className={FORM_INPUT_CLASS_NAME}
           onChange={(event) => onDateChange('endDate', event.target.value)}
           type="date"
           value={dateRange.endDate}
@@ -214,9 +217,9 @@ const StudentHourTotalsCard = ({
       <table className="min-w-full border-separate border-spacing-y-2">
         <thead>
           <tr>
-            <th className={tableHeaderClassName}>Student Name</th>
-            <th className={tableHeaderClassName}>Student ID</th>
-            <th className={`${tableHeaderClassName} text-right`}>Hours</th>
+            <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student Name</th>
+            <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student ID</th>
+            <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} text-right`}>Hours</th>
           </tr>
         </thead>
         <tbody>
@@ -495,11 +498,11 @@ const AttendanceAnalyticsCard = ({
           <table className="min-w-full border-separate border-spacing-y-2">
             <thead>
               <tr>
-                <th className={tableHeaderClassName}>Date</th>
-                <th className={tableHeaderClassName}>Students Attended</th>
-                <th className={tableHeaderClassName}>Total Completed Hours</th>
-                <th className={tableHeaderClassName}>Completed Logs</th>
-                <th className={tableHeaderClassName}>Incomplete Logs</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Date</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Students Attended</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Total Completed Hours</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Completed Logs</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Incomplete Logs</th>
               </tr>
             </thead>
             <tbody>
@@ -527,10 +530,10 @@ const AttendanceAnalyticsCard = ({
           <table className="min-w-full border-separate border-spacing-y-2">
             <thead>
               <tr>
-                <th className={tableHeaderClassName}>Student</th>
-                <th className={tableHeaderClassName}>Student ID</th>
-                <th className={tableHeaderClassName}>Days Attended</th>
-                <th className={tableHeaderClassName}>Attendance Rate</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student ID</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Days Attended</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Attendance Rate</th>
               </tr>
             </thead>
             <tbody>
@@ -554,7 +557,7 @@ const AttendanceAnalyticsCard = ({
   );
 };
 
-const AnalyticsDashboard = ({ cardClassName = defaultCardClassName }) => {
+const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
   const [dateRange, setDateRange] = useState(getDefaultDateRange);
   const [selectedStudentKey, setSelectedStudentKey] = useState('');
 

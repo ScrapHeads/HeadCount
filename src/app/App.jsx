@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from '../features/auth/useAuth.jsx';
 import AccessPortal from '../pages/AccessPortal';
-import Login from '../pages/Login';
+import KioskStudentLogin from '../pages/KioskStudentLogin';
 import CoachDashboard from '../pages/CoachDashboard';
 import StudentDashboard from '../pages/StudentDashboard';
 import StudentCheckIn from '../pages/StudentCheckIn';
@@ -74,7 +74,7 @@ const App = () => (
         path="/kiosk"
         element={(
           <KioskRoute>
-            <Login />
+            <KioskStudentLogin />
           </KioskRoute>
         )}
       />

@@ -22,14 +22,16 @@ import {
   minutesToHours,
 } from '../../lib/analyticsUtils';
 import { toDate } from '../../lib/dateUtils';
+import {
+  DASHBOARD_CARD_CLASS_NAME,
+  DASHBOARD_GRADIENT_CLASS_NAME,
+  DASHBOARD_TABLE_HEADER_CLASS_NAME,
+  FORM_INPUT_CLASS_NAME,
+  FORM_TEXTAREA_CLASS_NAME,
+} from '../../styles/classNames';
 import Button from '../shared/Button';
 import Dropdown from '../shared/Dropdown';
 
-const gradientClassName = 'bg-[linear-gradient(135deg,color-mix(in_oklab,var(--app-primary)_88%,transparent)_0%,color-mix(in_oklab,var(--app-primary)_72%,var(--app-accent))_58%,color-mix(in_oklab,var(--app-accent)_72%,transparent)_100%)] backdrop-blur-sm';
-
-const defaultCardClassName = `rounded-[1.75rem] border border-on-primary/15 ${gradientClassName} p-6 shadow-lg shadow-primary/15`;
-const inputClassName = 'w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15';
-const tableHeaderClassName = 'px-4 py-2 text-left text-xs font-semibold uppercase tracking-[0.18em] text-on-primary';
 const tableCellClassName = 'border-y border-border bg-transparent px-4 py-3 text-sm text-on-primary';
 const timeLogsPageSize = 10;
 
@@ -196,7 +198,7 @@ const CardMessage = ({ children, tone = 'muted' }) => (
     className={`mt-5 rounded-2xl border px-4 py-4 text-sm ${
       tone === 'error'
         ? 'border-accent/30 bg-accent/12 text-on-primary'
-        : 'border-border bg-accent/10 text-on-primary/80'
+        : 'border-border bg-accent/10 text-on-primary/90'
     }`}
   >
     {children}
@@ -217,7 +219,7 @@ const PasswordField = ({
     <span className="text-sm font-medium text-on-primary">{label}</span>
     <div className="relative">
       <input
-        className={`${inputClassName} pr-20`}
+        className={`${FORM_INPUT_CLASS_NAME} pr-20`}
         id={id}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -295,7 +297,7 @@ const CreateStudentCard = ({ cardClassName }) => {
     <article className={cardClassName}>
       <div className="border-b border-border pb-5">
         <h3 className="text-lg font-semibold text-on-primary">Create New Student</h3>
-        <p className="mt-2 text-sm leading-6 text-on-primary/80">
+        <p className="mt-2 text-sm leading-6 text-on-primary/90">
           Adds the student to Firestore and creates their Firebase Authentication sign-in.
         </p>
       </div>
@@ -304,7 +306,7 @@ const CreateStudentCard = ({ cardClassName }) => {
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-on-primary">Name</span>
           <input
-            className={inputClassName}
+            className={FORM_INPUT_CLASS_NAME}
             onChange={(event) => handleFieldChange('name', event.target.value)}
             placeholder="Jane Doe"
             required
@@ -316,7 +318,7 @@ const CreateStudentCard = ({ cardClassName }) => {
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-on-primary">Student ID</span>
           <input
-            className={inputClassName}
+            className={FORM_INPUT_CLASS_NAME}
             onChange={(event) => handleFieldChange('studentId', event.target.value)}
             placeholder="12345"
             required
@@ -348,7 +350,7 @@ const CreateStudentCard = ({ cardClassName }) => {
                   className={`rounded-lg px-4 py-3 text-sm font-semibold transition ${
                     isSelected
                       ? 'bg-secondary text-on-secondary shadow-sm'
-                      : 'bg-transparent text-on-primary/80 hover:bg-secondary/20'
+                      : 'bg-transparent text-on-primary/90 hover:bg-secondary/20'
                   }`}
                   key={String(option.value)}
                   onClick={() => handleFieldChange('currentMember', option.value)}
@@ -381,18 +383,18 @@ const ActiveRosterCard = ({
   <article className={cardClassName}>
     <div className="border-b border-border pb-5">
       <h3 className="text-lg font-semibold text-on-primary">Active Team Roster</h3>
-      <p className="mt-2 text-sm leading-6 text-on-primary/80">
+      <p className="mt-2 text-sm leading-6 text-on-primary/90">
         Current members with their all-time completed hours.
       </p>
     </div>
 
     <div className="mt-5 grid gap-3 sm:grid-cols-2">
       <div className="flex min-h-[104px] flex-col items-center justify-center rounded-2xl border border-border bg-secondary px-4 py-4 text-center shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary/80">Current Members</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary/90">Current Members</p>
         <p className="mt-2 text-2xl font-semibold text-on-secondary">{rosterStudents.length}</p>
       </div>
       <div className="flex min-h-[104px] flex-col items-center justify-center rounded-2xl border border-border bg-secondary px-4 py-4 text-center shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary/80">Total Hours</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary/90">Total Hours</p>
         <p className="mt-2 text-2xl font-semibold text-on-secondary">{totalRosterHours.toFixed(1)}</p>
       </div>
     </div>
@@ -408,9 +410,9 @@ const ActiveRosterCard = ({
         <table className="min-w-full border-separate border-spacing-y-2">
           <thead>
             <tr>
-              <th className={tableHeaderClassName}>Name</th>
-              <th className={tableHeaderClassName}>Student ID</th>
-              <th className={`${tableHeaderClassName} text-right`}>Total Hours</th>
+              <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Name</th>
+              <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student ID</th>
+              <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} text-right`}>Total Hours</th>
             </tr>
           </thead>
           <tbody>
@@ -526,7 +528,7 @@ const SignInStudentCard = ({
     <article className={cardClassName}>
       <div className="border-b border-border pb-5">
         <h3 className="text-lg font-semibold text-on-primary">Sign In Student</h3>
-        <p className="mt-2 text-sm leading-6 text-on-primary/80">
+        <p className="mt-2 text-sm leading-6 text-on-primary/90">
           Starts a student session and creates the matching active time log.
         </p>
       </div>
@@ -574,7 +576,7 @@ const SignInStudentCard = ({
                       type="button"
                     >
                       <span className="block">{task[taskConfig.nameField]}</span>
-                      <span className={`mt-1 block text-sm ${isActive ? 'text-on-primary/80' : 'text-on-secondary'}`}>
+                      <span className={`mt-1 block text-sm ${isActive ? 'text-on-primary/90' : 'text-on-secondary'}`}>
                         {task[taskConfig.scheduledField] ? 'Scheduled task' : 'Open task'}
                       </span>
                     </button>
@@ -589,7 +591,7 @@ const SignInStudentCard = ({
               Goal for {selectedTask?.[taskConfig.nameField] ?? 'task'}
             </span>
             <textarea
-              className="min-h-28 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition placeholder:text-on-secondary/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
+              className={`${FORM_TEXTAREA_CLASS_NAME} min-h-28`}
               onChange={(event) => {
                 setNotes(event.target.value);
                 clearStatus();
@@ -681,7 +683,7 @@ const ExtraHoursCard = ({
     <article className={cardClassName}>
       <div className="border-b border-border pb-5">
         <h3 className="text-lg font-semibold text-on-primary">Extra Hours</h3>
-        <p className="mt-2 text-sm leading-6 text-on-primary/80">
+        <p className="mt-2 text-sm leading-6 text-on-primary/90">
           Add completed manual hours with a reason for reports.
         </p>
       </div>
@@ -706,7 +708,7 @@ const ExtraHoursCard = ({
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-on-primary">Hours</span>
             <input
-              className={inputClassName}
+              className={FORM_INPUT_CLASS_NAME}
               min="0.01"
               onChange={(event) => {
                 setHours(event.target.value);
@@ -723,7 +725,7 @@ const ExtraHoursCard = ({
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-on-primary">Reason</span>
             <textarea
-              className="min-h-28 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition placeholder:text-on-secondary/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
+              className={`${FORM_TEXTAREA_CLASS_NAME} min-h-28`}
               onChange={(event) => {
                 setReason(event.target.value);
                 clearStatus();
@@ -865,7 +867,7 @@ const EditStudentCard = ({
     <article className={cardClassName}>
       <div className="border-b border-border pb-5">
         <h3 className="text-lg font-semibold text-on-primary">Edit Student</h3>
-        <p className="mt-2 text-sm leading-6 text-on-primary/80">
+        <p className="mt-2 text-sm leading-6 text-on-primary/90">
           Select a student and update their Firestore profile fields.
         </p>
       </div>
@@ -891,7 +893,7 @@ const EditStudentCard = ({
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-on-primary">Name</span>
             <input
-              className={inputClassName}
+              className={FORM_INPUT_CLASS_NAME}
               onChange={(event) => handleFieldChange('name', event.target.value)}
               required
               type="text"
@@ -902,7 +904,7 @@ const EditStudentCard = ({
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-on-primary">Student ID</span>
             <input
-              className={inputClassName}
+              className={FORM_INPUT_CLASS_NAME}
               onChange={(event) => handleFieldChange('studentId', event.target.value)}
               required
               type="text"
@@ -929,7 +931,7 @@ const EditStudentCard = ({
                     type="button"
                   >
                     <p className={`text-base font-semibold ${isActive ? 'text-on-primary' : 'text-on-secondary'}`}>{option.title}</p>
-                    <p className={`mt-2 text-sm leading-6 ${isActive ? 'text-on-primary/80' : 'text-on-secondary/80'}`}>{option.description}</p>
+                    <p className={`mt-2 text-sm leading-6 ${isActive ? 'text-on-primary/90' : 'text-on-secondary/90'}`}>{option.description}</p>
                   </button>
                 );
               })}
@@ -1094,7 +1096,7 @@ const StudentTimeLogsCard = ({
     <article className={cardClassName}>
       <div className="border-b border-border pb-5">
         <h3 className="text-lg font-semibold text-on-primary">Student Time Logs</h3>
-        <p className="mt-2 text-sm leading-6 text-on-primary/80">
+        <p className="mt-2 text-sm leading-6 text-on-primary/90">
           Select a student, review their logs, and correct times, notes, or task names.
         </p>
       </div>
@@ -1109,7 +1111,7 @@ const StudentTimeLogsCard = ({
         <div className="mt-5 space-y-5">
           <div className="flex flex-col gap-4 rounded-2xl border border-border bg-transparent px-4 py-3 lg:flex-row lg:items-end lg:justify-between">
             <StudentDropdown
-              className="min-w-0 flex-1"
+              className="min-w-0 flex-1 max-w-md"
               onChange={(studentId) => {
                 setSelectedStudentId(studentId);
                 setSelectedLogId(null);
@@ -1156,12 +1158,12 @@ const StudentTimeLogsCard = ({
                 <table className="min-w-full border-separate border-spacing-y-3">
                   <thead>
                     <tr>
-                      <th className={tableHeaderClassName}>Task</th>
-                      <th className={tableHeaderClassName}>Status</th>
-                      <th className={tableHeaderClassName}>Start</th>
-                      <th className={tableHeaderClassName}>End</th>
-                      <th className={`${tableHeaderClassName} text-right`}>Hours</th>
-                      <th className={`${tableHeaderClassName} text-right`}>Action</th>
+                      <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Task</th>
+                      <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Status</th>
+                      <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Start</th>
+                      <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>End</th>
+                      <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} text-right`}>Hours</th>
+                      <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} text-right`}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1216,7 +1218,7 @@ const StudentTimeLogsCard = ({
           role="dialog"
         >
           <div
-            className={`max-h-[calc(100vh-2rem)] w-full max-w-3xl overflow-y-auto rounded-2xl border border-on-primary/15 ${gradientClassName} p-6 shadow-2xl shadow-primary/20`}
+            className={`max-h-[calc(100vh-2rem)] w-full max-w-3xl overflow-y-auto rounded-2xl border border-on-primary/15 ${DASHBOARD_GRADIENT_CLASS_NAME} p-6 shadow-2xl shadow-primary/20`}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
@@ -1224,13 +1226,13 @@ const StudentTimeLogsCard = ({
                 <h3 className="text-lg font-semibold text-on-primary" id="time-log-dialog-title">
                   {formatTaskName(logForms[selectedLog.id]?.taskName, 'Task')}
                 </h3>
-                <p className="mt-1 text-sm text-on-primary/80">
+                <p className="mt-1 text-sm text-on-primary/90">
                   {selectedStudent ? getStudentName(selectedStudent) : ''}
                 </p>
               </div>
               <button
                 aria-label="Close time log editor"
-                className="rounded-lg px-3 py-2 text-sm font-semibold text-on-primary/80 transition hover:bg-accent/20"
+                className="rounded-lg px-3 py-2 text-sm font-semibold text-on-primary/90 transition hover:bg-accent/20"
                 onClick={() => setSelectedLogId(null)}
                 type="button"
               >
@@ -1242,7 +1244,7 @@ const StudentTimeLogsCard = ({
               <label className="flex flex-col gap-1.5 md:col-span-2">
                 <span className="text-sm font-medium text-on-primary">Task name</span>
                 <input
-                  className={inputClassName}
+                  className={FORM_INPUT_CLASS_NAME}
                   onChange={(event) => handleLogFieldChange(selectedLog.id, 'taskName', event.target.value)}
                   type="text"
                   value={logForms[selectedLog.id]?.taskName ?? ''}
@@ -1252,7 +1254,7 @@ const StudentTimeLogsCard = ({
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-on-primary">Start time</span>
                 <input
-                  className={inputClassName}
+                  className={FORM_INPUT_CLASS_NAME}
                   onChange={(event) => handleLogFieldChange(selectedLog.id, 'signInAt', event.target.value)}
                   type="datetime-local"
                   value={logForms[selectedLog.id]?.signInAt ?? ''}
@@ -1262,7 +1264,7 @@ const StudentTimeLogsCard = ({
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-on-primary">End time</span>
                 <input
-                  className={inputClassName}
+                  className={FORM_INPUT_CLASS_NAME}
                   onChange={(event) => handleLogFieldChange(selectedLog.id, 'signOutAt', event.target.value)}
                   type="datetime-local"
                   value={logForms[selectedLog.id]?.signOutAt ?? ''}
@@ -1272,7 +1274,7 @@ const StudentTimeLogsCard = ({
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-on-primary">Sign-in notes</span>
                 <textarea
-                  className="min-h-28 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition placeholder:text-on-secondary/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
+                  className={`${FORM_TEXTAREA_CLASS_NAME} min-h-28`}
                   onChange={(event) => handleLogFieldChange(selectedLog.id, 'signInNotes', event.target.value)}
                   value={logForms[selectedLog.id]?.signInNotes ?? ''}
                 />
@@ -1281,7 +1283,7 @@ const StudentTimeLogsCard = ({
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-on-primary">Sign-out notes</span>
                 <textarea
-                  className="min-h-28 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition placeholder:text-on-secondary/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
+                  className={`${FORM_TEXTAREA_CLASS_NAME} min-h-28`}
                   onChange={(event) => handleLogFieldChange(selectedLog.id, 'signOutNotes', event.target.value)}
                   value={logForms[selectedLog.id]?.signOutNotes ?? ''}
                 />
@@ -1313,7 +1315,7 @@ const StudentTimeLogsCard = ({
   );
 };
 
-const StudentManagementDashboard = ({ cardClassName = defaultCardClassName }) => {
+const StudentManagementDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
   const { coachUser } = useAuth();
   const { students, isLoading: isLoadingStudents, error: studentsError } = useStudents();
   const { tasks, isLoading: isLoadingTasks, error: tasksError } = useTasks();

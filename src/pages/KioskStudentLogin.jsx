@@ -5,7 +5,7 @@ import Input from '../components/shared/Input';
 import { branding } from '../config/branding';
 import { useAuth } from '../features/auth/useAuth.jsx';
 
-const Login = () => {
+const KioskStudentLogin = () => {
   const [studentId, setStudentId] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,27 +71,17 @@ const Login = () => {
       <section className="relative grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-border/70 bg-primary shadow-2xl shadow-primary/10 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="flex flex-col justify-between bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_48%,var(--app-accent)_100%)] p-8 text-on-primary sm:p-10">
           <div className="space-y-5">
-            <p className="inline-flex w-fit rounded-full border border-on-primary/20 bg-on-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
-              Demo Template
-            </p>
             <div className="space-y-3">
-              <p className="text-sm font-medium uppercase tracking-[0.2em] text-on-primary/75">
+              <p className="text-sm font-medium uppercase tracking-[0.15em] text-on-primary/90">
                 {branding.teamLabel}
               </p>
               <h1 className="max-w-md text-4xl font-semibold tracking-tight sm:text-5xl">
                 {branding.appName}
               </h1>
-              <p className="max-w-lg text-sm leading-6 text-on-primary/80 sm:text-base">
+              <p className="max-w-lg text-sm leading-6 text-on-primary/90 sm:text-base">
                 {branding.tagline}
               </p>
             </div>
-          </div>
-
-          <div className="mt-10 rounded-2xl border border-on-primary/15 bg-on-primary/10 p-5 backdrop-blur-sm">
-            <p className="text-sm font-semibold">Designed for reuse</p>
-            <p className="mt-2 text-sm leading-6 text-on-primary/80">
-              Teams can copy this project, update one branding file, and keep the rest of the app structure intact.
-            </p>
           </div>
         </div>
 
@@ -104,27 +94,7 @@ const Login = () => {
               <h2 className="text-3xl font-semibold tracking-tight text-on-primary">
                 Enter your student ID
               </h2>
-              <p className="text-sm leading-6 text-on-primary">
-                This kiosk is ready for student sign-in and sign-out. Sign out of the kiosk to return to the access portal.
-              </p>
             </div>
-
-            {!isLoadingCoachAuth && kioskUser && (
-              <div className="mb-4 rounded-2xl border border-accent/25 bg-accent/10 px-4 py-3 text-sm text-on-primary">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <span>
-                    Kiosk signed in as <span className="font-semibold">{kioskUser.email}</span>.
-                  </span>
-                  <button
-                    className="text-left text-sm font-semibold text-on-primary underline-offset-4 hover:underline sm:text-right"
-                    onClick={handleKioskSignOut}
-                    type="button"
-                  >
-                    Sign out kiosk
-                  </button>
-                </div>
-              </div>
-            )}
 
             {!isLoadingCoachAuth && !kioskUser && (
               <div className="mb-4 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
@@ -153,12 +123,17 @@ const Login = () => {
               </div>
             )}
 
-            <p className="mt-6 text-center text-xs leading-5 text-on-primary">
-              Change brand colors in <code className="rounded bg-accent/10 px-1.5 py-0.5">src/config/branding.js</code>.
-            </p>
-            <p className="mt-3 text-center text-xs leading-5 text-on-primary">
+            <p className="mt-4 text-center text-xs leading-5 text-on-primary ">
               Students are matched against Firestore before entering the hours form.
             </p>
+
+            <button
+              className="mt-4 text-center font-semibold text-on-primary underline-offset-4 hover:underline sm:text-center"
+              onClick={handleKioskSignOut}
+              type="button"
+            >
+              Sign out of kiosk
+            </button>
           </div>
         </div>
       </section>
@@ -166,4 +141,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default KioskStudentLogin;

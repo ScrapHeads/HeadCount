@@ -1,16 +1,23 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
-import { studentAuthConfig } from '../config/appConfig';
+import { studentAuthConfig, timeLogConfig } from '../config/appConfig';
 import { branding } from '../config/branding';
 import { useAuth } from '../features/auth/useAuth.jsx';
 import { useStudentTimeLogs } from '../features/timeLogs/useStudentTimeLogs';
 import {
   calculateHoursByCategory,
+  formatTaskName,
+  getDurationMinutes,
   getEndOfDay,
   getLogsInDateRange,
   getStartOfDay,
+  minutesToHours,
 } from '../lib/analyticsUtils';
+import {
+  DASHBOARD_GRADIENT_CLASS_NAME,
+  DASHBOARD_TABLE_HEADER_CLASS_NAME,
+} from '../styles/classNames';
 import { toDate } from '../lib/dateUtils';
 
 const signedInFormatter = new Intl.DateTimeFormat('en-US', {
@@ -46,7 +53,22 @@ const getDefaultDateRange = () => {
 
 const formatHours = (hours) => Number(hours || 0).toFixed(1);
 
-const inputClassName = 'w-full rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/20';
+const inputClassName = 'w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/20';
+const studentCardClassName = `rounded-2xl border border-on-primary/15 ${DASHBOARD_GRADIENT_CLASS_NAME} p-5 text-on-primary shadow-lg shadow-primary/15`;
+const timelineCellClassName = 'border-y border-border bg-secondary px-4 py-3 text-sm text-on-secondary';
+const sessionDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+});
+
+const formatSessionDateTime = (value) => {
+  const parsedDate = toDate(value);
+
+  return parsedDate ? sessionDateTimeFormatter.format(parsedDate) : '-';
+};
 
 const StudentAnalyticsCard = ({
   analytics,
@@ -55,10 +77,10 @@ const StudentAnalyticsCard = ({
   isLoading,
   onDateChange,
 }) => (
-  <article className="rounded-2xl border border-border bg-secondary p-5 text-on-secondary shadow-sm">
+  <article className={studentCardClassName}>
     <div className="flex flex-col gap-5 border-b border-border pb-5 lg:flex-row lg:items-start lg:justify-between">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-text-muted">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary/70">
           Your Hours
         </p>
         <p className="mt-3 text-3xl font-semibold tracking-tight">
@@ -68,7 +90,7 @@ const StudentAnalyticsCard = ({
 
       <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[360px]">
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Start Date</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-on-primary">Start Date</span>
           <input
             className={inputClassName}
             onChange={(event) => onDateChange('startDate', event.target.value)}
@@ -77,7 +99,7 @@ const StudentAnalyticsCard = ({
           />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">End Date</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-on-primary">End Date</span>
           <input
             className={inputClassName}
             onChange={(event) => onDateChange('endDate', event.target.value)}
@@ -93,7 +115,7 @@ const StudentAnalyticsCard = ({
         Loading your hours...
       </p>
     ) : error ? (
-      <p className="mt-5 rounded-xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-secondary">
+      <p className="mt-5 rounded-xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
         {error}
       </p>
     ) : analytics.categories.length === 0 ? (
@@ -120,6 +142,71 @@ const StudentAnalyticsCard = ({
             </div>
           </div>
         ))}
+      </div>
+    )}
+  </article>
+);
+
+const StudentSessionTimeline = ({ error, isLoading, logs }) => (
+  <article className={studentCardClassName}>
+    <div className="border-b border-on-primary/15 pb-5">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary/70">
+        Session Timeline
+      </p>
+      <p className="mt-2 text-sm leading-6 text-on-primary/75">
+        Review your sessions in the selected date range. These records are read-only.
+      </p>
+    </div>
+
+    {isLoading ? (
+      <p className="mt-5 rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary/80">
+        Loading your sessions...
+      </p>
+    ) : error ? (
+      <p className="mt-5 rounded-xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
+        {error}
+      </p>
+    ) : logs.length === 0 ? (
+      <p className="mt-5 rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary/80">
+        No sessions were found for this date range.
+      </p>
+    ) : (
+      <div className="mt-5 overflow-x-auto">
+        <table className="min-w-full border-separate border-spacing-y-3">
+          <thead>
+            <tr>
+              <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Task</th>
+              <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Status</th>
+              <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Start</th>
+              <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>End</th>
+              <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} text-right`}>Hours</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logs.map((log) => {
+              const isActive = log[timeLogConfig.statusField] === timeLogConfig.activeStatus;
+              const durationMinutes = getDurationMinutes(log);
+
+              return (
+                <tr key={log.id}>
+                  <td className={`${timelineCellClassName} rounded-l-2xl border-l font-semibold`}>
+                    {formatTaskName(log[timeLogConfig.taskNameField], 'Task')}
+                  </td>
+                  <td className={timelineCellClassName}>{isActive ? 'Active' : 'Completed'}</td>
+                  <td className={`${timelineCellClassName} whitespace-nowrap`}>
+                    {formatSessionDateTime(log[timeLogConfig.signInAtField])}
+                  </td>
+                  <td className={`${timelineCellClassName} whitespace-nowrap`}>
+                    {formatSessionDateTime(log[timeLogConfig.signOutAtField])}
+                  </td>
+                  <td className={`${timelineCellClassName} rounded-r-2xl border-r text-right font-semibold`}>
+                    {durationMinutes > 0 ? minutesToHours(durationMinutes).toFixed(2) : '-'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     )}
   </article>
@@ -212,10 +299,10 @@ const StudentDashboard = () => {
           </div>
         </header>
 
-        <div className="grid flex-1 gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <section className="space-y-6">
-            <article className="rounded-2xl border border-border bg-secondary p-5 text-on-secondary shadow-sm">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-text-muted">
+        <div className="flex flex-1 flex-col gap-6 p-6 sm:p-8">
+          <section className="grid gap-6 lg:grid-cols-3">
+            <article className={studentCardClassName}>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary/90">
                 Current Status
               </p>
               <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -223,65 +310,61 @@ const StudentDashboard = () => {
                   <p className="text-3xl font-semibold tracking-tight">
                     {isSignedIn ? 'Signed In' : 'Not Signed In'}
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-on-secondary/75">
+                  <p className="mt-2 text-sm leading-6 text-on-primary/75">
                     {isSignedIn ? currentTask : 'No active hours session is open.'}
                   </p>
+                  <div className="mt-4">
+                    <dt className="text-sm font-semibold uppercase text-on-primary">Signed In At</dt>
+                    <dd className="mt-1 text-base font-semibold">
+                      {isSignedIn ? formatSignedInAt(studentSession?.[studentAuthConfig.signedInAtField]) : 'Not signed in'}
+                    </dd>
+                  </div>
                 </div>
-                <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${
-                  isSignedIn
-                    ? 'bg-primary text-on-primary'
-                    : 'bg-accent/15 text-on-secondary'
-                }`}
-                >
-                  {isSignedIn ? 'Active' : 'Ready'}
-                </span>
               </div>
             </article>
 
-            <article className="rounded-2xl border border-border bg-secondary p-5 text-on-secondary shadow-sm">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-text-muted">
+            <article className={studentCardClassName}>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary/90">
                 Account Details
               </p>
-              <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+              <dl className="mt-4 grid gap-4">
                 <div>
-                  <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Name</dt>
+                  <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-on-primary/90">Name</dt>
                   <dd className="mt-1 text-base font-semibold">{studentSession?.name ?? 'Student'}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Student ID</dt>
+                  <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-on-primary/90">Student ID</dt>
                   <dd className="mt-1 text-base font-semibold">{studentId}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Signed In At</dt>
-                  <dd className="mt-1 text-base font-semibold">
-                    {isSignedIn ? formatSignedInAt(studentSession?.[studentAuthConfig.signedInAtField]) : 'Not signed in'}
-                  </dd>
                 </div>
               </dl>
             </article>
 
-            <StudentAnalyticsCard
-              analytics={hoursAnalytics}
-              dateRange={dateRange}
-              error={analyticsError}
-              isLoading={isLoadingTimeLogs}
-              onDateChange={handleDateChange}
-            />
-          </section>
-
-          <aside className="flex flex-col gap-4">
-            <div className="rounded-2xl border border-border bg-secondary p-5 text-on-secondary shadow-sm">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-text-muted">
+            <div className={studentCardClassName}>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary/90">
                 Hours
               </p>
               <p className="mt-3 text-lg font-semibold">
                 {isSignedIn ? 'Complete your active session' : 'Start a team hours session'}
               </p>
-              <Button className="mt-5 bg-primary text-on-primary" onClick={handleOpenHoursForm} type="button">
+              <Button className="mt-5 bg-secondary text-on-secondary" onClick={handleOpenHoursForm} type="button">
                 {isSignedIn ? 'Open Sign-Out Form' : 'Open Sign-In Form'}
               </Button>
             </div>
-          </aside>
+          </section>
+
+          <StudentAnalyticsCard
+            analytics={hoursAnalytics}
+            dateRange={dateRange}
+            error={analyticsError}
+            isLoading={isLoadingTimeLogs}
+            onDateChange={handleDateChange}
+          />
+
+          <StudentSessionTimeline
+            error={analyticsError}
+            isLoading={isLoadingTimeLogs}
+            logs={logsInDateRange}
+          />
         </div>
       </section>
     </main>

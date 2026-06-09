@@ -7,7 +7,8 @@ service cloud.firestore {
     }
 
     function kioskEmail() {
-      return 'kiosk@yourteam.org';
+      // Keep this value aligned with VITE_KIOSK_AUTH_EMAIL.
+      return 'kiosk@myapp.internal';
     }
 
     function isKiosk() {
@@ -15,7 +16,9 @@ service cloud.firestore {
     }
 
     function isStudentAuth() {
-      return signedIn() && request.auth.token.email.matches('.*@myapp\\.internal$');
+      return signedIn()
+        && !isKiosk()
+        && request.auth.token.email.matches('.*@myapp\\.internal$');
     }
 
     function isCoach() {
@@ -30,11 +33,16 @@ service cloud.firestore {
       return isStudentAuth() && data.studentId == studentAuthId();
     }
 
+    function ownsTimeLogByStudentId(data) {
+      return isStudentAuth() && data.studentId == studentAuthId();
+    }
+
     function ownsTimeLog(data) {
-      return isStudentAuth()
-        && (
-          data.studentId == studentAuthId()
-          || get(/databases/$(database)/documents/students/$(data.studentDocId)).data.studentId == studentAuthId()
+      return ownsTimeLogByStudentId(data)
+        || (
+          isStudentAuth()
+          && data.studentDocId is string
+          && get(/databases/$(database)/documents/students/$(data.studentDocId)).data.studentId == studentAuthId()
         );
     }
 
@@ -117,7 +125,9 @@ service cloud.firestore {
 
     match /timeLogs/{timeLogId} {
       allow get: if isCoach() || isKiosk() || ownsTimeLog(resource.data);
-      allow list: if isCoach() || isKiosk() || ownsTimeLog(resource.data);
+      // Student timeline queries must include:
+      // where('studentId', '==', the ID encoded in request.auth.token.email).
+      allow list: if isCoach() || isKiosk() || ownsTimeLogByStudentId(resource.data);
       allow create: if isCoach()
         || ((isKiosk() || ownsTimeLog(request.resource.data)) && validActiveTimeLogCreate());
       allow update: if isCoach()

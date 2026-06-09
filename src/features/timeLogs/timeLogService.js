@@ -12,6 +12,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { studentAuthConfig, taskConfig, timeLogConfig } from '../../config/appConfig';
+import { getCurrentAuthUser, getStudentIdFromAuthEmail } from '../../services/auth';
 import { db } from '../../services/firebase';
 import { toDate } from '../../lib/dateUtils';
 
@@ -82,20 +83,30 @@ export const listTimeLogsForStudent = async ({ student }) => {
   const logsById = new Map();
   const timeLogsCollection = collection(db, timeLogConfig.collectionName);
   const queries = [];
+  const authenticatedStudentId = getStudentIdFromAuthEmail(getCurrentAuthUser()?.email);
 
-  if (student?.id) {
+  if (authenticatedStudentId) {
+    // Firestore rules can authorize this collection query because its result
+    // set is constrained to the student ID encoded in Firebase Authentication.
     queries.push(query(
       timeLogsCollection,
-      where(timeLogConfig.studentDocIdField, '==', student.id),
+      where(timeLogConfig.studentIdField, '==', authenticatedStudentId),
     ));
+  } else {
+    if (student?.id) {
+      queries.push(query(
+        timeLogsCollection,
+        where(timeLogConfig.studentDocIdField, '==', student.id),
+      ));
+    }
+
+    getStudentLogIdCandidates(student).forEach((studentId) => {
+      queries.push(query(
+        timeLogsCollection,
+        where(timeLogConfig.studentIdField, '==', studentId),
+      ));
+    });
   }
-
-  getStudentLogIdCandidates(student).forEach((studentId) => {
-    queries.push(query(
-      timeLogsCollection,
-      where(timeLogConfig.studentIdField, '==', studentId),
-    ));
-  });
 
   const snapshots = await Promise.all(queries.map((timeLogsQuery) => getDocs(timeLogsQuery)));
 

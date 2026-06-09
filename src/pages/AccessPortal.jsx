@@ -106,9 +106,6 @@ const AccessPortal = () => {
           bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_50%,var(--app-accent)_100%)]
           p-8 text-on-primary sm:p-10">
           <div className="space-y-5">
-            <p className="inline-flex w-fit rounded-full border border-on-primary/20 bg-on-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
-              Demo Template
-            </p>
             <div className="space-y-3">
               <p className="text-sm font-medium uppercase tracking-[0.2em] text-on-primary/75">
                 {branding.teamLabel}
@@ -269,6 +266,10 @@ const AccessPortal = () => {
               </div>
             )}
           </div>
+
+          <p className="mt-6 text-center text-xs leading-5 text-on-primary">
+            Change brand colors in <code className="rounded bg-accent/10 px-1.5 py-0.5">src/config/branding.js</code>.
+          </p>
         </div>
       </section>
     </main>

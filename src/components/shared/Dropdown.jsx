@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
+import { FORM_CONTROL_CLASS_NAME } from '../../styles/classNames';
 
 const Dropdown = ({
   className = '',
@@ -67,7 +68,7 @@ const Dropdown = ({
           aria-controls={isOpen ? listboxId : undefined}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
-          className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-secondary px-4 py-3 text-left text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60"
+          className={`${FORM_CONTROL_CLASS_NAME} flex items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-60`}
           disabled={disabled}
           onClick={toggleDropdown}
           onKeyDown={(event) => {
