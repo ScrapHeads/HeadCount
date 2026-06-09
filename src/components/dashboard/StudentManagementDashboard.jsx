@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { scheduleConfig, studentAuthConfig, taskConfig, timeLogConfig } from '../../config/appConfig';
 import { useAuth } from '../../features/auth/useAuth.jsx';
 import { isScheduleActive } from '../../features/schedules/validateSchedule';
@@ -22,11 +23,14 @@ import {
 } from '../../lib/analyticsUtils';
 import { toDate } from '../../lib/dateUtils';
 import Button from '../shared/Button';
+import Dropdown from '../shared/Dropdown';
 
-const defaultCardClassName = 'rounded-[1.75rem] border border-on-primary/15 bg-[linear-gradient(135deg,color-mix(in_oklab,var(--app-primary)_88%,transparent)_0%,color-mix(in_oklab,var(--app-primary)_72%,var(--app-accent))_58%,color-mix(in_oklab,var(--app-accent)_72%,transparent)_100%)] p-6 shadow-lg shadow-primary/15 backdrop-blur-sm';
+const gradientClassName = 'bg-[linear-gradient(135deg,color-mix(in_oklab,var(--app-primary)_88%,transparent)_0%,color-mix(in_oklab,var(--app-primary)_72%,var(--app-accent))_58%,color-mix(in_oklab,var(--app-accent)_72%,transparent)_100%)] backdrop-blur-sm';
+
+const defaultCardClassName = `rounded-[1.75rem] border border-on-primary/15 ${gradientClassName} p-6 shadow-lg shadow-primary/15`;
 const inputClassName = 'w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15';
 const tableHeaderClassName = 'px-4 py-2 text-left text-xs font-semibold uppercase tracking-[0.18em] text-on-primary';
-const tableCellClassName = 'border-y border-border bg-secondary px-4 py-3 text-sm text-on-secondary';
+const tableCellClassName = 'border-y border-border bg-transparent px-4 py-3 text-sm text-on-primary';
 const timeLogsPageSize = 10;
 
 const emptyCreateForm = {
@@ -123,6 +127,14 @@ const toDateTimeLocalValue = (value) => {
   const minutes = String(date.getMinutes()).padStart(2, '0');
 
   return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+const formatLogDateTime = (value) => {
+  const date = toDate(value);
+
+  if (!date) return '-';
+
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
 };
 
 const getTimeLogTaskNameFormValue = (value) => {
@@ -225,6 +237,26 @@ const PasswordField = ({
   </label>
 );
 
+const StudentDropdown = ({
+  className = '',
+  label = 'Student',
+  onChange,
+  students,
+  value,
+}) => (
+  <Dropdown
+    className={className}
+    label={label}
+    onChange={onChange}
+    options={students.map((student) => ({
+      label: `${getStudentName(student)} (${getStudentId(student) || 'No ID'})`,
+      value: student.id,
+    }))}
+    placeholder="Select a student"
+    value={value}
+  />
+);
+
 const CreateStudentCard = ({ cardClassName }) => {
   const [form, setForm] = useState(emptyCreateForm);
   const [showPassword, setShowPassword] = useState(false);
@@ -304,15 +336,30 @@ const CreateStudentCard = ({ cardClassName }) => {
           value={form.password}
         />
 
-        <label className="flex items-center gap-3 rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary">
-          <input
-            checked={form.currentMember}
-            className="h-4 w-4 accent-primary"
-            onChange={(event) => handleFieldChange('currentMember', event.target.checked)}
-            type="checkbox"
-          />
-          Current member
-        </label>
+        <fieldset className="flex flex-col gap-1.5 space-y-1.5">
+          <legend className="text-sm font-medium text-on-primary">Membership Status</legend>
+          <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-transparent p-1">
+            {currentMemberOptions.map((option) => {
+              const isSelected = form.currentMember === option.value;
+
+              return (
+                <button
+                  aria-pressed={isSelected}
+                  className={`rounded-lg px-4 py-3 text-sm font-semibold transition ${
+                    isSelected
+                      ? 'bg-secondary text-on-secondary shadow-sm'
+                      : 'bg-transparent text-on-primary/80 hover:bg-secondary/20'
+                  }`}
+                  key={String(option.value)}
+                  onClick={() => handleFieldChange('currentMember', option.value)}
+                  type="button"
+                >
+                  {option.title}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
 
         <Button disabled={isSaving} type="submit">
           {isSaving ? 'Creating Student...' : 'Create Student'}
@@ -492,23 +539,14 @@ const SignInStudentCard = ({
         <CardMessage>No students are available to sign in.</CardMessage>
       ) : (
         <form className="mt-5 grid gap-4" onSubmit={handleSubmit}>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-on-primary">Student</span>
-            <select
-              className={inputClassName}
-              onChange={(event) => {
-                setSelectedStudentId(event.target.value);
-                clearStatus();
-              }}
-              value={selectedStudentId}
-            >
-              {availableStudents.map((student) => (
-                <option key={student.id} value={student.id}>
-                  {getStudentName(student)} ({getStudentId(student) || 'No ID'})
-                </option>
-              ))}
-            </select>
-          </label>
+          <StudentDropdown
+            onChange={(studentId) => {
+              setSelectedStudentId(studentId);
+              clearStatus();
+            }}
+            students={availableStudents}
+            value={selectedStudentId}
+          />
 
           <div>
             <span className="text-sm font-medium text-on-primary">Task</span>
@@ -656,23 +694,14 @@ const ExtraHoursCard = ({
         <CardMessage>No students found.</CardMessage>
       ) : (
         <form className="mt-5 grid gap-4" onSubmit={handleSubmit}>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-on-primary">Student</span>
-            <select
-              className={inputClassName}
-              onChange={(event) => {
-                setSelectedStudentId(event.target.value);
-                clearStatus();
-              }}
-              value={selectedStudentId}
-            >
-              {sortedStudents.map((student) => (
-                <option key={student.id} value={student.id}>
-                  {getStudentName(student)} ({getStudentId(student) || 'No ID'})
-                </option>
-              ))}
-            </select>
-          </label>
+          <StudentDropdown
+            onChange={(studentId) => {
+              setSelectedStudentId(studentId);
+              clearStatus();
+            }}
+            students={sortedStudents}
+            value={selectedStudentId}
+          />
 
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-on-primary">Hours</span>
@@ -849,23 +878,15 @@ const EditStudentCard = ({
         <CardMessage>No students found.</CardMessage>
       ) : (
         <form className="mt-5 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
-          <label className="flex flex-col gap-1.5 md:col-span-2">
-            <span className="text-sm font-medium text-on-primary">Student</span>
-            <select
-              className={inputClassName}
-              onChange={(event) => {
-                setSelectedStudentId(event.target.value);
-                setStatus({ message: '', tone: 'muted' });
-              }}
-              value={selectedStudentId}
-            >
-              {sortedStudents.map((student) => (
-                <option key={student.id} value={student.id}>
-                  {getStudentName(student)} ({getStudentId(student) || 'No ID'})
-                </option>
-              ))}
-            </select>
-          </label>
+          <StudentDropdown
+            className="md:col-span-2"
+            onChange={(studentId) => {
+              setSelectedStudentId(studentId);
+              setStatus({ message: '', tone: 'muted' });
+            }}
+            students={sortedStudents}
+            value={selectedStudentId}
+          />
 
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-on-primary">Name</span>
@@ -954,10 +975,15 @@ const StudentTimeLogsCard = ({
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [savingLogId, setSavingLogId] = useState('');
   const [status, setStatus] = useState({ message: '', tone: 'muted' });
+  const [selectedLogId, setSelectedLogId] = useState(null);
 
   const selectedStudent = useMemo(
     () => sortedStudents.find((student) => student.id === selectedStudentId) ?? null,
     [selectedStudentId, sortedStudents],
+  );
+  const selectedLog = useMemo(
+    () => logs.find((log) => log.id === selectedLogId) ?? null,
+    [logs, selectedLogId],
   );
 
   const totalPages = Math.max(1, Math.ceil(logs.length / timeLogsPageSize));
@@ -1081,32 +1107,21 @@ const StudentTimeLogsCard = ({
         <CardMessage>No students found.</CardMessage>
       ) : (
         <div className="mt-5 space-y-5">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-on-primary">Student</span>
-            <select
-              className={inputClassName}
-              onChange={(event) => {
-                setSelectedStudentId(event.target.value);
+          <div className="flex flex-col gap-4 rounded-2xl border border-border bg-transparent px-4 py-3 lg:flex-row lg:items-end lg:justify-between">
+            <StudentDropdown
+              className="min-w-0 flex-1"
+              onChange={(studentId) => {
+                setSelectedStudentId(studentId);
+                setSelectedLogId(null);
                 setStatus({ message: '', tone: 'muted' });
               }}
+              students={sortedStudents}
               value={selectedStudentId}
-            >
-              {sortedStudents.map((student) => (
-                <option key={student.id} value={student.id}>
-                  {getStudentName(student)} ({getStudentId(student) || 'No ID'})
-                </option>
-              ))}
-            </select>
-          </label>
+            />
 
-          {isLoadingLogs ? (
-            <CardMessage>Loading student logs...</CardMessage>
-          ) : logs.length === 0 ? (
-            <CardMessage>No logs found for this student.</CardMessage>
-          ) : (
-            <>
-              <div className="flex flex-col gap-3 rounded-2xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary sm:flex-row sm:items-center sm:justify-between">
-                <span>
+            {!isLoadingLogs && logs.length > 0 && (
+              <div className="flex flex-col gap-3 text-sm text-on-secondary sm:flex-row sm:items-center">
+                <span className="whitespace-nowrap">
                   Showing {firstVisibleLogNumber}-{lastVisibleLogNumber} of {logs.length} logs
                 </span>
                 <div className="flex gap-2">
@@ -1128,90 +1143,62 @@ const StudentTimeLogsCard = ({
                   </button>
                 </div>
               </div>
+            )}
+          </div>
 
-              <div className="grid gap-4">
-                {visibleLogs.map((log) => {
-                  const form = logForms[log.id] ?? buildTimeLogForm(log);
-                  const durationMinutes = getDurationMinutes(log);
-                  const statusLabel = log[timeLogConfig.statusField] === timeLogConfig.activeStatus
-                    ? 'Active'
-                    : 'Completed';
+          {isLoadingLogs ? (
+            <CardMessage>Loading student logs...</CardMessage>
+          ) : logs.length === 0 ? (
+            <CardMessage>No logs found for this student.</CardMessage>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full border-separate border-spacing-y-3">
+                  <thead>
+                    <tr>
+                      <th className={tableHeaderClassName}>Task</th>
+                      <th className={tableHeaderClassName}>Status</th>
+                      <th className={tableHeaderClassName}>Start</th>
+                      <th className={tableHeaderClassName}>End</th>
+                      <th className={`${tableHeaderClassName} text-right`}>Hours</th>
+                      <th className={`${tableHeaderClassName} text-right`}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleLogs.map((log) => {
+                      const form = logForms[log.id] ?? buildTimeLogForm(log);
+                      const durationMinutes = getDurationMinutes(log);
+                      const isActive = log[timeLogConfig.statusField] === timeLogConfig.activeStatus;
 
-                  return (
-                    <section
-                      className="rounded-[1.75rem] border border-on-primary/15 bg-[linear-gradient(135deg,color-mix(in_oklab,var(--app-primary)_88%,transparent)_0%,color-mix(in_oklab,var(--app-primary)_72%,var(--app-accent))_58%,color-mix(in_oklab,var(--app-accent)_72%,transparent)_100%)] p-4 shadow-lg shadow-primary/15 backdrop-blur-sm"
-                      key={log.id}
-                    >
-                      <div className="flex flex-col gap-2 border-b border-on-primary/15 pb-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-on-primary">{formatTaskName(form.taskName, 'Task')}</p>
-                          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-on-primary/70">
-                            {statusLabel}
-                            {durationMinutes > 0 ? ` - ${minutesToHours(durationMinutes).toFixed(1)} hours` : ''}
-                          </p>
-                        </div>
-                        <Button
-                          className="sm:w-auto"
-                          disabled={savingLogId === log.id}
-                          onClick={() => handleLogSave(log)}
-                          type="button"
-                        >
-                          {savingLogId === log.id ? 'Saving...' : 'Save Log'}
-                        </Button>
-                      </div>
-
-                      <div className="mt-4 grid gap-4 md:grid-cols-2">
-                        <label className="flex flex-col gap-1.5">
-                          <span className="text-sm font-medium text-on-primary">Task name</span>
-                          <input
-                            className={inputClassName}
-                            onChange={(event) => handleLogFieldChange(log.id, 'taskName', event.target.value)}
-                            type="text"
-                            value={form.taskName}
-                          />
-                        </label>
-
-                        <label className="flex flex-col gap-1.5">
-                          <span className="text-sm font-medium text-on-primary">Start time</span>
-                          <input
-                            className={inputClassName}
-                            onChange={(event) => handleLogFieldChange(log.id, 'signInAt', event.target.value)}
-                            type="datetime-local"
-                            value={form.signInAt}
-                          />
-                        </label>
-
-                        <label className="flex flex-col gap-1.5">
-                          <span className="text-sm font-medium text-on-primary">End time</span>
-                          <input
-                            className={inputClassName}
-                            onChange={(event) => handleLogFieldChange(log.id, 'signOutAt', event.target.value)}
-                            type="datetime-local"
-                            value={form.signOutAt}
-                          />
-                        </label>
-
-                        <label className="flex flex-col gap-1.5 md:row-span-2">
-                          <span className="text-sm font-medium text-on-primary">Sign-in notes</span>
-                          <textarea
-                            className="min-h-28 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition placeholder:text-on-secondary/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
-                            onChange={(event) => handleLogFieldChange(log.id, 'signInNotes', event.target.value)}
-                            value={form.signInNotes}
-                          />
-                        </label>
-
-                        <label className="flex flex-col gap-1.5 md:row-span-2">
-                          <span className="text-sm font-medium text-on-primary">Sign-out notes</span>
-                          <textarea
-                            className="min-h-28 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition placeholder:text-on-secondary/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
-                            onChange={(event) => handleLogFieldChange(log.id, 'signOutNotes', event.target.value)}
-                            value={form.signOutNotes}
-                          />
-                        </label>
-                      </div>
-                    </section>
-                  );
-                })}
+                      return (
+                        <tr key={log.id}>
+                          <td className="rounded-l-2xl border-y border-l border-border bg-transparent px-4 py-4 text-sm text-on-secondary">
+                            <span className="font-semibold">{formatTaskName(form.taskName, 'Task')}</span>
+                          </td>
+                          <td className={tableCellClassName}>{isActive ? 'Active' : 'Completed'}</td>
+                          <td className={`${tableCellClassName} whitespace-nowrap`}>
+                            {form.signInAt ? formatLogDateTime(form.signInAt) : '-'}
+                          </td>
+                          <td className={`${tableCellClassName} whitespace-nowrap`}>
+                            {form.signOutAt ? formatLogDateTime(form.signOutAt) : '-'}
+                          </td>
+                          <td className={`${tableCellClassName} text-right font-semibold`}>
+                            {minutesToHours(durationMinutes).toFixed(2)}
+                          </td>
+                          <td className="rounded-r-2xl border-y border-r border-border bg-transparent px-4 py-4 text-right">
+                            <button
+                              className="inline-flex items-center justify-center bg-secondary rounded-xl border border-border px-4 py-2 text-sm font-semibold text-on-secondary transition hover:bg-accent/10"
+                              onClick={() => setSelectedLogId(log.id)}
+                              type="button"
+                            >
+                              Edit Log
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </>
           )}
@@ -1219,6 +1206,109 @@ const StudentTimeLogsCard = ({
       )}
 
       {status.message && <CardMessage tone={status.tone}>{status.message}</CardMessage>}
+
+      {selectedLog && typeof document !== 'undefined' && createPortal(
+        <div
+          aria-labelledby="time-log-dialog-title"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setSelectedLogId(null)}
+          role="dialog"
+        >
+          <div
+            className={`max-h-[calc(100vh-2rem)] w-full max-w-3xl overflow-y-auto rounded-2xl border border-on-primary/15 ${gradientClassName} p-6 shadow-2xl shadow-primary/20`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-on-primary" id="time-log-dialog-title">
+                  {formatTaskName(logForms[selectedLog.id]?.taskName, 'Task')}
+                </h3>
+                <p className="mt-1 text-sm text-on-primary/80">
+                  {selectedStudent ? getStudentName(selectedStudent) : ''}
+                </p>
+              </div>
+              <button
+                aria-label="Close time log editor"
+                className="rounded-lg px-3 py-2 text-sm font-semibold text-on-primary/80 transition hover:bg-accent/20"
+                onClick={() => setSelectedLogId(null)}
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <label className="flex flex-col gap-1.5 md:col-span-2">
+                <span className="text-sm font-medium text-on-primary">Task name</span>
+                <input
+                  className={inputClassName}
+                  onChange={(event) => handleLogFieldChange(selectedLog.id, 'taskName', event.target.value)}
+                  type="text"
+                  value={logForms[selectedLog.id]?.taskName ?? ''}
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-on-primary">Start time</span>
+                <input
+                  className={inputClassName}
+                  onChange={(event) => handleLogFieldChange(selectedLog.id, 'signInAt', event.target.value)}
+                  type="datetime-local"
+                  value={logForms[selectedLog.id]?.signInAt ?? ''}
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-on-primary">End time</span>
+                <input
+                  className={inputClassName}
+                  onChange={(event) => handleLogFieldChange(selectedLog.id, 'signOutAt', event.target.value)}
+                  type="datetime-local"
+                  value={logForms[selectedLog.id]?.signOutAt ?? ''}
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-on-primary">Sign-in notes</span>
+                <textarea
+                  className="min-h-28 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition placeholder:text-on-secondary/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
+                  onChange={(event) => handleLogFieldChange(selectedLog.id, 'signInNotes', event.target.value)}
+                  value={logForms[selectedLog.id]?.signInNotes ?? ''}
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-on-primary">Sign-out notes</span>
+                <textarea
+                  className="min-h-28 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition placeholder:text-on-secondary/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
+                  onChange={(event) => handleLogFieldChange(selectedLog.id, 'signOutNotes', event.target.value)}
+                  value={logForms[selectedLog.id]?.signOutNotes ?? ''}
+                />
+              </label>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-semibold text-on-primary transition hover:bg-accent/10"
+                onClick={() => setSelectedLogId(null)}
+                type="button"
+              >
+                Cancel
+              </button>
+              <Button
+                className="sm:w-auto"
+                disabled={savingLogId === selectedLog.id}
+                onClick={() => handleLogSave(selectedLog)}
+                type="button"
+              >
+                {savingLogId === selectedLog.id ? 'Saving...' : 'Save Log'}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </article>
   );
 };

@@ -10,6 +10,7 @@ import {
   getLogsInDateRange,
   getStartOfDay,
 } from '../../lib/analyticsUtils';
+import Dropdown from '../shared/Dropdown';
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -431,20 +432,16 @@ const StudentCategoryBreakdownCard = ({
       title="Student Category Breakdown"
       cardClassName={cardClassName}
     >
-      <label className="mb-5 flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-on-primary">Student</span>
-        <select
-          className={inputClassName}
-          onChange={(event) => onStudentChange(event.target.value)}
-          value={selectedStudentKey}
-        >
-          {studentOptions.map((student) => (
-            <option key={student.studentKey} value={student.studentKey}>
-              {student.studentName} ({student.studentId})
-            </option>
-          ))}
-        </select>
-      </label>
+      <Dropdown
+        className="mb-5"
+        label="Student"
+        onChange={onStudentChange}
+        options={studentOptions.map((student) => ({
+          label: `${student.studentName} (${student.studentId})`,
+          value: student.studentKey,
+        }))}
+        value={selectedStudentKey}
+      />
 
       <SummaryGrid
         metrics={[

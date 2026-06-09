@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AnalyticsDashboard from '../components/dashboard/AnalyticsDashboard';
 import StudentManagementDashboard from '../components/dashboard/StudentManagementDashboard';
 import Button from '../components/shared/Button';
+import Dropdown from '../components/shared/Dropdown';
 import { branding } from '../config/branding';
 import { scheduleConfig, studentAuthConfig, taskConfig } from '../config/appConfig';
 import { useAuth } from '../features/auth/useAuth.jsx';
@@ -761,22 +762,17 @@ const CoachDashboard = () => {
                       </div>
 
                       {scheduleForm.taskMode === 'existing' ? (
-                        <label className="flex flex-col gap-1.5 md:col-span-2">
-                          <span className="text-sm font-medium text-on-primary">Task</span>
-                          <select
-                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                            onChange={(e) => handleScheduleFieldChange('taskId', e.target.value)}
-                            required
-                            value={scheduleForm.taskId}
-                          >
-                            <option value="">Select a task</option>
-                            {tasks.map((task) => (
-                              <option key={task.id} value={task.id}>
-                                {task[taskConfig.nameField]}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
+                        <Dropdown
+                          className="md:col-span-2"
+                          label="Task"
+                          onChange={(value) => handleScheduleFieldChange('taskId', value)}
+                          options={tasks.map((task) => ({
+                            label: task[taskConfig.nameField],
+                            value: task.id,
+                          }))}
+                          placeholder="Select a task"
+                          value={scheduleForm.taskId}
+                        />
                       ) : (
                         <label className="flex flex-col gap-1.5 md:col-span-2">
                           <span className="text-sm font-medium text-on-primary">New task name</span>
@@ -817,70 +813,40 @@ const CoachDashboard = () => {
                       </div>
 
                       {scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.weekly && (
-                        <label className="flex flex-col gap-1.5 md:col-span-2">
-                          <span className="text-sm font-medium text-on-primary">Recurring day</span>
-                          <select
-                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                            onChange={(e) => handleScheduleFieldChange('recurringDayOfWeek', e.target.value)}
-                            value={scheduleForm.recurringDayOfWeek}
-                          >
-                            {weekdayOptions.map((weekday) => (
-                              <option key={weekday.value} value={weekday.value}>
-                                {weekday.label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
+                        <Dropdown
+                          className="md:col-span-2"
+                          label="Recurring day"
+                          onChange={(value) => handleScheduleFieldChange('recurringDayOfWeek', value)}
+                          options={weekdayOptions}
+                          value={scheduleForm.recurringDayOfWeek}
+                        />
                       )}
 
                       {scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.monthly && (
-                        <label className="flex flex-col gap-1.5 md:col-span-2">
-                          <span className="text-sm font-medium text-on-primary">Recurring day of month</span>
-                          <select
-                            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                            onChange={(e) => handleScheduleFieldChange('recurringDayOfMonth', e.target.value)}
-                            value={scheduleForm.recurringDayOfMonth}
-                          >
-                            {dayOfMonthOptions.map((dayOption) => (
-                              <option key={dayOption.value} value={dayOption.value}>
-                                {dayOption.label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
+                        <Dropdown
+                          className="md:col-span-2"
+                          label="Recurring day of month"
+                          onChange={(value) => handleScheduleFieldChange('recurringDayOfMonth', value)}
+                          options={dayOfMonthOptions}
+                          value={scheduleForm.recurringDayOfMonth}
+                        />
                       )}
 
                       {scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.yearly && (
                         <>
-                          <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-on-primary">Recurring month</span>
-                            <select
-                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                              onChange={(e) => handleScheduleFieldChange('recurringMonthOfYear', e.target.value)}
-                              value={scheduleForm.recurringMonthOfYear}
-                            >
-                              {monthOptions.map((monthOption) => (
-                                <option key={monthOption.value} value={monthOption.value}>
-                                  {monthOption.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
+                          <Dropdown
+                            label="Recurring month"
+                            onChange={(value) => handleScheduleFieldChange('recurringMonthOfYear', value)}
+                            options={monthOptions}
+                            value={scheduleForm.recurringMonthOfYear}
+                          />
 
-                          <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-on-primary">Recurring day of month</span>
-                            <select
-                              className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15"
-                              onChange={(e) => handleScheduleFieldChange('recurringDayOfMonth', e.target.value)}
-                              value={scheduleForm.recurringDayOfMonth}
-                            >
-                              {dayOfMonthOptions.map((dayOption) => (
-                                <option key={dayOption.value} value={dayOption.value}>
-                                  {dayOption.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
+                          <Dropdown
+                            label="Recurring day of month"
+                            onChange={(value) => handleScheduleFieldChange('recurringDayOfMonth', value)}
+                            options={dayOfMonthOptions}
+                            value={scheduleForm.recurringDayOfMonth}
+                          />
                         </>
                       )}
 
