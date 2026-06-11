@@ -1,11 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import { scheduleConfig, studentAuthConfig, taskConfig } from '../config/appConfig';
 import { isScheduleActive } from '../features/schedules/validateSchedule';
 import { useSchedules } from '../features/schedules/useSchedules';
 import { useTasks } from '../features/tasks/useTasks';
-import { endStudentSession, startStudentSession } from '../features/timeLogs/timeLogService';
+import { FORM_TEXTAREA_CLASS_NAME } from '../styles/classNames';
+import {
+  endStaleStudentSession,
+  endStudentSession,
+  startStudentSession,
+} from '../features/timeLogs/timeLogService';
 import { useAuth } from '../features/auth/useAuth.jsx';
 
 const normalizeTaskRef = (value) => String(value ?? '')
@@ -32,6 +37,7 @@ const StudentCheckIn = () => {
   const [notes, setNotes] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const staleSessionAttemptRef = useRef('');
   const { signOutStudent, studentSession } = useAuth();
   const { tasks, isLoading: isLoadingTasks, error: tasksError } = useTasks();
   const { schedules, isLoading: isLoadingSchedules, error: schedulesError } = useSchedules();
@@ -112,9 +118,53 @@ const StudentCheckIn = () => {
     setStatusMessage('');
   }, [formMode, selectedTaskId, notes]);
 
+  useEffect(() => {
+    const activeTimeLogId = studentSession?.[studentAuthConfig.activeTimeLogIdField];
+
+    if (
+      !studentSession?.[studentAuthConfig.signedInField]
+      || !activeTimeLogId
+      || isLoadingSchedules
+      || staleSessionAttemptRef.current === activeTimeLogId
+    ) {
+      return;
+    }
+
+    staleSessionAttemptRef.current = activeTimeLogId;
+
+    endStaleStudentSession({
+      schedules,
+      student: studentSession,
+    }).then(async (didEndSession) => {
+      if (!didEndSession) {
+        return;
+      }
+
+      const destination = studentSession.authMode === 'kiosk' ? '/kiosk' : '/';
+      await signOutStudent();
+      navigate(destination, { replace: true });
+    }).catch((autoCheckoutError) => {
+      setStatusMessage(
+        autoCheckoutError.message || 'Failed to automatically close the previous session.',
+      );
+    });
+  }, [
+    isLoadingSchedules,
+    navigate,
+    schedules,
+    signOutStudent,
+    studentSession,
+  ]);
+
   const handleSignOut = async () => {
+    const destination = studentSession?.authMode === 'kiosk' ? '/kiosk' : '/';
+
     await signOutStudent();
-    navigate('/', { replace: true });
+    navigate(destination, { replace: true });
+  };
+
+  const handleBackToDashboard = () => {
+    navigate('/student/dashboard');
   };
 
   const handleSubmit = async (e) => {
@@ -129,6 +179,8 @@ const StudentCheckIn = () => {
     setIsSubmitting(true);
 
     try {
+      const destination = studentSession?.authMode === 'kiosk' ? '/kiosk' : '/';
+
       if (formMode === 'sign-in') {
         await startStudentSession({
           student: studentSession,
@@ -136,7 +188,7 @@ const StudentCheckIn = () => {
           signInNotes: notes,
         });
         await signOutStudent();
-        navigate('/', { replace: true });
+        navigate(destination, { replace: true });
         return;
       } else {
         const activeTimeLogId = studentSession?.[studentAuthConfig.activeTimeLogIdField];
@@ -153,7 +205,7 @@ const StudentCheckIn = () => {
           signOutNotes: notes,
         });
         await signOutStudent();
-        navigate('/', { replace: true });
+        navigate(destination, { replace: true });
         return;
       }
     } catch (submitError) {
@@ -180,7 +232,16 @@ const StudentCheckIn = () => {
               Signed in as <span className="font-semibold text-on-primary">{studentSession?.name}</span> with student ID <span className="font-semibold text-on-primary">{studentSession?.studentId}</span>.
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:w-auto">
+          <div className="flex flex-col gap-3 sm:w-auto sm:flex-row">
+            {studentSession?.authMode === 'student' && (
+              <Button
+                className="border border-on-primary/20 bg-transparent shadow-none sm:w-auto"
+                onClick={handleBackToDashboard}
+                type="button"
+              >
+                Back to Dashboard
+              </Button>
+            )}
             <Button className="sm:w-auto" onClick={handleSignOut} type="button">
               Sign out student session
             </Button>
@@ -228,11 +289,11 @@ const StudentCheckIn = () => {
           ) : (
             <div className="space-y-2">
               <p className="text-sm font-medium text-on-primary">Task</p>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-3">
                 {availableTasks.map((task) => (
                   <button
                     key={task.id}
-                    className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
+                    className={`rounded-xl border px-4 py-3 text-center font-semibold transition ${
                       selectedTaskId === task.id
                         ? 'border-secondary bg-primary text-on-primary shadow-lg shadow-primary/20'
                         : 'border-border bg-secondary text-on-secondary hover:bg-accent/10'
@@ -241,9 +302,6 @@ const StudentCheckIn = () => {
                     type="button"
                   >
                     <span className="block">{task[taskConfig.nameField]}</span>
-                    <span className={`mt-1 block text-sm ${selectedTaskId === task.id ? 'text-on-primary/80' : 'text-on-secondary'}`}>
-                      {task[taskConfig.scheduledField] ? 'Scheduled task' : 'Open task'}
-                    </span>
                   </button>
                 ))}
               </div>
@@ -269,7 +327,7 @@ const StudentCheckIn = () => {
                 : `Completed for ${taskDisplayName}`}
             </label>
             <textarea
-              className="placeholder:!text-on-secondary min-h-32 w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition placeholder:text-text-muted/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
+              className={`${FORM_TEXTAREA_CLASS_NAME} min-h-32`}
               id="student-notes"
               required
               onChange={(e) => setNotes(e.target.value)}

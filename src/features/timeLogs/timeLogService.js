@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   orderBy,
   query,
   Timestamp,
@@ -11,6 +12,8 @@ import {
   where,
 } from 'firebase/firestore';
 import { studentAuthConfig, taskConfig, timeLogConfig } from '../../config/appConfig';
+import { getScheduledTaskEndTime } from '../schedules/validateSchedule';
+import { getCurrentAuthUser, getStudentIdFromAuthEmail } from '../../services/auth';
 import { db } from '../../services/firebase';
 import { toDate } from '../../lib/dateUtils';
 
@@ -26,6 +29,240 @@ const calculateDurationMinutes = (signInAt, signOutAt) => {
 
   const elapsedMs = endedAt.getTime() - startedAt.getTime();
   return Math.max(0, Math.round(elapsedMs / 60000));
+};
+
+const nullableString = (value) => {
+  const trimmedValue = String(value ?? '').trim();
+
+  return trimmedValue || null;
+};
+
+const isNumericString = (value) => /^-?\d+(\.\d+)?$/.test(value);
+
+const getStudentLogIdCandidates = (student) => {
+  const rawValues = [
+    student?.[studentAuthConfig.idField],
+    student?.studentId,
+  ];
+  const candidates = new Set();
+
+  rawValues.forEach((value) => {
+    const stringValue = String(value ?? '').trim();
+
+    if (!stringValue) {
+      return;
+    }
+
+    candidates.add(stringValue);
+
+    if (studentAuthConfig.idValueType === 'auto' && isNumericString(stringValue)) {
+      candidates.add(Number(stringValue));
+    }
+  });
+
+  return [...candidates];
+};
+
+const sortLogsByNewestSignIn = (logs) => [...logs].sort((left, right) => {
+  const leftTime = (
+    toDate(left?.[timeLogConfig.signInAtField])
+    ?? toDate(left?.[timeLogConfig.createdAtField])
+  )?.getTime() ?? 0;
+  const rightTime = (
+    toDate(right?.[timeLogConfig.signInAtField])
+    ?? toDate(right?.[timeLogConfig.createdAtField])
+  )?.getTime() ?? 0;
+
+  return rightTime - leftTime;
+});
+
+export const listTimeLogsForStudent = async ({ student }) => {
+  if (!student?.id && !getStudentLogIdCandidates(student).length) {
+    throw new Error('A student record is required to load time logs.');
+  }
+
+  const logsById = new Map();
+  const timeLogsCollection = collection(db, timeLogConfig.collectionName);
+  const queries = [];
+  const authenticatedStudentId = getStudentIdFromAuthEmail(getCurrentAuthUser()?.email);
+
+  if (authenticatedStudentId) {
+    // Firestore rules can authorize this collection query because its result
+    // set is constrained to the student ID encoded in Firebase Authentication.
+    queries.push(query(
+      timeLogsCollection,
+      where(timeLogConfig.studentIdField, '==', authenticatedStudentId),
+    ));
+  } else {
+    if (student?.id) {
+      queries.push(query(
+        timeLogsCollection,
+        where(timeLogConfig.studentDocIdField, '==', student.id),
+      ));
+    }
+
+    getStudentLogIdCandidates(student).forEach((studentId) => {
+      queries.push(query(
+        timeLogsCollection,
+        where(timeLogConfig.studentIdField, '==', studentId),
+      ));
+    });
+  }
+
+  const snapshots = await Promise.all(queries.map((timeLogsQuery) => getDocs(timeLogsQuery)));
+
+  snapshots.forEach((snapshot) => {
+    snapshot.docs.forEach((timeLogDoc) => {
+      logsById.set(timeLogDoc.id, {
+        id: timeLogDoc.id,
+        ...timeLogDoc.data(),
+      });
+    });
+  });
+
+  return sortLogsByNewestSignIn([...logsById.values()]);
+};
+
+export const updateTimeLogByCoach = async ({
+  signInAt,
+  signInNotes,
+  signOutAt,
+  signOutNotes,
+  student,
+  taskName,
+  timeLogId,
+}) => {
+  if (!timeLogId) {
+    throw new Error('A time log is required for updates.');
+  }
+
+  const signInDate = toDate(signInAt);
+  const signOutDate = signOutAt ? toDate(signOutAt) : null;
+  const trimmedTaskName = String(taskName ?? '').trim();
+
+  if (!signInDate) {
+    throw new Error('Start time must be a valid date and time.');
+  }
+
+  if (signOutAt && !signOutDate) {
+    throw new Error('End time must be a valid date and time.');
+  }
+
+  if (signOutDate && signOutDate < signInDate) {
+    throw new Error('End time must be after start time.');
+  }
+
+  if (!trimmedTaskName) {
+    throw new Error('Task name is required.');
+  }
+
+  const timeLogDocRef = doc(db, timeLogConfig.collectionName, timeLogId);
+  const existingTimeLogSnapshot = await getDoc(timeLogDocRef);
+
+  if (!existingTimeLogSnapshot.exists()) {
+    throw new Error('The time log could not be found.');
+  }
+
+  const existingTimeLog = existingTimeLogSnapshot.data();
+  const isSelectedStudentActiveLog = student?.[studentAuthConfig.activeTimeLogIdField] === timeLogId;
+
+  if (
+    !signOutDate
+    && existingTimeLog[timeLogConfig.statusField] === timeLogConfig.completedStatus
+    && !isSelectedStudentActiveLog
+  ) {
+    throw new Error('Completed logs need an end time.');
+  }
+
+  const signInTimestamp = Timestamp.fromDate(signInDate);
+  const signOutTimestamp = signOutDate ? Timestamp.fromDate(signOutDate) : null;
+  const durationMinutes = signOutDate ? calculateDurationMinutes(signInDate, signOutDate) : null;
+  const batch = writeBatch(db);
+
+  batch.update(timeLogDocRef, {
+    [timeLogConfig.signInAtField]: signInTimestamp,
+    [timeLogConfig.signOutAtField]: signOutTimestamp,
+    [timeLogConfig.signInNotesField]: nullableString(signInNotes),
+    [timeLogConfig.signOutNotesField]: nullableString(signOutNotes),
+    [timeLogConfig.taskNameField]: trimmedTaskName,
+    [timeLogConfig.statusField]: signOutDate ? timeLogConfig.completedStatus : timeLogConfig.activeStatus,
+    [timeLogConfig.durationMinutesField]: durationMinutes,
+    [timeLogConfig.updatedAtField]: serverTimestamp(),
+  });
+
+  if (isSelectedStudentActiveLog) {
+    const studentDocRef = doc(db, studentAuthConfig.collectionName, student.id);
+
+    batch.update(studentDocRef, signOutDate
+      ? {
+        [studentAuthConfig.currentTaskField]: null,
+        [studentAuthConfig.currentTaskIdField]: null,
+        [studentAuthConfig.activeTimeLogIdField]: null,
+        [studentAuthConfig.signedInAtField]: null,
+        [studentAuthConfig.signedInField]: false,
+      }
+      : {
+        [studentAuthConfig.currentTaskField]: trimmedTaskName,
+        [studentAuthConfig.signedInAtField]: signInTimestamp,
+        [studentAuthConfig.signedInField]: true,
+      });
+  }
+
+  await batch.commit();
+
+  return {
+    id: timeLogId,
+    durationMinutes,
+    signInAt: signInTimestamp,
+    signOutAt: signOutTimestamp,
+  };
+};
+
+export const createExtraHoursTimeLog = async ({
+  enteredBy,
+  hours,
+  reason,
+  student,
+}) => {
+  if (!student?.id) {
+    throw new Error('A student record is required to add extra hours.');
+  }
+
+  const numericHours = Number(hours);
+  const trimmedReason = String(reason ?? '').trim();
+
+  if (!Number.isFinite(numericHours) || numericHours <= 0) {
+    throw new Error('Extra hours must be greater than zero.');
+  }
+
+  if (!trimmedReason) {
+    throw new Error('A reason is required to add extra hours.');
+  }
+
+  const durationMinutes = Math.round(numericHours * 60);
+  const timeLogDocRef = doc(collection(db, timeLogConfig.collectionName));
+  const studentId = student[studentAuthConfig.idField] ?? student.studentId ?? student.id;
+  const batch = writeBatch(db);
+
+  batch.set(timeLogDocRef, {
+    [timeLogConfig.createdAtField]: serverTimestamp(),
+    [timeLogConfig.updatedAtField]: serverTimestamp(),
+    [timeLogConfig.durationMinutesField]: durationMinutes,
+    [timeLogConfig.studentDocIdField]: student.id,
+    [timeLogConfig.studentIdField]: studentId,
+    [timeLogConfig.studentNameField]: student.name ?? 'Student',
+    [timeLogConfig.statusField]: timeLogConfig.completedStatus,
+    [timeLogConfig.taskNameField]: timeLogConfig.extraTimeTaskName,
+    [timeLogConfig.reasonField]: trimmedReason,
+    [timeLogConfig.enteredByField]: nullableString(enteredBy) ?? 'Coach',
+  });
+
+  await batch.commit();
+
+  return {
+    id: timeLogDocRef.id,
+    durationMinutes,
+  };
 };
 
 export const startStudentSession = async ({ student, task, signInNotes }) => {
@@ -77,7 +314,12 @@ export const startStudentSession = async ({ student, task, signInNotes }) => {
   };
 };
 
-export const endStudentSession = async ({ studentDocId, timeLogId, signOutNotes }) => {
+export const endStudentSession = async ({
+  studentDocId,
+  timeLogId,
+  signOutAt = null,
+  signOutNotes,
+}) => {
   if (!studentDocId) {
     throw new Error('A student record is required to complete a time log.');
   }
@@ -94,10 +336,21 @@ export const endStudentSession = async ({ studentDocId, timeLogId, signOutNotes 
   }
 
   const existingTimeLog = existingTimeLogSnapshot.data();
-  const signOutAt = Timestamp.now();
+  const signInDate = toDate(existingTimeLog[timeLogConfig.signInAtField]);
+  const signOutDate = signOutAt ? toDate(signOutAt) : new Date();
+
+  if (!signOutDate) {
+    throw new Error('The sign-out time is invalid.');
+  }
+
+  if (signInDate && signOutDate < signInDate) {
+    throw new Error('The sign-out time cannot be before the sign-in time.');
+  }
+
+  const signOutTimestamp = Timestamp.fromDate(signOutDate);
   const durationMinutes = calculateDurationMinutes(
     existingTimeLog[timeLogConfig.signInAtField],
-    signOutAt,
+    signOutTimestamp,
   );
 
   const studentDocRef = doc(db, studentAuthConfig.collectionName, studentDocId);
@@ -106,7 +359,7 @@ export const endStudentSession = async ({ studentDocId, timeLogId, signOutNotes 
   // Sign-out clears the live student fields in the same batch that closes the
   // log. That keeps the coach dashboard and reporting views consistent.
   batch.update(timeLogDocRef, {
-    [timeLogConfig.signOutAtField]: signOutAt,
+    [timeLogConfig.signOutAtField]: signOutTimestamp,
     [timeLogConfig.signOutNotesField]: signOutNotes,
     [timeLogConfig.statusField]: timeLogConfig.completedStatus,
     [timeLogConfig.durationMinutesField]: durationMinutes,
@@ -125,9 +378,67 @@ export const endStudentSession = async ({ studentDocId, timeLogId, signOutNotes 
 
   return {
     id: timeLogId,
-    signOutAt,
+    signOutAt: signOutTimestamp,
     durationMinutes,
   };
+};
+
+export const endStaleStudentSession = async ({
+  now = new Date(),
+  schedules = [],
+  student,
+}) => {
+  const timeLogId = student?.[studentAuthConfig.activeTimeLogIdField];
+
+  if (!student?.id || !timeLogId) {
+    return false;
+  }
+
+  const timeLogDocRef = doc(db, timeLogConfig.collectionName, timeLogId);
+  const timeLogSnapshot = await getDoc(timeLogDocRef);
+
+  if (!timeLogSnapshot.exists()) {
+    return false;
+  }
+
+  const timeLog = timeLogSnapshot.data();
+
+  if (timeLog[timeLogConfig.statusField] !== timeLogConfig.activeStatus) {
+    return false;
+  }
+
+  const signInAt = toDate(timeLog[timeLogConfig.signInAtField]);
+  const currentTime = toDate(now);
+
+  if (!signInAt || !currentTime) {
+    return false;
+  }
+
+  const midnightAfterSignIn = new Date(signInAt);
+  midnightAfterSignIn.setHours(24, 0, 0, 0);
+
+  if (currentTime < midnightAfterSignIn) {
+    return false;
+  }
+
+  const scheduledEndTime = getScheduledTaskEndTime({
+    schedules,
+    taskId: timeLog[timeLogConfig.taskIdField],
+    time: signInAt,
+  });
+
+  if (!scheduledEndTime || scheduledEndTime > currentTime) {
+    return false;
+  }
+
+  await endStudentSession({
+    studentDocId: student.id,
+    timeLogId,
+    signOutAt: scheduledEndTime,
+    signOutNotes: 'Automatically signed out after midnight at the scheduled event end time.',
+  });
+
+  return true;
 };
 
 // Coaches use the same close-session flow as students, but with a generated
@@ -159,16 +470,58 @@ export const listTimeLogsBySignInRange = async ({ startDate, endDate }) => {
     throw new Error('A valid start and end date are required to load analytics.');
   }
 
-  const timeLogsQuery = query(
-    collection(db, timeLogConfig.collectionName),
+  const timeLogsCollection = collection(db, timeLogConfig.collectionName);
+  const timeLogsById = new Map();
+  const signInTimeLogsQuery = query(
+    timeLogsCollection,
     where(timeLogConfig.signInAtField, '>=', Timestamp.fromDate(start)),
     where(timeLogConfig.signInAtField, '<=', Timestamp.fromDate(end)),
     orderBy(timeLogConfig.signInAtField, 'asc'),
   );
-  const timeLogsSnapshot = await getDocs(timeLogsQuery);
+  const createdTimeLogsQuery = query(
+    timeLogsCollection,
+    where(timeLogConfig.createdAtField, '>=', Timestamp.fromDate(start)),
+    where(timeLogConfig.createdAtField, '<=', Timestamp.fromDate(end)),
+    orderBy(timeLogConfig.createdAtField, 'asc'),
+  );
+  const snapshots = await Promise.all([
+    getDocs(signInTimeLogsQuery),
+    getDocs(createdTimeLogsQuery),
+  ]);
 
-  return timeLogsSnapshot.docs.map((timeLogDoc) => ({
-    id: timeLogDoc.id,
-    ...timeLogDoc.data(),
-  }));
+  snapshots.forEach((snapshot) => {
+    snapshot.docs.forEach((timeLogDoc) => {
+      timeLogsById.set(timeLogDoc.id, {
+        id: timeLogDoc.id,
+        ...timeLogDoc.data(),
+      });
+    });
+  });
+
+  return [...timeLogsById.values()].sort((left, right) => {
+    const leftDate = toDate(left[timeLogConfig.signInAtField]) ?? toDate(left[timeLogConfig.createdAtField]);
+    const rightDate = toDate(right[timeLogConfig.signInAtField]) ?? toDate(right[timeLogConfig.createdAtField]);
+
+    return (leftDate?.getTime() ?? 0) - (rightDate?.getTime() ?? 0);
+  });
+};
+
+export const watchCompletedTimeLogs = (callback, onError) => {
+  const completedLogsQuery = query(
+    collection(db, timeLogConfig.collectionName),
+    where(timeLogConfig.statusField, '==', timeLogConfig.completedStatus),
+  );
+
+  return onSnapshot(
+    completedLogsQuery,
+    (snapshot) => {
+      callback(
+        snapshot.docs.map((timeLogDoc) => ({
+          id: timeLogDoc.id,
+          ...timeLogDoc.data(),
+        })),
+      );
+    },
+    onError,
+  );
 };

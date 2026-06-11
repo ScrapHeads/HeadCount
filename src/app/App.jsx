@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from '../features/auth/useAuth.jsx';
 import AccessPortal from '../pages/AccessPortal';
-import Login from '../pages/Login';
+import KioskStudentLogin from '../pages/KioskStudentLogin';
 import CoachDashboard from '../pages/CoachDashboard';
 import StudentDashboard from '../pages/StudentDashboard';
 import StudentCheckIn from '../pages/StudentCheckIn';
@@ -31,10 +31,41 @@ const CoachRoute = ({ children }) => {
   return children;
 };
 
+const KioskRoute = ({ children }) => {
+  const { isLoadingCoachAuth, kioskUser } = useAuth();
+
+  if (isLoadingCoachAuth) {
+    return <FullScreenMessage message="Checking kiosk session..." />;
+  }
+
+  if (!kioskUser) {
+    return <Navigate replace to="/" />;
+  }
+
+  return children;
+};
+
 const StudentRoute = ({ children }) => {
-  const { studentSession } = useAuth();
+  const {
+    isLoadingCoachAuth,
+    kioskUser,
+    studentSession,
+    studentUser,
+  } = useAuth();
+
+  if (isLoadingCoachAuth) {
+    return <FullScreenMessage message="Checking student session..." />;
+  }
 
   if (!studentSession) {
+    return <Navigate replace to={kioskUser ? '/kiosk' : '/'} />;
+  }
+
+  if (studentSession.authMode === 'kiosk') {
+    if (!kioskUser) {
+      return <Navigate replace to="/" />;
+    }
+  } else if (!studentUser) {
     return <Navigate replace to="/" />;
   }
 
@@ -44,8 +75,16 @@ const StudentRoute = ({ children }) => {
 const App = () => (
   <BrowserRouter>
     <Routes>
-      <Route path="/" element={<Login />} />
-      <Route path="/access" element={<AccessPortal />} />
+      <Route path="/" element={<AccessPortal />} />
+      <Route path="/access" element={<Navigate replace to="/" />} />
+      <Route
+        path="/kiosk"
+        element={(
+          <KioskRoute>
+            <KioskStudentLogin />
+          </KioskRoute>
+        )}
+      />
       <Route
         path="/coach/dashboard"
         element={(

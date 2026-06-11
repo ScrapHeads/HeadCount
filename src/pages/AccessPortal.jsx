@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
+import { kioskAuthConfig } from '../config/appConfig';
 import { branding } from '../config/branding';
 import { useAuth } from '../features/auth/useAuth.jsx';
 
@@ -9,12 +10,26 @@ const AccessPortal = () => {
   const [role, setRole] = useState('student');
   const [coachEmail, setCoachEmail] = useState('');
   const [coachPassword, setCoachPassword] = useState('');
+  const [kioskEmail, setKioskEmail] = useState(kioskAuthConfig.email);
+  const [kioskPassword, setKioskPassword] = useState('');
   const [studentId, setStudentId] = useState('');
   const [studentPassword, setStudentPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signInCoach, signInStudent } = useAuth();
+  const {
+    isLoadingCoachAuth,
+    kioskUser,
+    signInCoach,
+    signInKiosk,
+    signInStudent,
+  } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoadingCoachAuth && kioskUser) {
+      navigate('/kiosk', { replace: true });
+    }
+  }, [isLoadingCoachAuth, kioskUser, navigate]);
 
   const handleCoachLogin = async (e) => {
     e.preventDefault();
@@ -31,6 +46,26 @@ const AccessPortal = () => {
       navigate('/coach/dashboard', { replace: true });
     } catch (loginError) {
       setError(loginError.message || 'Coach login failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleKioskLogin = async (e) => {
+    e.preventDefault();
+    if (!kioskEmail || !kioskPassword) {
+      setError('Please enter both kiosk email and password.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      await signInKiosk({ email: kioskEmail, password: kioskPassword });
+      navigate('/kiosk', { replace: true });
+    } catch (loginError) {
+      setError(loginError.message || 'Kiosk login failed.');
     } finally {
       setIsSubmitting(false);
     }
@@ -71,9 +106,6 @@ const AccessPortal = () => {
           bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_50%,var(--app-accent)_100%)]
           p-8 text-on-primary sm:p-10">
           <div className="space-y-5">
-            <p className="inline-flex w-fit rounded-full border border-on-primary/20 bg-on-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
-              Demo Template
-            </p>
             <div className="space-y-3">
               <p className="text-sm font-medium uppercase tracking-[0.2em] text-on-primary/75">
                 {branding.teamLabel}
@@ -88,9 +120,9 @@ const AccessPortal = () => {
           </div>
 
           <div className="mt-10 rounded-2xl border border-on-primary/15 bg-on-primary/10 p-5 backdrop-blur-sm">
-            <p className="text-sm font-semibold">Alternative access</p>
+            <p className="text-sm font-semibold">Access portal</p>
             <p className="mt-2 text-sm leading-6 text-on-primary/80">
-              This page preserves the original multi-role entry point for demos, staff access, and testing.
+              Choose coach access, enable the kiosk device, or use password-based student access.
             </p>
           </div>
         </div>
@@ -106,7 +138,7 @@ const AccessPortal = () => {
               </h2>
             </div>
 
-            <div className="mb-6 inline-flex rounded-2xl bg-accent/10 p-1">
+            <div className="mb-6 grid grid-cols-3 rounded-2xl bg-accent/10 p-1">
               <label className="flex-1">
                 <input
                   className="sr-only"
@@ -120,6 +152,21 @@ const AccessPortal = () => {
                 />
                 <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'student' ? 'bg-secondary text-on-secondary shadow-sm' : 'text-text-muted hover:text-on-secondary'}`}>
                   Student
+                </span>
+              </label>
+              <label className="flex-1">
+                <input
+                  className="sr-only"
+                  type="radio"
+                  value="kiosk"
+                  checked={role === 'kiosk'}
+                  onChange={(e) => {
+                    setRole(e.target.value);
+                    setError('');
+                  }}
+                />
+                <span className={`flex cursor-pointer items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${role === 'kiosk' ? 'bg-secondary text-on-secondary shadow-sm' : 'text-text-muted hover:text-on-secondary'}`}>
+                  Kiosk
                 </span>
               </label>
               <label className="flex-1">
@@ -163,6 +210,30 @@ const AccessPortal = () => {
                   {isSubmitting ? 'Signing In...' : 'Login as Coach'}
                 </Button>
               </form>
+            ) : role === 'kiosk' ? (
+              <form className="space-y-4" onSubmit={handleKioskLogin}>
+                <Input
+                  className="placeholder:!text-on-secondary"
+                  label="Kiosk email"
+                  type="email"
+                  value={kioskEmail}
+                  onChange={(e) => setKioskEmail(e.target.value)}
+                  placeholder={kioskAuthConfig.email || 'kiosk@team.org'}
+                  required
+                />
+                <Input
+                  className="placeholder:!text-on-secondary"
+                  label="Kiosk password"
+                  type="password"
+                  value={kioskPassword}
+                  onChange={(e) => setKioskPassword(e.target.value)}
+                  placeholder="Enter kiosk password"
+                  required
+                />
+                <Button disabled={isSubmitting} type="submit" className="bg-secondary border border-accent text-on-secondary">
+                  {isSubmitting ? 'Signing in kiosk...' : 'Enable Student Kiosk'}
+                </Button>
+              </form>
             ) : (
               <form className="space-y-4" onSubmit={handleStudentLogin}>
                 <Input
@@ -195,6 +266,10 @@ const AccessPortal = () => {
               </div>
             )}
           </div>
+
+          <p className="mt-6 text-center text-xs leading-5 text-on-primary">
+            Change brand colors in <code className="rounded bg-accent/10 px-1.5 py-0.5">src/config/branding.js</code>.
+          </p>
         </div>
       </section>
     </main>

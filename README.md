@@ -63,17 +63,18 @@ Firebase config is read from `.env` through Vite environment variables in `src/s
 Current authentication model:
 
 - Coaches sign in with Firebase Authentication using email/password.
-- Students sign in by entering a student ID that is checked against Firestore.
-- Students in the `/access` portal sign in with both student ID and password from Firestore.
+- The main student kiosk signs in once with the configured Firebase Authentication email in `VITE_KIOSK_AUTH_EMAIL`, then students use only their student ID for the sign-in/out form.
+- Students can still sign in with a student ID and password from the access portal. The app turns the student ID into a generated Firebase Authentication email.
+- Student passwords live only in Firebase Authentication. Firestore stores the student ID and profile/session fields.
 - Student sessions are stored in `sessionStorage` for the current browser tab.
 
 Main auth files:
 
 - `src/services/firebase.js`: Firebase app, Auth, and Firestore initialization.
-- `src/services/auth.js`: coach sign-in and sign-out helpers.
+- `src/services/auth.js`: coach, kiosk, and student auth helpers.
 - `src/services/firestore.js`: student lookup against Firestore.
 - `src/features/auth/useAuth.jsx`: React auth context and shared session state.
-- `src/config/appConfig.js`: configurable Firestore collection name, student ID field, and student password field.
+- `src/config/appConfig.js`: configurable Firestore collection name, student ID field, and roster/session fields.
 
 ## Firestore Student Collection
 
@@ -89,13 +90,17 @@ Recommended student document shape:
 ```json
 {
   "studentId": "12345",
-  "password": "student-demo-password",
   "name": "Jane Doe",
-  "active": true
+  "currentMember": true,
+  "signedIn": false,
+  "currentTask": null,
+  "currentTaskId": null,
+  "activeTimeLogId": null,
+  "signedInAt": null
 }
 ```
 
-If your Firestore schema uses a different collection name, student ID field, or student password field, change `src/config/appConfig.js`.
+If your Firestore schema uses a different collection name or student ID field, change `src/config/appConfig.js`.
 
 ## Firestore Session Model
 
@@ -142,6 +147,30 @@ Implementation notes:
 - `currentTask` is still kept as a readable snapshot for simpler displays and backwards compatibility.
 - Sign-in and sign-out are written as Firestore batches so the student live state and historical time log stay in sync.
 - `signedInAt` should be a Firestore timestamp while a session is active and `null` when it is not.
+
+## Firestore Security Rules
+
+This repo includes Firebase CLI config and Firestore rules:
+
+- `firebase.json`
+- `firestore.rules`
+- `firestore.indexes.json`
+
+Before deploying the rules, update the `kioskEmail()` value in `firestore.rules` so it exactly matches `VITE_KIOSK_AUTH_EMAIL` from your `.env`.
+
+The default rules assume this authentication model:
+
+- Coaches are signed-in Firebase Auth users whose email is not the kiosk email and does not end in `@myapp.internal`.
+- The kiosk is the single signed-in Firebase Auth user matching `kioskEmail()`.
+- Student Auth accounts use generated emails like `12345@myapp.internal`.
+
+Deploy the rules with the Firebase CLI:
+
+```powershell
+firebase deploy --only firestore:rules
+```
+
+Important security note: with the current client-only app, any signed-in non-student, non-kiosk Firebase Auth user is treated as a coach by the rules. For a stricter production setup, use Firebase custom claims such as `coach: true` and update `isCoach()` to check that claim instead of using email shape.
 
 ## Notes For Teams
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { watchActiveStudents } from './studentService';
+import { watchActiveStudents, watchStudents } from './studentService';
 
-export const useActiveStudents = () => {
+const useStudentSubscription = ({ loadErrorMessage, watch }) => {
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -10,23 +10,37 @@ export const useActiveStudents = () => {
     setIsLoading(true);
     setError('');
 
-    const unsubscribe = watchActiveStudents(
-      (activeStudents) => {
-        setStudents(activeStudents);
+    const unsubscribe = watch(
+      (loadedStudents) => {
+        setStudents(loadedStudents);
         setIsLoading(false);
       },
       (loadError) => {
-        setError(loadError?.message || 'Failed to load active students.');
+        setError(loadError?.message || loadErrorMessage);
         setIsLoading(false);
       },
     );
 
     return unsubscribe;
-  }, []);
+  }, [loadErrorMessage, watch]);
 
   return {
     students,
     isLoading,
     error,
   };
+};
+
+export const useActiveStudents = () => {
+  return useStudentSubscription({
+    loadErrorMessage: 'Failed to load active students.',
+    watch: watchActiveStudents,
+  });
+};
+
+export const useStudents = () => {
+  return useStudentSubscription({
+    loadErrorMessage: 'Failed to load students.',
+    watch: watchStudents,
+  });
 };

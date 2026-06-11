@@ -11,7 +11,7 @@ const NotFound = () => {
           The page you requested does not exist or has been moved.
         </p>
         <Link className="mt-6 inline-flex rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-on-primary transition hover:opacity-90" to="/">
-          Return to login
+          Return to access portal
         </Link>
       </section>
     </main>

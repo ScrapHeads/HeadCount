@@ -1,11 +1,44 @@
-import { timeLogConfig } from '../config/appConfig';
+import { scheduleConfig, studentAuthConfig, timeLogConfig } from '../config/appConfig';
+import { isScheduleActive } from '../features/schedules/validateSchedule';
 import { toDate } from './dateUtils';
 
 const UNKNOWN_STUDENT_NAME = 'Unknown student';
 const MISSING_STUDENT_ID = 'Not set';
 const UNCATEGORIZED_TASK_NAME = 'Uncategorized';
+const EXTRA_HOURS_TASK_LABEL = 'Extra Hours';
 
 const padDatePart = (value) => String(value).padStart(2, '0');
+const normalizeTaskNameKey = (value) => String(value ?? '')
+  .trim()
+  .toLowerCase()
+  .replace(/[\s_-]+/g, '');
+
+export const isExtraHoursTaskName = (value) => {
+  const taskNameKey = normalizeTaskNameKey(value);
+
+  return Boolean(taskNameKey) && (
+    taskNameKey === 'extrahours'
+    || taskNameKey === 'extratime'
+    || taskNameKey === normalizeTaskNameKey(timeLogConfig.extraTimeTaskName)
+  );
+};
+
+export const formatTaskName = (value, fallback = UNCATEGORIZED_TASK_NAME) => {
+  const taskName = String(value ?? '').trim();
+
+  if (!taskName) {
+    return fallback;
+  }
+
+  if (isExtraHoursTaskName(taskName)) {
+    return EXTRA_HOURS_TASK_LABEL;
+  }
+
+  return taskName
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
 
 export const formatDateKey = (value) => {
   const date = toDate(value);
@@ -51,6 +84,11 @@ export const getEndOfDay = (value) => {
   return endOfDay;
 };
 
+const getLogDate = (log) => (
+  toDate(log?.[timeLogConfig.signInAtField])
+  ?? toDate(log?.[timeLogConfig.createdAtField])
+);
+
 export const getLogsInDateRange = (logs, startDate, endDate) => {
   const start = getStartOfDay(startDate);
   const end = getEndOfDay(endDate);
@@ -60,9 +98,9 @@ export const getLogsInDateRange = (logs, startDate, endDate) => {
   }
 
   return logs.filter((log) => {
-    const signInAt = toDate(log?.[timeLogConfig.signInAtField]);
+    const logDate = getLogDate(log);
 
-    return Boolean(signInAt && signInAt >= start && signInAt <= end);
+    return Boolean(logDate && logDate >= start && logDate <= end);
   });
 };
 
@@ -88,7 +126,7 @@ export const getDurationMinutes = (log) => {
 export const isCompletedLog = (log) => {
   return (
     log?.[timeLogConfig.statusField] === timeLogConfig.completedStatus
-    && Boolean(toDate(log?.[timeLogConfig.signOutAtField]))
+    && Boolean(toDate(log?.[timeLogConfig.signOutAtField]) || getLogDate(log))
     && getDurationMinutes(log) > 0
   );
 };
@@ -125,6 +163,20 @@ const getStudentDisplay = (log) => ({
   studentId: String(log?.[timeLogConfig.studentIdField] ?? '').trim() || MISSING_STUDENT_ID,
 });
 
+const getRosterStudentDisplay = (student) => {
+  const studentDocId = String(student?.id ?? '').trim();
+  const studentId = String(student?.[studentAuthConfig.idField] ?? '').trim();
+  const studentName = String(student?.name ?? '').trim();
+
+  return {
+    studentKey: studentDocId
+      ? `doc:${studentDocId}`
+      : `student:${studentId || studentName || UNKNOWN_STUDENT_NAME}`,
+    studentName: studentName || UNKNOWN_STUDENT_NAME,
+    studentId: studentId || MISSING_STUDENT_ID,
+  };
+};
+
 const getCategoryKey = (log) => {
   const taskId = String(log?.[timeLogConfig.taskIdField] ?? '').trim();
   const taskName = String(log?.[timeLogConfig.taskNameField] ?? '').trim();
@@ -133,12 +185,16 @@ const getCategoryKey = (log) => {
     return `task:${taskId}`;
   }
 
+  if (isExtraHoursTaskName(taskName)) {
+    return 'task-name:extra-hours';
+  }
+
   return `task-name:${taskName || UNCATEGORIZED_TASK_NAME}`;
 };
 
 const getCategoryDisplay = (log) => ({
   categoryKey: getCategoryKey(log),
-  taskName: String(log?.[timeLogConfig.taskNameField] ?? '').trim() || UNCATEGORIZED_TASK_NAME,
+  taskName: formatTaskName(log?.[timeLogConfig.taskNameField]),
 });
 
 const getCompletedLogs = (logs) => logs.filter(isCompletedLog);
@@ -214,7 +270,7 @@ export const calculateTeamHoursOverTime = (logs) => {
   const weekTotals = new Map();
 
   getCompletedLogs(logs).forEach((log) => {
-    const weekStartDate = getWeekStartDate(log?.[timeLogConfig.signInAtField]);
+    const weekStartDate = getWeekStartDate(getLogDate(log));
 
     if (!weekStartDate) {
       return;
@@ -307,11 +363,40 @@ export const calculateStudentCategoryBreakdown = (logs, studentKey) => {
   };
 };
 
-export const calculateAttendanceAnalytics = (logs) => {
+const logMatchesAttendanceSchedule = (log, schedules) => {
+  const taskId = String(log?.[timeLogConfig.taskIdField] ?? '').trim();
+  const signInAt = toDate(log?.[timeLogConfig.signInAtField]);
+
+  if (!taskId || !signInAt) {
+    return false;
+  }
+
+  return schedules.some((schedule) => (
+    String(schedule?.[scheduleConfig.taskIdField] ?? '').trim() === taskId
+    && schedule?.[scheduleConfig.countsForAttendanceField] !== false
+    && isScheduleActive(schedule, signInAt)
+  ));
+};
+
+export const calculateAttendanceAnalytics = (logs, schedules = [], students = []) => {
   const meetingDaysByDate = new Map();
-  const studentsByKey = new Map();
+  const studentsByKey = new Map(students.map((student) => {
+    const studentDisplay = getRosterStudentDisplay(student);
+
+    return [
+      studentDisplay.studentKey,
+      {
+        ...studentDisplay,
+        daysAttended: new Set(),
+      },
+    ];
+  }));
 
   logs.forEach((log) => {
+    if (!logMatchesAttendanceSchedule(log, schedules)) {
+      return;
+    }
+
     const signInAt = toDate(log?.[timeLogConfig.signInAtField]);
 
     if (!signInAt) {
@@ -328,31 +413,56 @@ export const calculateAttendanceAnalytics = (logs) => {
       date: dateKey,
       dateValue: new Date(signInAt.getFullYear(), signInAt.getMonth(), signInAt.getDate()),
       studentKeys: new Set(),
+      attendeesByKey: new Map(),
       totalMinutes: 0,
       completedLogCount: 0,
       incompleteLogCount: 0,
+    };
+    const attendee = meetingDay.attendeesByKey.get(student.studentKey) ?? {
+      ...student,
+      completedLogCount: 0,
+      incompleteLogCount: 0,
+      logs: [],
+      totalMinutes: 0,
     };
 
     meetingDay.studentKeys.add(student.studentKey);
     studentAttendance.daysAttended.add(dateKey);
 
     if (isCompletedLog(log)) {
-      meetingDay.totalMinutes += getDurationMinutes(log);
+      const durationMinutes = getDurationMinutes(log);
+
+      meetingDay.totalMinutes += durationMinutes;
       meetingDay.completedLogCount += 1;
+      attendee.totalMinutes += durationMinutes;
+      attendee.completedLogCount += 1;
     } else {
       meetingDay.incompleteLogCount += 1;
+      attendee.incompleteLogCount += 1;
     }
 
+    attendee.logs.push(log);
+    meetingDay.attendeesByKey.set(student.studentKey, attendee);
     meetingDaysByDate.set(dateKey, meetingDay);
     studentsByKey.set(student.studentKey, studentAttendance);
   });
 
   const meetingDays = Array.from(meetingDaysByDate.values())
-    .map((meetingDay) => ({
-      ...meetingDay,
-      studentsAttended: meetingDay.studentKeys.size,
-      totalHours: minutesToHours(meetingDay.totalMinutes),
-    }))
+    .map((meetingDay) => {
+      const attendees = Array.from(meetingDay.attendeesByKey.values())
+        .sort((left, right) => left.studentName.localeCompare(right.studentName));
+
+      return {
+        date: meetingDay.date,
+        dateValue: meetingDay.dateValue,
+        totalMinutes: meetingDay.totalMinutes,
+        completedLogCount: meetingDay.completedLogCount,
+        incompleteLogCount: meetingDay.incompleteLogCount,
+        studentsAttended: meetingDay.studentKeys.size,
+        totalHours: minutesToHours(meetingDay.totalMinutes),
+        attendees,
+      };
+    })
     .sort((left, right) => left.dateValue - right.dateValue);
   const totalMeetingDays = meetingDays.length;
   const totalAttendanceCount = meetingDays.reduce(
@@ -368,13 +478,30 @@ export const calculateAttendanceAnalytics = (logs) => {
     || left.dateValue - right.dateValue
   ))[0] ?? null;
   const studentAttendance = Array.from(studentsByKey.values())
-    .map((student) => ({
-      ...student,
-      daysAttended: student.daysAttended.size,
-      attendanceRate: totalMeetingDays > 0
-        ? Math.round((student.daysAttended.size / totalMeetingDays) * 100)
-        : 0,
-    }))
+    .map((student) => {
+      const meetingHistory = meetingDays.map((meetingDay) => {
+        const attendee = meetingDay.attendees.find(
+          (meetingAttendee) => meetingAttendee.studentKey === student.studentKey,
+        );
+
+        return {
+          date: meetingDay.date,
+          dateValue: meetingDay.dateValue,
+          attended: Boolean(attendee),
+          totalMinutes: attendee?.totalMinutes ?? 0,
+          incompleteLogCount: attendee?.incompleteLogCount ?? 0,
+        };
+      });
+
+      return {
+        ...student,
+        daysAttended: student.daysAttended.size,
+        attendanceRate: totalMeetingDays > 0
+          ? Math.round((student.daysAttended.size / totalMeetingDays) * 100)
+          : 0,
+        meetingHistory,
+      };
+    })
     .sort((left, right) => (
       right.daysAttended - left.daysAttended
       || left.studentName.localeCompare(right.studentName)

@@ -1,4 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { timeLogConfig } from '../../config/appConfig';
+import { useSchedules } from '../../features/schedules/useSchedules';
+import { useStudents } from '../../features/students/useStudents';
 import { useAnalyticsTimeLogs } from '../../features/timeLogs/useAnalyticsTimeLogs';
 import {
   calculateAttendanceAnalytics,
@@ -10,6 +13,13 @@ import {
   getLogsInDateRange,
   getStartOfDay,
 } from '../../lib/analyticsUtils';
+import {
+  DASHBOARD_CARD_CLASS_NAME,
+  DASHBOARD_TABLE_HEADER_CLASS_NAME,
+  FORM_INPUT_CLASS_NAME,
+} from '../../styles/classNames';
+import Dropdown from '../shared/Dropdown';
+import TimeLogEditorDialog from './TimeLogEditorDialog';
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -49,11 +59,23 @@ const formatDate = (value, formatter = dateFormatter) => {
 
 const formatHours = (hours) => Number(hours || 0).toFixed(1);
 
+const formatDuration = (minutes) => {
+  const safeMinutes = Math.max(0, Math.round(Number(minutes) || 0));
+  const hours = Math.floor(safeMinutes / 60);
+  const remainingMinutes = safeMinutes % 60;
+
+  if (hours === 0) {
+    return `${remainingMinutes} min`;
+  }
+
+  return remainingMinutes > 0
+    ? `${hours} hr ${remainingMinutes} min`
+    : `${hours} hr`;
+};
+
 const formatStudentCount = (count) => `${count} ${count === 1 ? 'student' : 'students'}`;
 
-const inputClassName = 'w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15';
-const tableHeaderClassName = 'px-4 py-2 text-left text-xs font-semibold uppercase tracking-[0.18em] text-on-primary';
-const tableCellClassName = 'border-y border-border bg-secondary px-4 py-3 text-sm text-on-secondary';
+const tableCellClassName = 'border-y border-border bg-transparent px-5 py-3 text-on-primary text-center';
 const categoryColors = [
   'var(--app-accent)',
   'var(--app-secondary)',
@@ -93,7 +115,7 @@ const CardMessage = ({ children, tone = 'muted' }) => (
     className={`mt-5 rounded-2xl border px-4 py-4 text-sm ${
       tone === 'error'
         ? 'border-accent/30 bg-accent/12 text-on-primary'
-        : 'border-border bg-accent/10 text-on-primary/80'
+        : 'border-border bg-accent/10 text-on-primary/90'
     }`}
   >
     {children}
@@ -108,13 +130,13 @@ const AnalyticsCard = ({
   isEmpty,
   isLoading,
   title,
-  cardClassName = defaultCardClassName,
+  cardClassName = DASHBOARD_CARD_CLASS_NAME,
 }) => (
   <article className={cardClassName}>
     <div>
       <h3 className="text-lg font-semibold text-on-primary">{title}</h3>
       {description && (
-        <p className="mt-2 text-sm leading-6 text-on-primary/80">{description}</p>
+        <p className="mt-2 text-sm leading-6 text-on-primary/90">{description}</p>
       )}
     </div>
 
@@ -131,9 +153,9 @@ const AnalyticsCard = ({
 );
 
 const SummaryMetric = ({ label, value }) => (
-  <div className="flex min-h-[120px] flex-col items-center justify-center rounded-2xl border border-border bg-secondary px-4 py-4 text-center shadow-sm">
-    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary/80">{label}</p>
-    <p className="mt-2 max-w-full break-words text-xl font-semibold leading-snug text-on-secondary sm:text-2xl">{value}</p>
+  <div className="flex min-h-[120px] flex-col items-center justify-center rounded-2xl border border-border bg-transparent px-4 py-4 text-center shadow-sm">
+    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-primary/90">{label}</p>
+    <p className="mt-2 max-w-full break-words text-xl font-semibold leading-snug text-on-primary/90 sm:text-2xl">{value}</p>
   </div>
 );
 
@@ -146,7 +168,7 @@ const SummaryGrid = ({ metrics }) => (
 );
 
 const AnalyticsDateRangeCard = ({
-  cardClassName = defaultCardClassName,
+  cardClassName = DASHBOARD_CARD_CLASS_NAME,
   dateRange,
   error,
   onDateChange,
@@ -154,7 +176,7 @@ const AnalyticsDateRangeCard = ({
   <article className={cardClassName}>
     <div>
       <h3 className="text-lg font-semibold text-on-primary">Analytics Date Range</h3>
-      <p className="mt-2 text-sm leading-6 text-on-primary/80">
+      <p className="mt-2 leading-6 text-on-primary/90">
         Showing logs from {formatDate(dateRange.startDate)} through {formatDate(dateRange.endDate)}.
       </p>
     </div>
@@ -163,7 +185,7 @@ const AnalyticsDateRangeCard = ({
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-on-primary">Start date</span>
         <input
-          className={inputClassName}
+          className={FORM_INPUT_CLASS_NAME}
           onChange={(event) => onDateChange('startDate', event.target.value)}
           type="date"
           value={dateRange.startDate}
@@ -173,7 +195,7 @@ const AnalyticsDateRangeCard = ({
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-on-primary">End date</span>
         <input
-          className={inputClassName}
+          className={FORM_INPUT_CLASS_NAME}
           onChange={(event) => onDateChange('endDate', event.target.value)}
           type="date"
           value={dateRange.endDate}
@@ -213,9 +235,9 @@ const StudentHourTotalsCard = ({
       <table className="min-w-full border-separate border-spacing-y-2">
         <thead>
           <tr>
-            <th className={tableHeaderClassName}>Student Name</th>
-            <th className={tableHeaderClassName}>Student ID</th>
-            <th className={`${tableHeaderClassName} text-right`}>Hours</th>
+            <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student Name</th>
+            <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student ID</th>
+            <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} text-right`}>Hours</th>
           </tr>
         </thead>
         <tbody>
@@ -431,20 +453,16 @@ const StudentCategoryBreakdownCard = ({
       title="Student Category Breakdown"
       cardClassName={cardClassName}
     >
-      <label className="mb-5 flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-on-primary">Student</span>
-        <select
-          className={inputClassName}
-          onChange={(event) => onStudentChange(event.target.value)}
-          value={selectedStudentKey}
-        >
-          {studentOptions.map((student) => (
-            <option key={student.studentKey} value={student.studentKey}>
-              {student.studentName} ({student.studentId})
-            </option>
-          ))}
-        </select>
-      </label>
+      <Dropdown
+        className="mb-5"
+        label="Student"
+        onChange={onStudentChange}
+        options={studentOptions.map((student) => ({
+          label: `${student.studentName} (${student.studentId})`,
+          value: student.studentKey,
+        }))}
+        value={selectedStudentKey}
+      />
 
       <SummaryGrid
         metrics={[
@@ -466,8 +484,13 @@ const AttendanceAnalyticsCard = ({
   cardClassName,
   error,
   isLoading,
+  onLogSaved,
   rangeLabel,
+  students,
 }) => {
+  const [expandedMeetingDate, setExpandedMeetingDate] = useState('');
+  const [expandedStudentKey, setExpandedStudentKey] = useState('');
+  const [selectedLogDetails, setSelectedLogDetails] = useState(null);
   const highestAttendance = analytics.highestAttendanceDay
     ? `${formatDate(analytics.highestAttendanceDay.dateValue)}, ${formatStudentCount(analytics.highestAttendanceDay.studentsAttended)}`
     : 'None';
@@ -477,10 +500,10 @@ const AttendanceAnalyticsCard = ({
 
   return (
     <AnalyticsCard
-      description={`Attendance grouped by sign-in date for ${rangeLabel}.`}
-      emptyMessage="No attendance data found for this date range."
+      description={`Attendance for scheduled events marked as counting for attendance, grouped by sign-in date for ${rangeLabel}.`}
+      emptyMessage="No students found for attendance analytics."
       error={error}
-      isEmpty={analytics.totalMeetingDays === 0}
+      isEmpty={analytics.students.length === 0}
       isLoading={isLoading}
       title="Attendance Analytics"
       cardClassName={cardClassName}
@@ -498,27 +521,110 @@ const AttendanceAnalyticsCard = ({
           <table className="min-w-full border-separate border-spacing-y-2">
             <thead>
               <tr>
-                <th className={tableHeaderClassName}>Date</th>
-                <th className={tableHeaderClassName}>Students Attended</th>
-                <th className={tableHeaderClassName}>Total Completed Hours</th>
-                <th className={tableHeaderClassName}>Completed Logs</th>
-                <th className={tableHeaderClassName}>Incomplete Logs</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Date</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Students Attended</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Total Completed Hours</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Completed Logs</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Incomplete Logs</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Details</th>
               </tr>
             </thead>
             <tbody>
-              {analytics.meetingDays.map((meetingDay) => (
-                <tr key={meetingDay.date}>
-                  <td className={`${tableCellClassName} rounded-l-xl border-l font-semibold`}>
-                    {formatDate(meetingDay.dateValue)}
-                  </td>
-                  <td className={tableCellClassName}>{meetingDay.studentsAttended}</td>
-                  <td className={tableCellClassName}>{formatHours(meetingDay.totalHours)}</td>
-                  <td className={tableCellClassName}>{meetingDay.completedLogCount}</td>
-                  <td className={`${tableCellClassName} rounded-r-xl border-r`}>
-                    {meetingDay.incompleteLogCount}
-                  </td>
-                </tr>
-              ))}
+              {analytics.meetingDays.map((meetingDay) => {
+                const isExpanded = expandedMeetingDate === meetingDay.date;
+                const detailId = `attendance-meeting-${meetingDay.date}`;
+
+                return (
+                  <React.Fragment key={meetingDay.date}>
+                    <tr>
+                      <td className={`${tableCellClassName} rounded-l-xl border-l font-semibold`}>
+                        {formatDate(meetingDay.dateValue)}
+                      </td>
+                      <td className={tableCellClassName}>{meetingDay.studentsAttended}</td>
+                      <td className={tableCellClassName}>{formatHours(meetingDay.totalHours)}</td>
+                      <td className={tableCellClassName}>{meetingDay.completedLogCount}</td>
+                      <td className={tableCellClassName}>{meetingDay.incompleteLogCount}</td>
+                      <td className={`${tableCellClassName} rounded-r-xl border-r`}>
+                        <button
+                          aria-controls={detailId}
+                          aria-expanded={isExpanded}
+                          className="inline-flex items-center justify-center rounded-xl border border-border bg-secondary px-3 py-2 text-sm font-semibold text-on-secondary transition hover:bg-accent/10"
+                          onClick={() => setExpandedMeetingDate(isExpanded ? '' : meetingDay.date)}
+                          type="button"
+                        >
+                          {isExpanded ? 'Hide' : 'View'}
+                        </button>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr id={detailId}>
+                        <td className="rounded-2xl border border-border bg-secondary/40 px-5 py-4" colSpan={6}>
+                          <p className="font-semibold text-on-primary">
+                            Signed in on {formatDate(meetingDay.dateValue)}
+                          </p>
+                          <div className="mt-3 overflow-x-auto">
+                            <table className="min-w-full">
+                              <thead>
+                                <tr>
+                                  <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student</th>
+                                  <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student ID</th>
+                                  <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Time Attended</th>
+                                  <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Status</th>
+                                  <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Action</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {meetingDay.attendees.map((attendee) => (
+                                  <tr key={attendee.studentKey}>
+                                    <td className={`${tableCellClassName} rounded-l-xl border-l font-semibold`}>
+                                      {attendee.studentName}
+                                    </td>
+                                    <td className={tableCellClassName}>{attendee.studentId}</td>
+                                    <td className={tableCellClassName}>
+                                      {formatDuration(attendee.totalMinutes)}
+                                    </td>
+                                    <td className={tableCellClassName}>
+                                      {attendee.incompleteLogCount > 0
+                                        ? `${attendee.incompleteLogCount} incomplete`
+                                        : 'Complete'}
+                                    </td>
+                                    <td className={`${tableCellClassName} rounded-r-xl border-r`}>
+                                      <div className="flex flex-wrap justify-center gap-2">
+                                        {attendee.logs.map((log, logIndex) => (
+                                          <button
+                                            className="inline-flex items-center justify-center rounded-xl border border-border bg-secondary px-3 py-2 text-sm font-semibold text-on-secondary transition hover:bg-accent/10"
+                                            key={log.id}
+                                            onClick={() => {
+                                              const studentDocId = String(
+                                                log[timeLogConfig.studentDocIdField] ?? '',
+                                              ).trim();
+
+                                              setSelectedLogDetails({
+                                                log,
+                                                student: students.find((student) => student.id === studentDocId) ?? null,
+                                                studentName: attendee.studentName,
+                                              });
+                                            }}
+                                            type="button"
+                                          >
+                                            {attendee.logs.length > 1
+                                              ? `Edit Log ${logIndex + 1}`
+                                              : 'Edit Log'}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -530,34 +636,105 @@ const AttendanceAnalyticsCard = ({
           <table className="min-w-full border-separate border-spacing-y-2">
             <thead>
               <tr>
-                <th className={tableHeaderClassName}>Student</th>
-                <th className={tableHeaderClassName}>Student ID</th>
-                <th className={tableHeaderClassName}>Days Attended</th>
-                <th className={tableHeaderClassName}>Attendance Rate</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student ID</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Days Attended</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Attendance Rate</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Details</th>
               </tr>
             </thead>
             <tbody>
-              {analytics.students.map((student) => (
-                <tr key={student.studentKey}>
-                  <td className={`${tableCellClassName} rounded-l-xl border-l font-semibold`}>
-                    {student.studentName}
-                  </td>
-                  <td className={tableCellClassName}>{student.studentId}</td>
-                  <td className={tableCellClassName}>{student.daysAttended}</td>
-                  <td className={`${tableCellClassName} rounded-r-xl border-r`}>
-                    {student.attendanceRate}%
-                  </td>
-                </tr>
-              ))}
+              {analytics.students.map((student) => {
+                const isExpanded = expandedStudentKey === student.studentKey;
+                const detailId = `student-attendance-${student.studentKey.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+
+                return (
+                  <React.Fragment key={student.studentKey}>
+                    <tr>
+                      <td className={`${tableCellClassName} rounded-l-xl border-l font-semibold`}>
+                        {student.studentName}
+                      </td>
+                      <td className={tableCellClassName}>{student.studentId}</td>
+                      <td className={tableCellClassName}>{student.daysAttended}</td>
+                      <td className={tableCellClassName}>{student.attendanceRate}%</td>
+                      <td className={`${tableCellClassName} rounded-r-xl border-r`}>
+                        <button
+                          aria-controls={detailId}
+                          aria-expanded={isExpanded}
+                          className="inline-flex items-center justify-center rounded-xl border border-border bg-secondary px-3 py-2 text-sm font-semibold text-on-secondary transition hover:bg-accent/10"
+                          onClick={() => setExpandedStudentKey(isExpanded ? '' : student.studentKey)}
+                          type="button"
+                        >
+                          {isExpanded ? 'Hide Details' : 'Details'}
+                        </button>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr id={detailId}>
+                        <td className="rounded-2xl border border-border bg-secondary/40 px-5 py-4" colSpan={5}>
+                          <p className="font-semibold text-on-primary">
+                            Meeting attendance for {student.studentName}
+                          </p>
+                          {student.meetingHistory.length === 0 ? (
+                            <p className="mt-3 text-sm text-on-primary/90">
+                              No attendance meetings were found in this date range.
+                            </p>
+                          ) : (
+                            <div className="mt-3 overflow-x-auto">
+                              <table className="min-w-full">
+                                <thead>
+                                  <tr>
+                                    <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Meeting Date</th>
+                                    <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Attendance</th>
+                                    <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Time Attended</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {student.meetingHistory.map((meeting) => (
+                                    <tr key={meeting.date}>
+                                      <td className={`${tableCellClassName} rounded-l-xl border-l font-semibold`}>
+                                        {formatDate(meeting.dateValue)}
+                                      </td>
+                                      <td className={tableCellClassName}>
+                                        {meeting.attended ? 'Attended' : 'Missed'}
+                                      </td>
+                                      <td className={`${tableCellClassName} rounded-r-xl border-r`}>
+                                        {meeting.attended
+                                          ? formatDuration(meeting.totalMinutes)
+                                          : '-'}
+                                        {meeting.incompleteLogCount > 0 ? ' (incomplete)' : ''}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
+
+      {selectedLogDetails && (
+        <TimeLogEditorDialog
+          log={selectedLogDetails.log}
+          onClose={() => setSelectedLogDetails(null)}
+          onSaved={onLogSaved}
+          student={selectedLogDetails.student}
+          studentName={selectedLogDetails.studentName}
+        />
+      )}
     </AnalyticsCard>
   );
 };
 
-const AnalyticsDashboard = ({ cardClassName = defaultCardClassName }) => {
+const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
   const [dateRange, setDateRange] = useState(getDefaultDateRange);
   const [selectedStudentKey, setSelectedStudentKey] = useState('');
 
@@ -584,12 +761,24 @@ const AnalyticsDashboard = ({ cardClassName = defaultCardClassName }) => {
     logs,
     isLoading,
     error: loadError,
+    reloadLogs,
   } = useAnalyticsTimeLogs({
     startDate: parsedDateRange.startDate,
     endDate: parsedDateRange.endDate,
     enabled: !parsedDateRange.error,
   });
+  const {
+    schedules,
+    isLoading: isLoadingSchedules,
+    error: schedulesError,
+  } = useSchedules();
+  const {
+    students,
+    isLoading: isLoadingStudents,
+    error: studentsError,
+  } = useStudents();
   const analyticsError = parsedDateRange.error || loadError;
+  const attendanceError = analyticsError || schedulesError || studentsError;
 
   const logsInDateRange = useMemo(() => (
     analyticsError
@@ -610,8 +799,8 @@ const AnalyticsDashboard = ({ cardClassName = defaultCardClassName }) => {
     [logsInDateRange],
   );
   const attendanceAnalytics = useMemo(
-    () => calculateAttendanceAnalytics(logsInDateRange),
-    [logsInDateRange],
+    () => calculateAttendanceAnalytics(logsInDateRange, schedules, students),
+    [logsInDateRange, schedules, students],
   );
   const defaultStudentKey = studentHourTotals.students[0]?.studentKey ?? '';
   const effectiveStudentKey = selectedStudentKey || defaultStudentKey;
@@ -691,9 +880,11 @@ const AnalyticsDashboard = ({ cardClassName = defaultCardClassName }) => {
       <AttendanceAnalyticsCard
         analytics={attendanceAnalytics}
         cardClassName={cardClassName}
-        error={analyticsError}
-        isLoading={isLoading}
+        error={attendanceError}
+        isLoading={isLoading || isLoadingSchedules || isLoadingStudents}
+        onLogSaved={reloadLogs}
         rangeLabel={parsedDateRange.rangeLabel}
+        students={students}
       />
     </div>
   );
