@@ -1170,7 +1170,7 @@ const StudentTimeLogsCard = ({
             />
 
             {!isLoadingLogs && logs.length > 0 && (
-              <div className="flex flex-col gap-3 text-sm text-on-secondary sm:flex-row sm:items-center">
+              <div className="flex flex-col gap-3 text-sm text-on-primary sm:flex-row sm:items-center">
                 <span className="whitespace-nowrap">
                   Showing {firstVisibleLogNumber}-{lastVisibleLogNumber} of {logs.length} logs
                 </span>
@@ -1221,7 +1221,7 @@ const StudentTimeLogsCard = ({
 
                       return (
                         <tr key={log.id}>
-                          <td className="rounded-l-2xl border-y border-l border-border bg-transparent px-4 py-4 text-sm text-on-secondary">
+                          <td className="rounded-l-2xl border-y border-l border-border bg-transparent px-4 py-4 text-sm text-on-primary">
                             <span className="font-semibold">
                               {formatTaskName(log[timeLogConfig.taskNameField], 'Task')}
                             </span>
