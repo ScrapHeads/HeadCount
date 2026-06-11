@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSchedules } from '../../features/schedules/useSchedules';
+import { useStudents } from '../../features/students/useStudents';
 import { useAnalyticsTimeLogs } from '../../features/timeLogs/useAnalyticsTimeLogs';
 import {
   calculateAttendanceAnalytics,
@@ -477,10 +479,10 @@ const AttendanceAnalyticsCard = ({
 
   return (
     <AnalyticsCard
-      description={`Attendance grouped by sign-in date for ${rangeLabel}.`}
-      emptyMessage="No attendance data found for this date range."
+      description={`Attendance for scheduled events marked as counting for attendance, grouped by sign-in date for ${rangeLabel}.`}
+      emptyMessage="No students found for attendance analytics."
       error={error}
-      isEmpty={analytics.totalMeetingDays === 0}
+      isEmpty={analytics.students.length === 0}
       isLoading={isLoading}
       title="Attendance Analytics"
       cardClassName={cardClassName}
@@ -589,7 +591,18 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
     endDate: parsedDateRange.endDate,
     enabled: !parsedDateRange.error,
   });
+  const {
+    schedules,
+    isLoading: isLoadingSchedules,
+    error: schedulesError,
+  } = useSchedules();
+  const {
+    students,
+    isLoading: isLoadingStudents,
+    error: studentsError,
+  } = useStudents();
   const analyticsError = parsedDateRange.error || loadError;
+  const attendanceError = analyticsError || schedulesError || studentsError;
 
   const logsInDateRange = useMemo(() => (
     analyticsError
@@ -610,8 +623,8 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
     [logsInDateRange],
   );
   const attendanceAnalytics = useMemo(
-    () => calculateAttendanceAnalytics(logsInDateRange),
-    [logsInDateRange],
+    () => calculateAttendanceAnalytics(logsInDateRange, schedules, students),
+    [logsInDateRange, schedules, students],
   );
   const defaultStudentKey = studentHourTotals.students[0]?.studentKey ?? '';
   const effectiveStudentKey = selectedStudentKey || defaultStudentKey;
@@ -691,8 +704,8 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
       <AttendanceAnalyticsCard
         analytics={attendanceAnalytics}
         cardClassName={cardClassName}
-        error={analyticsError}
-        isLoading={isLoading}
+        error={attendanceError}
+        isLoading={isLoading || isLoadingSchedules || isLoadingStudents}
         rangeLabel={parsedDateRange.rangeLabel}
       />
     </div>

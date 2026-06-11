@@ -55,7 +55,7 @@ const formatHours = (hours) => Number(hours || 0).toFixed(1);
 
 const inputClassName = 'w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/20';
 const studentCardClassName = `rounded-2xl border border-on-primary/15 ${DASHBOARD_GRADIENT_CLASS_NAME} p-5 text-on-primary shadow-lg shadow-primary/15`;
-const timelineCellClassName = 'border-y border-border bg-secondary px-4 py-3 text-sm text-on-secondary';
+const timelineCellClassName = 'border-y border-border bg-transparent px-5 py-3 text-on-secondary text-center';
 const sessionDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
@@ -80,7 +80,7 @@ const StudentAnalyticsCard = ({
   <article className={studentCardClassName}>
     <div className="flex flex-col gap-5 border-b border-border pb-5 lg:flex-row lg:items-start lg:justify-between">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary/70">
+        <p className="font-semibold uppercase tracking-[0.18em] text-on-primary">
           Your Hours
         </p>
         <p className="mt-3 text-3xl font-semibold tracking-tight">
@@ -150,16 +150,16 @@ const StudentAnalyticsCard = ({
 const StudentSessionTimeline = ({ error, isLoading, logs }) => (
   <article className={studentCardClassName}>
     <div className="border-b border-on-primary/15 pb-5">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary/70">
+      <p className="font-semibold uppercase tracking-[0.18em] text-on-primary">
         Session Timeline
       </p>
-      <p className="mt-2 text-sm leading-6 text-on-primary/75">
+      <p className="mt-2 leading-6 text-on-primary/90">
         Review your sessions in the selected date range. These records are read-only.
       </p>
     </div>
 
     {isLoading ? (
-      <p className="mt-5 rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary/80">
+      <p className="mt-5 rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary">
         Loading your sessions...
       </p>
     ) : error ? (
@@ -167,7 +167,7 @@ const StudentSessionTimeline = ({ error, isLoading, logs }) => (
         {error}
       </p>
     ) : logs.length === 0 ? (
-      <p className="mt-5 rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary/80">
+      <p className="mt-5 rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary">
         No sessions were found for this date range.
       </p>
     ) : (
@@ -179,7 +179,7 @@ const StudentSessionTimeline = ({ error, isLoading, logs }) => (
               <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Status</th>
               <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Start</th>
               <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>End</th>
-              <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} text-right`}>Hours</th>
+              <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} !text-center`}>Hours</th>
             </tr>
           </thead>
           <tbody>
@@ -199,7 +199,7 @@ const StudentSessionTimeline = ({ error, isLoading, logs }) => (
                   <td className={`${timelineCellClassName} whitespace-nowrap`}>
                     {formatSessionDateTime(log[timeLogConfig.signOutAtField])}
                   </td>
-                  <td className={`${timelineCellClassName} rounded-r-2xl border-r text-right font-semibold`}>
+                  <td className={`${timelineCellClassName} rounded-r-2xl border-r font-semibold`}>
                     {durationMinutes > 0 ? minutesToHours(durationMinutes).toFixed(2) : '-'}
                   </td>
                 </tr>
@@ -275,7 +275,7 @@ const StudentDashboard = () => {
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
-      <section className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-border/70 bg-primary shadow-2xl shadow-primary/10">
+      <section className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-border bg-primary shadow-2xl shadow-primary/10">
         <header className="border-b border-on-primary/15 bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_oklab,var(--app-primary)_72%,var(--app-accent))_58%,var(--app-accent)_100%)] p-6 text-on-primary sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -302,7 +302,7 @@ const StudentDashboard = () => {
         <div className="flex flex-1 flex-col gap-6 p-6 sm:p-8">
           <section className="grid gap-6 lg:grid-cols-3">
             <article className={studentCardClassName}>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary/90">
+              <p className="font-semibold uppercase tracking-[0.18em] text-on-primary">
                 Current Status
               </p>
               <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -324,7 +324,7 @@ const StudentDashboard = () => {
             </article>
 
             <article className={studentCardClassName}>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary/90">
+              <p className="font-semibold uppercase tracking-[0.18em] text-on-primary">
                 Account Details
               </p>
               <dl className="mt-4 grid gap-4">
@@ -340,7 +340,7 @@ const StudentDashboard = () => {
             </article>
 
             <div className={studentCardClassName}>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary/90">
+              <p className="font-semibold uppercase tracking-[0.18em] text-on-primary">
                 Hours
               </p>
               <p className="mt-3 text-lg font-semibold">

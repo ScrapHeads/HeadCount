@@ -1,4 +1,5 @@
-import { timeLogConfig } from '../config/appConfig';
+import { scheduleConfig, studentAuthConfig, timeLogConfig } from '../config/appConfig';
+import { isScheduleActive } from '../features/schedules/validateSchedule';
 import { toDate } from './dateUtils';
 
 const UNKNOWN_STUDENT_NAME = 'Unknown student';
@@ -161,6 +162,20 @@ const getStudentDisplay = (log) => ({
   studentName: String(log?.[timeLogConfig.studentNameField] ?? '').trim() || UNKNOWN_STUDENT_NAME,
   studentId: String(log?.[timeLogConfig.studentIdField] ?? '').trim() || MISSING_STUDENT_ID,
 });
+
+const getRosterStudentDisplay = (student) => {
+  const studentDocId = String(student?.id ?? '').trim();
+  const studentId = String(student?.[studentAuthConfig.idField] ?? '').trim();
+  const studentName = String(student?.name ?? '').trim();
+
+  return {
+    studentKey: studentDocId
+      ? `doc:${studentDocId}`
+      : `student:${studentId || studentName || UNKNOWN_STUDENT_NAME}`,
+    studentName: studentName || UNKNOWN_STUDENT_NAME,
+    studentId: studentId || MISSING_STUDENT_ID,
+  };
+};
 
 const getCategoryKey = (log) => {
   const taskId = String(log?.[timeLogConfig.taskIdField] ?? '').trim();
@@ -348,11 +363,40 @@ export const calculateStudentCategoryBreakdown = (logs, studentKey) => {
   };
 };
 
-export const calculateAttendanceAnalytics = (logs) => {
+const logMatchesAttendanceSchedule = (log, schedules) => {
+  const taskId = String(log?.[timeLogConfig.taskIdField] ?? '').trim();
+  const signInAt = toDate(log?.[timeLogConfig.signInAtField]);
+
+  if (!taskId || !signInAt) {
+    return false;
+  }
+
+  return schedules.some((schedule) => (
+    String(schedule?.[scheduleConfig.taskIdField] ?? '').trim() === taskId
+    && schedule?.[scheduleConfig.countsForAttendanceField] !== false
+    && isScheduleActive(schedule, signInAt)
+  ));
+};
+
+export const calculateAttendanceAnalytics = (logs, schedules = [], students = []) => {
   const meetingDaysByDate = new Map();
-  const studentsByKey = new Map();
+  const studentsByKey = new Map(students.map((student) => {
+    const studentDisplay = getRosterStudentDisplay(student);
+
+    return [
+      studentDisplay.studentKey,
+      {
+        ...studentDisplay,
+        daysAttended: new Set(),
+      },
+    ];
+  }));
 
   logs.forEach((log) => {
+    if (!logMatchesAttendanceSchedule(log, schedules)) {
+      return;
+    }
+
     const signInAt = toDate(log?.[timeLogConfig.signInAtField]);
 
     if (!signInAt) {

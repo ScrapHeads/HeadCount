@@ -36,6 +36,7 @@ export const scheduleConfig = {
   monthOfYearField: 'monthOfYear',
   startTimeField: 'startTime',
   endTimeField: 'endTime',
+  countsForAttendanceField: 'countsForAttendance',
   recurrenceTypes: {
     oneTime: 'one-time',
     weekly: 'weekly',

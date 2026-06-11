@@ -34,6 +34,7 @@ export const createSchedule = async ({
   dayOfWeek = null,
   dayOfMonth = null,
   monthOfYear = null,
+  countsForAttendance = true,
 }) => {
   if (!taskId) {
     throw new Error('A task is required to create a schedule.');
@@ -85,5 +86,6 @@ export const createSchedule = async ({
     [scheduleConfig.monthOfYearField]: recurrenceType === scheduleConfig.recurrenceTypes.yearly ? Number(monthOfYear) : null,
     [scheduleConfig.startTimeField]: Timestamp.fromDate(startTime),
     [scheduleConfig.endTimeField]: Timestamp.fromDate(endTime),
+    [scheduleConfig.countsForAttendanceField]: Boolean(countsForAttendance),
   });
 };
