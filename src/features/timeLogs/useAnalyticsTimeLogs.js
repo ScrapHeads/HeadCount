@@ -5,6 +5,7 @@ export const useAnalyticsTimeLogs = ({ startDate, endDate, enabled = true }) => 
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [reloadToken, setReloadToken] = useState(0);
   const startTime = startDate?.getTime() ?? null;
   const endTime = endDate?.getTime() ?? null;
 
@@ -50,11 +51,12 @@ export const useAnalyticsTimeLogs = ({ startDate, endDate, enabled = true }) => 
     return () => {
       isMounted = false;
     };
-  }, [enabled, startTime, endTime]);
+  }, [enabled, endTime, reloadToken, startTime]);
 
   return {
     logs,
     isLoading,
     error,
+    reloadLogs: () => setReloadToken((currentValue) => currentValue + 1),
   };
 };

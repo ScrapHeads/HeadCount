@@ -413,31 +413,56 @@ export const calculateAttendanceAnalytics = (logs, schedules = [], students = []
       date: dateKey,
       dateValue: new Date(signInAt.getFullYear(), signInAt.getMonth(), signInAt.getDate()),
       studentKeys: new Set(),
+      attendeesByKey: new Map(),
       totalMinutes: 0,
       completedLogCount: 0,
       incompleteLogCount: 0,
+    };
+    const attendee = meetingDay.attendeesByKey.get(student.studentKey) ?? {
+      ...student,
+      completedLogCount: 0,
+      incompleteLogCount: 0,
+      logs: [],
+      totalMinutes: 0,
     };
 
     meetingDay.studentKeys.add(student.studentKey);
     studentAttendance.daysAttended.add(dateKey);
 
     if (isCompletedLog(log)) {
-      meetingDay.totalMinutes += getDurationMinutes(log);
+      const durationMinutes = getDurationMinutes(log);
+
+      meetingDay.totalMinutes += durationMinutes;
       meetingDay.completedLogCount += 1;
+      attendee.totalMinutes += durationMinutes;
+      attendee.completedLogCount += 1;
     } else {
       meetingDay.incompleteLogCount += 1;
+      attendee.incompleteLogCount += 1;
     }
 
+    attendee.logs.push(log);
+    meetingDay.attendeesByKey.set(student.studentKey, attendee);
     meetingDaysByDate.set(dateKey, meetingDay);
     studentsByKey.set(student.studentKey, studentAttendance);
   });
 
   const meetingDays = Array.from(meetingDaysByDate.values())
-    .map((meetingDay) => ({
-      ...meetingDay,
-      studentsAttended: meetingDay.studentKeys.size,
-      totalHours: minutesToHours(meetingDay.totalMinutes),
-    }))
+    .map((meetingDay) => {
+      const attendees = Array.from(meetingDay.attendeesByKey.values())
+        .sort((left, right) => left.studentName.localeCompare(right.studentName));
+
+      return {
+        date: meetingDay.date,
+        dateValue: meetingDay.dateValue,
+        totalMinutes: meetingDay.totalMinutes,
+        completedLogCount: meetingDay.completedLogCount,
+        incompleteLogCount: meetingDay.incompleteLogCount,
+        studentsAttended: meetingDay.studentKeys.size,
+        totalHours: minutesToHours(meetingDay.totalMinutes),
+        attendees,
+      };
+    })
     .sort((left, right) => left.dateValue - right.dateValue);
   const totalMeetingDays = meetingDays.length;
   const totalAttendanceCount = meetingDays.reduce(
@@ -453,13 +478,30 @@ export const calculateAttendanceAnalytics = (logs, schedules = [], students = []
     || left.dateValue - right.dateValue
   ))[0] ?? null;
   const studentAttendance = Array.from(studentsByKey.values())
-    .map((student) => ({
-      ...student,
-      daysAttended: student.daysAttended.size,
-      attendanceRate: totalMeetingDays > 0
-        ? Math.round((student.daysAttended.size / totalMeetingDays) * 100)
-        : 0,
-    }))
+    .map((student) => {
+      const meetingHistory = meetingDays.map((meetingDay) => {
+        const attendee = meetingDay.attendees.find(
+          (meetingAttendee) => meetingAttendee.studentKey === student.studentKey,
+        );
+
+        return {
+          date: meetingDay.date,
+          dateValue: meetingDay.dateValue,
+          attended: Boolean(attendee),
+          totalMinutes: attendee?.totalMinutes ?? 0,
+          incompleteLogCount: attendee?.incompleteLogCount ?? 0,
+        };
+      });
+
+      return {
+        ...student,
+        daysAttended: student.daysAttended.size,
+        attendanceRate: totalMeetingDays > 0
+          ? Math.round((student.daysAttended.size / totalMeetingDays) * 100)
+          : 0,
+        meetingHistory,
+      };
+    })
     .sort((left, right) => (
       right.daysAttended - left.daysAttended
       || left.studentName.localeCompare(right.studentName)

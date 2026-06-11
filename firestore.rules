@@ -135,6 +135,28 @@ service cloud.firestore {
       allow delete: if isCoach();
     }
 
+    match /extraTimeRequests/{requestId} {
+      allow get, list: if isCoach()
+        || isKiosk()
+        || (
+          isStudentAuth()
+          && resource.data.studentId == studentAuthId()
+        );
+      allow create: if (
+          isKiosk()
+          || (
+            isStudentAuth()
+            && request.resource.data.studentId == studentAuthId()
+          )
+        )
+        && request.resource.data.durationMinutes is number
+        && request.resource.data.durationMinutes > 0
+        && request.resource.data.reason is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.requestedAt == request.time;
+      allow update, delete: if isCoach();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

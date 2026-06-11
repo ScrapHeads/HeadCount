@@ -46,10 +46,15 @@ const KioskRoute = ({ children }) => {
 };
 
 const StudentRoute = ({ children }) => {
-  const { isLoadingCoachAuth, kioskUser, studentSession } = useAuth();
+  const {
+    isLoadingCoachAuth,
+    kioskUser,
+    studentSession,
+    studentUser,
+  } = useAuth();
 
-  if (isLoadingCoachAuth && (!studentSession || studentSession.authMode === 'kiosk')) {
-    return <FullScreenMessage message="Checking kiosk session..." />;
+  if (isLoadingCoachAuth) {
+    return <FullScreenMessage message="Checking student session..." />;
   }
 
   if (!studentSession) {
@@ -60,6 +65,8 @@ const StudentRoute = ({ children }) => {
     if (!kioskUser) {
       return <Navigate replace to="/" />;
     }
+  } else if (!studentUser) {
+    return <Navigate replace to="/" />;
   }
 
   return children;

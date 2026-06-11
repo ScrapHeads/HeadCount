@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AnalyticsDashboard from '../components/dashboard/AnalyticsDashboard';
 import StudentManagementDashboard from '../components/dashboard/StudentManagementDashboard';
@@ -9,10 +9,13 @@ import { scheduleConfig, studentAuthConfig, taskConfig } from '../config/appConf
 import { useAuth } from '../features/auth/useAuth.jsx';
 import { useSchedules } from '../features/schedules/useSchedules';
 import { createSchedule } from '../features/schedules/scheduleService';
-import { useActiveStudents } from '../features/students/useStudents';
+import { useActiveStudents, useStudents } from '../features/students/useStudents';
 import { useTasks } from '../features/tasks/useTasks';
 import { createTask } from '../features/tasks/taskService';
-import { endStudentSessionByCoach } from '../features/timeLogs/timeLogService';
+import {
+  endStaleStudentSession,
+  endStudentSessionByCoach,
+} from '../features/timeLogs/timeLogService';
 import { toDate } from '../lib/dateUtils';
 import {
   DASHBOARD_CARD_CLASS_NAME,
@@ -374,8 +377,11 @@ const CoachDashboard = () => {
   });
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
   const [scheduleStatusMessage, setScheduleStatusMessage] = useState('');
+  const [autoCheckoutTick, setAutoCheckoutTick] = useState(0);
+  const autoCheckoutStudentIdsRef = useRef(new Set());
   const { coachUser, signOutCoach } = useAuth();
   const { students: activeStudents, isLoading: isLoadingActiveStudents, error: activeStudentsError } = useActiveStudents();
+  const { students, isLoading: isLoadingStudents, error: studentsError } = useStudents();
   const { tasks, isLoading: isLoadingTasks, error: tasksError, reloadTasks } = useTasks();
   const { schedules, isLoading: isLoadingSchedules, error: schedulesError, reloadSchedules } = useSchedules();
   const navigate = useNavigate();
@@ -413,6 +419,48 @@ const CoachDashboard = () => {
     };
   }, [activeSection]);
 
+  useEffect(() => {
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 1, 0);
+    const timeoutId = window.setTimeout(() => {
+      setAutoCheckoutTick((currentValue) => currentValue + 1);
+    }, nextMidnight.getTime() - now.getTime());
+
+    return () => window.clearTimeout(timeoutId);
+  }, [autoCheckoutTick]);
+
+  useEffect(() => {
+    if (isLoadingActiveStudents || isLoadingSchedules) {
+      return;
+    }
+
+    activeStudents.forEach((student) => {
+      if (autoCheckoutStudentIdsRef.current.has(student.id)) {
+        return;
+      }
+
+      autoCheckoutStudentIdsRef.current.add(student.id);
+
+      endStaleStudentSession({
+        schedules,
+        student,
+      }).catch((autoCheckoutError) => {
+        setHomeStatusMessage(
+          autoCheckoutError.message || 'Failed to automatically close a stale student session.',
+        );
+      }).finally(() => {
+        autoCheckoutStudentIdsRef.current.delete(student.id);
+      });
+    });
+  }, [
+    activeStudents,
+    autoCheckoutTick,
+    isLoadingActiveStudents,
+    isLoadingSchedules,
+    schedules,
+  ]);
+
   const upcomingSchedules = useMemo(() => {
     const now = new Date();
 
@@ -426,6 +474,21 @@ const CoachDashboard = () => {
   const tasksById = useMemo(
     () => new Map(tasks.map((task) => [task.id, task])),
     [tasks],
+  );
+
+  const signedOutStudents = useMemo(
+    () => students
+      .filter((student) => (
+        student[studentAuthConfig.signedInField] !== true
+        && (student[studentAuthConfig.currentMemberField] ?? student['current member'] ?? true) === true
+      ))
+      .sort((left, right) => (
+        String(left.name ?? '').localeCompare(String(right.name ?? ''))
+        || String(left[studentAuthConfig.idField] ?? '').localeCompare(
+          String(right[studentAuthConfig.idField] ?? ''),
+        )
+      )),
+    [students],
   );
 
   const homeStats = useMemo(() => {
@@ -552,16 +615,16 @@ const CoachDashboard = () => {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-background px-4 py-6 sm:px-6 lg:px-8">
+    <main className="relative min-h-screen overflow-x-clip bg-background px-4 py-6 sm:px-6 lg:px-8">
 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_color-mix(in_oklab,_var(--app-secondary)_25%,_transparent)_0%,_transparent_45%)]" />
       <div className="absolute -left-20 top-40 h-48 w-48 rounded-full bg-secondary/15 blur-3xl" />
       <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-secondary/17 blur-3xl" />
 
-      <div className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl overflow-hidden rounded-[2rem] border border-border/70 bg-secondary shadow-2xl shadow-primary/10 lg:grid-cols-[290px_minmax(0,1fr)]">
+      <div className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl overflow-hidden rounded-[2rem] border border-border/70 bg-secondary shadow-2xl shadow-primary/10 lg:grid-cols-[290px_minmax(0,1fr)] lg:overflow-visible">
         <aside className="relative flex flex-col border-b border-border 
           bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_50%,var(--app-accent)_100%)] 
-          p-6 text-on-primary lg:border-b-0 lg:border-r lg:border-r-on-primary/10">
+          p-6 text-on-primary lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto lg:rounded-l-[2rem] lg:border-b-0 lg:border-r lg:border-r-on-primary/10">
           <div className="relative">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-primary/90">
               Coach Dashboard
@@ -604,7 +667,7 @@ const CoachDashboard = () => {
 
         </aside>
 
-        <section className="flex min-h-full flex-col bg-primary p-6 sm:p-8 lg:p-10">
+        <section className="flex min-h-full flex-col bg-primary p-6 sm:p-8 lg:rounded-r-[2rem] lg:p-10">
           <div className="flex flex-col gap-6 border-b border-border pb-8 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">
@@ -639,88 +702,146 @@ const CoachDashboard = () => {
           <div className="mt-8 grid gap-5">
             <div className="grid gap-5">
               {activeSection === 'home' ? (
-                <article className={DASHBOARD_CARD_CLASS_NAME}>
-                  <div className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                      <p className="text-lg font-semibold text-on-primary">Live team status</p>
+                <>
+                  <article className={DASHBOARD_CARD_CLASS_NAME}>
+                    <div className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+                      <div>
+                        <p className="text-lg font-semibold text-on-primary">Live team status</p>
+                        <p className="mt-2 leading-6 text-on-primary/90">
+                          Coaches can review active sessions here and end a session directly if a student leaves without signing out.
+                        </p>
+                      </div>
+                    </div>
+
+                    {homeStatusMessage && (
+                      <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
+                        {homeStatusMessage}
+                      </div>
+                    )}
+
+                    {activeStudentsError && (
+                      <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
+                        {activeStudentsError}
+                      </div>
+                    )}
+
+                    <div className="mt-5 overflow-x-auto">
+                      <table className="min-w-full border-separate border-spacing-y-3">
+                        <thead>
+                          <tr>
+                            <th className="px-4 text-left text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">Student</th>
+                            <th className="px-4 text-left text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">ID</th>
+                            <th className="px-4 text-left text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">Signed In</th>
+                            <th className="px-4 text-left text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">Session Type</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {isLoadingActiveStudents ? (
+                            <tr>
+                              <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-on-primary/90" colSpan={5}>
+                                Loading active sessions...
+                              </td>
+                            </tr>
+                          ) : activeStudents.length === 0 ? (
+                            <tr>
+                              <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-on-primary/90" colSpan={5}>
+                                No students are currently signed in.
+                              </td>
+                            </tr>
+                          ) : (
+                            activeStudents.map((student) => {
+                              const sessionType = student[studentAuthConfig.currentTaskField] || 'General session';
+                              const isEnding = endingStudentId === student.id;
+
+                              return (
+                                <tr key={student.id}>
+                                  <td className="rounded-l-2xl border-y border-l border-border bg-transparent px-4 py-4 text-on-primary">
+                                    <span className="font-semibold">{student.name ?? 'Student'}</span>
+                                  </td>
+                                  <td className="border-y border-border bg-transparent px-4 py-4  text-on-primary">
+                                    {student.studentId ?? 'Not set'}
+                                  </td>
+                                  <td className="border-y border-border bg-transparent px-4 py-4 text-on-primary">
+                                    {formatSignedInAt(student[studentAuthConfig.signedInAtField])}
+                                  </td>
+                                  <td className="border-y border-border bg-transparent px-4 py-4 text-on-primary">
+                                    {sessionType}
+                                  </td>
+                                  <td className="rounded-r-2xl border-y border-r border-border bg-transparent px-4 py-4 text-right">
+                                    <button
+                                      className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-semibold text-on-secondary bg-secondary transition hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
+                                      disabled={isEnding}
+                                      onClick={() => handleEndSession(student)}
+                                      type="button"
+                                    >
+                                      {isEnding ? 'Ending...' : 'End Session'}
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </article>
+
+                  <article className={DASHBOARD_CARD_CLASS_NAME}>
+                    <div className="border-b border-border pb-5">
+                      <p className="text-lg font-semibold text-on-primary">Students not signed in</p>
                       <p className="mt-2 leading-6 text-on-primary/90">
-                        Coaches can review active sessions here and end a session directly if a student leaves without signing out.
+                        Current team members who do not have an active session.
                       </p>
                     </div>
-                  </div>
 
-                  {homeStatusMessage && (
-                    <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
-                      {homeStatusMessage}
-                    </div>
-                  )}
+                    {studentsError && (
+                      <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
+                        {studentsError}
+                      </div>
+                    )}
 
-                  {activeStudentsError && (
-                    <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
-                      {activeStudentsError}
-                    </div>
-                  )}
-
-                  <div className="mt-5 overflow-x-auto">
-                    <table className="min-w-full border-separate border-spacing-y-3">
-                      <thead>
-                        <tr>
-                          <th className="px-4 text-left text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">Student</th>
-                          <th className="px-4 text-left text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">ID</th>
-                          <th className="px-4 text-left text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">Signed In</th>
-                          <th className="px-4 text-left text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">Session Type</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {isLoadingActiveStudents ? (
+                    <div className="mt-5 overflow-x-auto">
+                      <table className="min-w-full border-separate border-spacing-y-3">
+                        <thead>
                           <tr>
-                            <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-on-primary/90" colSpan={5}>
-                              Loading active sessions...
-                            </td>
+                            <th className="px-4 text-left text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">Student</th>
+                            <th className="px-4 text-left text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">ID</th>
+                            <th className="px-4 text-left text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">Status</th>
                           </tr>
-                        ) : activeStudents.length === 0 ? (
-                          <tr>
-                            <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-on-primary/90" colSpan={5}>
-                              No students are currently signed in.
-                            </td>
-                          </tr>
-                        ) : (
-                          activeStudents.map((student) => {
-                            const sessionType = student[studentAuthConfig.currentTaskField] || 'General session';
-                            const isEnding = endingStudentId === student.id;
-
-                            return (
+                        </thead>
+                        <tbody>
+                          {isLoadingStudents ? (
+                            <tr>
+                              <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-on-primary/90" colSpan={3}>
+                                Loading signed-out students...
+                              </td>
+                            </tr>
+                          ) : signedOutStudents.length === 0 ? (
+                            <tr>
+                              <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-on-primary/90" colSpan={3}>
+                                All current students are signed in.
+                              </td>
+                            </tr>
+                          ) : (
+                            signedOutStudents.map((student) => (
                               <tr key={student.id}>
                                 <td className="rounded-l-2xl border-y border-l border-border bg-transparent px-4 py-4 text-on-primary">
                                   <span className="font-semibold">{student.name ?? 'Student'}</span>
                                 </td>
-                                <td className="border-y border-border bg-transparent px-4 py-4  text-on-primary">
-                                  {student.studentId ?? 'Not set'}
-                                </td>
                                 <td className="border-y border-border bg-transparent px-4 py-4 text-on-primary">
-                                  {formatSignedInAt(student[studentAuthConfig.signedInAtField])}
+                                  {student[studentAuthConfig.idField] ?? 'Not set'}
                                 </td>
-                                <td className="border-y border-border bg-transparent px-4 py-4 text-on-primary">
-                                  {sessionType}
-                                </td>
-                                <td className="rounded-r-2xl border-y border-r border-border bg-transparent px-4 py-4 text-right">
-                                  <button
-                                    className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-semibold text-on-secondary bg-secondary transition hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
-                                    disabled={isEnding}
-                                    onClick={() => handleEndSession(student)}
-                                    type="button"
-                                  >
-                                    {isEnding ? 'Ending...' : 'End Session'}
-                                  </button>
+                                <td className="rounded-r-2xl border-y border-r border-border bg-transparent px-4 py-4 text-on-primary">
+                                  Not signed in
                                 </td>
                               </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </article>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </article>
+                </>
               ) : activeSection === 'schedule' ? (
                 <>
                   <article className={DASHBOARD_CARD_CLASS_NAME}>

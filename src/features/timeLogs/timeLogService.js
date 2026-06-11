@@ -12,6 +12,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { studentAuthConfig, taskConfig, timeLogConfig } from '../../config/appConfig';
+import { getScheduledTaskEndTime } from '../schedules/validateSchedule';
 import { getCurrentAuthUser, getStudentIdFromAuthEmail } from '../../services/auth';
 import { db } from '../../services/firebase';
 import { toDate } from '../../lib/dateUtils';
@@ -313,7 +314,12 @@ export const startStudentSession = async ({ student, task, signInNotes }) => {
   };
 };
 
-export const endStudentSession = async ({ studentDocId, timeLogId, signOutNotes }) => {
+export const endStudentSession = async ({
+  studentDocId,
+  timeLogId,
+  signOutAt = null,
+  signOutNotes,
+}) => {
   if (!studentDocId) {
     throw new Error('A student record is required to complete a time log.');
   }
@@ -330,10 +336,21 @@ export const endStudentSession = async ({ studentDocId, timeLogId, signOutNotes 
   }
 
   const existingTimeLog = existingTimeLogSnapshot.data();
-  const signOutAt = Timestamp.now();
+  const signInDate = toDate(existingTimeLog[timeLogConfig.signInAtField]);
+  const signOutDate = signOutAt ? toDate(signOutAt) : new Date();
+
+  if (!signOutDate) {
+    throw new Error('The sign-out time is invalid.');
+  }
+
+  if (signInDate && signOutDate < signInDate) {
+    throw new Error('The sign-out time cannot be before the sign-in time.');
+  }
+
+  const signOutTimestamp = Timestamp.fromDate(signOutDate);
   const durationMinutes = calculateDurationMinutes(
     existingTimeLog[timeLogConfig.signInAtField],
-    signOutAt,
+    signOutTimestamp,
   );
 
   const studentDocRef = doc(db, studentAuthConfig.collectionName, studentDocId);
@@ -342,7 +359,7 @@ export const endStudentSession = async ({ studentDocId, timeLogId, signOutNotes 
   // Sign-out clears the live student fields in the same batch that closes the
   // log. That keeps the coach dashboard and reporting views consistent.
   batch.update(timeLogDocRef, {
-    [timeLogConfig.signOutAtField]: signOutAt,
+    [timeLogConfig.signOutAtField]: signOutTimestamp,
     [timeLogConfig.signOutNotesField]: signOutNotes,
     [timeLogConfig.statusField]: timeLogConfig.completedStatus,
     [timeLogConfig.durationMinutesField]: durationMinutes,
@@ -361,9 +378,67 @@ export const endStudentSession = async ({ studentDocId, timeLogId, signOutNotes 
 
   return {
     id: timeLogId,
-    signOutAt,
+    signOutAt: signOutTimestamp,
     durationMinutes,
   };
+};
+
+export const endStaleStudentSession = async ({
+  now = new Date(),
+  schedules = [],
+  student,
+}) => {
+  const timeLogId = student?.[studentAuthConfig.activeTimeLogIdField];
+
+  if (!student?.id || !timeLogId) {
+    return false;
+  }
+
+  const timeLogDocRef = doc(db, timeLogConfig.collectionName, timeLogId);
+  const timeLogSnapshot = await getDoc(timeLogDocRef);
+
+  if (!timeLogSnapshot.exists()) {
+    return false;
+  }
+
+  const timeLog = timeLogSnapshot.data();
+
+  if (timeLog[timeLogConfig.statusField] !== timeLogConfig.activeStatus) {
+    return false;
+  }
+
+  const signInAt = toDate(timeLog[timeLogConfig.signInAtField]);
+  const currentTime = toDate(now);
+
+  if (!signInAt || !currentTime) {
+    return false;
+  }
+
+  const midnightAfterSignIn = new Date(signInAt);
+  midnightAfterSignIn.setHours(24, 0, 0, 0);
+
+  if (currentTime < midnightAfterSignIn) {
+    return false;
+  }
+
+  const scheduledEndTime = getScheduledTaskEndTime({
+    schedules,
+    taskId: timeLog[timeLogConfig.taskIdField],
+    time: signInAt,
+  });
+
+  if (!scheduledEndTime || scheduledEndTime > currentTime) {
+    return false;
+  }
+
+  await endStudentSession({
+    studentDocId: student.id,
+    timeLogId,
+    signOutAt: scheduledEndTime,
+    signOutNotes: 'Automatically signed out after midnight at the scheduled event end time.',
+  });
+
+  return true;
 };
 
 // Coaches use the same close-session flow as students, but with a generated

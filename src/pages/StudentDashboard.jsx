@@ -1,9 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
-import { studentAuthConfig, timeLogConfig } from '../config/appConfig';
+import {
+  extraTimeRequestConfig,
+  studentAuthConfig,
+  timeLogConfig,
+} from '../config/appConfig';
 import { branding } from '../config/branding';
 import { useAuth } from '../features/auth/useAuth.jsx';
+import { createExtraTimeRequest } from '../features/extraTimeRequests/extraTimeRequestService';
+import { useStudentExtraTimeRequests } from '../features/extraTimeRequests/useExtraTimeRequests';
 import { useStudentTimeLogs } from '../features/timeLogs/useStudentTimeLogs';
 import {
   calculateHoursByCategory,
@@ -212,6 +218,102 @@ const StudentSessionTimeline = ({ error, isLoading, logs }) => (
   </article>
 );
 
+const ExtraTimeRequestCard = ({ student }) => {
+  const [hours, setHours] = useState('');
+  const [reason, setReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+  const { requests, isLoading, error } = useStudentExtraTimeRequests(student);
+  const latestRequest = requests[0] ?? null;
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setStatusMessage('');
+
+    try {
+      await createExtraTimeRequest({ hours, reason, student });
+      setHours('');
+      setReason('');
+      setStatusMessage('Extra-time request submitted for coach review.');
+    } catch (submitError) {
+      setStatusMessage(submitError?.message || 'Failed to submit the extra-time request.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <article className={studentCardClassName}>
+      <p className="font-semibold uppercase tracking-[0.18em] text-on-primary">
+        Extra Time Request
+      </p>
+      <p className="mt-2 text-sm leading-6 text-on-primary/90">
+        Request manual hours for a coach to approve.
+      </p>
+
+      <form className="mt-4 grid gap-3" onSubmit={handleSubmit}>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-on-primary">
+            Hours
+          </span>
+          <input
+            className={inputClassName}
+            min="0.01"
+            onChange={(event) => {
+              setHours(event.target.value);
+              setStatusMessage('');
+            }}
+            placeholder="1.5"
+            required
+            step="0.01"
+            type="number"
+            value={hours}
+          />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-on-primary">
+            Reason
+          </span>
+          <textarea
+            className={`${inputClassName} min-h-24`}
+            onChange={(event) => {
+              setReason(event.target.value);
+              setStatusMessage('');
+            }}
+            placeholder="Describe the work completed"
+            required
+            value={reason}
+          />
+        </label>
+        <Button
+          className="bg-secondary text-on-secondary"
+          disabled={isSubmitting}
+          type="submit"
+        >
+          {isSubmitting ? 'Submitting...' : 'Request Extra Time'}
+        </Button>
+      </form>
+
+      {(statusMessage || error) && (
+        <p className="mt-4 rounded-xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
+          {statusMessage || error}
+        </p>
+      )}
+
+      {isLoading ? (
+        <p className="mt-4 text-sm text-on-primary/80">Loading request status...</p>
+      ) : latestRequest ? (
+        <p className="mt-4 text-sm text-on-primary/90">
+          Latest request: <span className="font-semibold capitalize">
+            {latestRequest[extraTimeRequestConfig.statusField]}
+          </span>
+        </p>
+      ) : null}
+    </article>
+  );
+};
+
 const StudentDashboard = () => {
   const { signOutStudent, studentSession } = useAuth();
   const [dateRange, setDateRange] = useState(getDefaultDateRange);
@@ -350,15 +452,19 @@ const StudentDashboard = () => {
                 {isSignedIn ? 'Open Sign-Out Form' : 'Open Sign-In Form'}
               </Button>
             </div>
+
           </section>
 
-          <StudentAnalyticsCard
-            analytics={hoursAnalytics}
-            dateRange={dateRange}
-            error={analyticsError}
-            isLoading={isLoadingTimeLogs}
-            onDateChange={handleDateChange}
-          />
+          <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+            <StudentAnalyticsCard
+              analytics={hoursAnalytics}
+              dateRange={dateRange}
+              error={analyticsError}
+              isLoading={isLoadingTimeLogs}
+              onDateChange={handleDateChange}
+            />
+            <ExtraTimeRequestCard student={studentSession} />
+          </section>
 
           <StudentSessionTimeline
             error={analyticsError}

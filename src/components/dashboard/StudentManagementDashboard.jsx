@@ -1,7 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { scheduleConfig, studentAuthConfig, taskConfig, timeLogConfig } from '../../config/appConfig';
+import {
+  extraTimeRequestConfig,
+  scheduleConfig,
+  studentAuthConfig,
+  taskConfig,
+  timeLogConfig,
+} from '../../config/appConfig';
 import { useAuth } from '../../features/auth/useAuth.jsx';
+import { reviewExtraTimeRequest } from '../../features/extraTimeRequests/extraTimeRequestService';
+import { useExtraTimeRequests } from '../../features/extraTimeRequests/useExtraTimeRequests';
 import { isScheduleActive } from '../../features/schedules/validateSchedule';
 import { useSchedules } from '../../features/schedules/useSchedules';
 import { createStudent, updateStudent } from '../../features/students/studentService';
@@ -12,25 +19,23 @@ import {
   createExtraHoursTimeLog,
   listTimeLogsForStudent,
   startStudentSession,
-  updateTimeLogByCoach,
 } from '../../features/timeLogs/timeLogService';
 import {
   formatTaskName,
   getDurationMinutes,
   isCompletedLog,
-  isExtraHoursTaskName,
   minutesToHours,
 } from '../../lib/analyticsUtils';
 import { toDate } from '../../lib/dateUtils';
 import {
   DASHBOARD_CARD_CLASS_NAME,
-  DASHBOARD_GRADIENT_CLASS_NAME,
   DASHBOARD_TABLE_HEADER_CLASS_NAME,
   FORM_INPUT_CLASS_NAME,
   FORM_TEXTAREA_CLASS_NAME,
 } from '../../styles/classNames';
 import Button from '../shared/Button';
 import Dropdown from '../shared/Dropdown';
+import TimeLogEditorDialog from './TimeLogEditorDialog';
 
 const tableCellClassName = 'border-y border-border bg-transparent px-4 py-3 text-sm text-on-primary';
 const timeLogsPageSize = 10;
@@ -115,22 +120,6 @@ const getAvailableSignInTasks = (tasks, schedules) => {
   });
 };
 
-const toDateTimeLocalValue = (value) => {
-  const date = toDate(value);
-
-  if (!date) {
-    return '';
-  }
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
 const formatLogDateTime = (value) => {
   const date = toDate(value);
 
@@ -138,20 +127,6 @@ const formatLogDateTime = (value) => {
 
   return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
 };
-
-const getTimeLogTaskNameFormValue = (value) => {
-  const taskName = String(value ?? '').trim();
-
-  return isExtraHoursTaskName(taskName) ? formatTaskName(taskName) : taskName;
-};
-
-const buildTimeLogForm = (log) => ({
-  signInAt: toDateTimeLocalValue(log?.[timeLogConfig.signInAtField]),
-  signInNotes: log?.[timeLogConfig.signInNotesField] ?? '',
-  signOutAt: toDateTimeLocalValue(log?.[timeLogConfig.signOutAtField]),
-  signOutNotes: log?.[timeLogConfig.signOutNotesField] ?? '',
-  taskName: getTimeLogTaskNameFormValue(log?.[timeLogConfig.taskNameField]),
-});
 
 const buildStudentHourTotals = (logs) => {
   const totalsByStudent = new Map();
@@ -747,6 +722,129 @@ const ExtraHoursCard = ({
   );
 };
 
+const ExtraTimeRequestsCard = ({ cardClassName, reviewedBy }) => {
+  const { requests, isLoading, error } = useExtraTimeRequests();
+  const [reviewingRequestId, setReviewingRequestId] = useState('');
+  const [status, setStatus] = useState({ message: '', tone: 'muted' });
+  const pendingRequests = useMemo(
+    () => requests.filter((request) => (
+      request[extraTimeRequestConfig.statusField] === extraTimeRequestConfig.pendingStatus
+    )),
+    [requests],
+  );
+
+  const handleReview = async (request, decision) => {
+    setReviewingRequestId(request.id);
+    setStatus({ message: '', tone: 'muted' });
+
+    try {
+      await reviewExtraTimeRequest({
+        decision,
+        request,
+        reviewedBy,
+      });
+      setStatus({
+        message: decision === extraTimeRequestConfig.approvedStatus
+          ? `Approved extra time for ${request[extraTimeRequestConfig.studentNameField]}.`
+          : `Denied extra time for ${request[extraTimeRequestConfig.studentNameField]}.`,
+        tone: 'muted',
+      });
+    } catch (reviewError) {
+      setStatus({
+        message: reviewError?.message || 'Failed to review the extra-time request.',
+        tone: 'error',
+      });
+    } finally {
+      setReviewingRequestId('');
+    }
+  };
+
+  return (
+    <article className={cardClassName}>
+      <div className="border-b border-border pb-5">
+        <h3 className="text-lg font-semibold text-on-primary">Extra Time Requests</h3>
+        <p className="mt-2 text-sm leading-6 text-on-primary/90">
+          Approve requests to create completed Extra Hours logs, or deny them without adding hours.
+        </p>
+      </div>
+
+      {isLoading ? (
+        <CardMessage>Loading extra-time requests...</CardMessage>
+      ) : error ? (
+        <CardMessage tone="error">{error}</CardMessage>
+      ) : pendingRequests.length === 0 ? (
+        <CardMessage>No pending extra-time requests.</CardMessage>
+      ) : (
+        <div className="mt-5 overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-y-3 text-center">
+            <thead>
+              <tr>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Hours</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Reason</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingRequests.map((request) => {
+                const isReviewing = reviewingRequestId === request.id;
+                const requestHours = minutesToHours(
+                  request[extraTimeRequestConfig.durationMinutesField],
+                ).toFixed(2);
+
+                return (
+                  <tr key={request.id}>
+                    <td className="rounded-l-2xl border-y border-l border-border bg-transparent px-4 py-4 text-center text-sm text-on-primary">
+                      <span className="font-semibold">
+                        {request[extraTimeRequestConfig.studentNameField] ?? 'Student'}
+                      </span>
+                      <span className="mt-1 block text-xs text-on-primary/80">
+                        {request[extraTimeRequestConfig.studentIdField] ?? 'ID not set'}
+                      </span>
+                    </td>
+                    <td className={tableCellClassName}>{requestHours}</td>
+                    <td className={`${tableCellClassName} text-center`}>
+                      {request[extraTimeRequestConfig.reasonField]}
+                    </td>
+                    <td className="rounded-r-2xl border-y border-r border-border bg-transparent px-4 py-4 text-center">
+                      <div className="inline-flex flex-nowrap items-center justify-center gap-2">
+                        <button
+                          className="rounded-xl border border-border bg-secondary px-4 py-2 text-sm font-semibold text-on-secondary transition hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
+                          disabled={isReviewing}
+                          onClick={() => handleReview(
+                            request,
+                            extraTimeRequestConfig.deniedStatus,
+                          )}
+                          type="button"
+                        >
+                          Deny
+                        </button>
+                        <Button
+                          className="w-auto whitespace-nowrap"
+                          disabled={isReviewing}
+                          onClick={() => handleReview(
+                            request,
+                            extraTimeRequestConfig.approvedStatus,
+                          )}
+                          type="button"
+                        >
+                          {isReviewing ? 'Reviewing...' : 'Approve'}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {status.message && <CardMessage tone={status.tone}>{status.message}</CardMessage>}
+    </article>
+  );
+};
+
 const EditStudentCard = ({
   cardClassName,
   error,
@@ -972,10 +1070,8 @@ const StudentTimeLogsCard = ({
   const sortedStudents = useMemo(() => sortStudentsByName(students), [students]);
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [logs, setLogs] = useState([]);
-  const [logForms, setLogForms] = useState({});
   const [pageIndex, setPageIndex] = useState(0);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
-  const [savingLogId, setSavingLogId] = useState('');
   const [status, setStatus] = useState({ message: '', tone: 'muted' });
   const [selectedLogId, setSelectedLogId] = useState(null);
 
@@ -999,7 +1095,6 @@ const StudentTimeLogsCard = ({
   const loadLogs = useCallback(async (student) => {
     if (!student) {
       setLogs([]);
-      setLogForms({});
       return;
     }
 
@@ -1010,13 +1105,9 @@ const StudentTimeLogsCard = ({
       const studentLogs = await listTimeLogsForStudent({ student });
 
       setLogs(studentLogs);
-      setLogForms(Object.fromEntries(
-        studentLogs.map((log) => [log.id, buildTimeLogForm(log)]),
-      ));
       setPageIndex(0);
     } catch (loadError) {
       setLogs([]);
-      setLogForms({});
       setStatus({
         message: loadError?.message || 'Failed to load student logs.',
         tone: 'error',
@@ -1048,49 +1139,6 @@ const StudentTimeLogsCard = ({
       setPageIndex(totalPages - 1);
     }
   }, [pageIndex, totalPages]);
-
-  const handleLogFieldChange = (logId, field, value) => {
-    setLogForms((currentForms) => ({
-      ...currentForms,
-      [logId]: {
-        ...currentForms[logId],
-        [field]: value,
-      },
-    }));
-    setStatus({ message: '', tone: 'muted' });
-  };
-
-  const handleLogSave = async (log) => {
-    const form = logForms[log.id];
-
-    if (!form) {
-      return;
-    }
-
-    setSavingLogId(log.id);
-    setStatus({ message: '', tone: 'muted' });
-
-    try {
-      await updateTimeLogByCoach({
-        signInAt: form.signInAt,
-        signInNotes: form.signInNotes,
-        signOutAt: form.signOutAt,
-        signOutNotes: form.signOutNotes,
-        student: selectedStudent,
-        taskName: form.taskName,
-        timeLogId: log.id,
-      });
-      await loadLogs(selectedStudent);
-      setStatus({ message: 'Time log saved.', tone: 'muted' });
-    } catch (saveError) {
-      setStatus({
-        message: saveError?.message || 'Failed to save the time log.',
-        tone: 'error',
-      });
-    } finally {
-      setSavingLogId('');
-    }
-  };
 
   return (
     <article className={cardClassName}>
@@ -1168,21 +1216,22 @@ const StudentTimeLogsCard = ({
                   </thead>
                   <tbody>
                     {visibleLogs.map((log) => {
-                      const form = logForms[log.id] ?? buildTimeLogForm(log);
                       const durationMinutes = getDurationMinutes(log);
                       const isActive = log[timeLogConfig.statusField] === timeLogConfig.activeStatus;
 
                       return (
                         <tr key={log.id}>
                           <td className="rounded-l-2xl border-y border-l border-border bg-transparent px-4 py-4 text-sm text-on-secondary">
-                            <span className="font-semibold">{formatTaskName(form.taskName, 'Task')}</span>
+                            <span className="font-semibold">
+                              {formatTaskName(log[timeLogConfig.taskNameField], 'Task')}
+                            </span>
                           </td>
                           <td className={tableCellClassName}>{isActive ? 'Active' : 'Completed'}</td>
                           <td className={`${tableCellClassName} whitespace-nowrap`}>
-                            {form.signInAt ? formatLogDateTime(form.signInAt) : '-'}
+                            {formatLogDateTime(log[timeLogConfig.signInAtField])}
                           </td>
                           <td className={`${tableCellClassName} whitespace-nowrap`}>
-                            {form.signOutAt ? formatLogDateTime(form.signOutAt) : '-'}
+                            {formatLogDateTime(log[timeLogConfig.signOutAtField])}
                           </td>
                           <td className={`${tableCellClassName} text-right font-semibold`}>
                             {minutesToHours(durationMinutes).toFixed(2)}
@@ -1209,107 +1258,17 @@ const StudentTimeLogsCard = ({
 
       {status.message && <CardMessage tone={status.tone}>{status.message}</CardMessage>}
 
-      {selectedLog && typeof document !== 'undefined' && createPortal(
-        <div
-          aria-labelledby="time-log-dialog-title"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setSelectedLogId(null)}
-          role="dialog"
-        >
-          <div
-            className={`max-h-[calc(100vh-2rem)] w-full max-w-3xl overflow-y-auto rounded-2xl border border-on-primary/15 ${DASHBOARD_GRADIENT_CLASS_NAME} p-6 shadow-2xl shadow-primary/20`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-semibold text-on-primary" id="time-log-dialog-title">
-                  {formatTaskName(logForms[selectedLog.id]?.taskName, 'Task')}
-                </h3>
-                <p className="mt-1 text-sm text-on-primary/90">
-                  {selectedStudent ? getStudentName(selectedStudent) : ''}
-                </p>
-              </div>
-              <button
-                aria-label="Close time log editor"
-                className="rounded-lg px-3 py-2 text-sm font-semibold text-on-primary/90 transition hover:bg-accent/20"
-                onClick={() => setSelectedLogId(null)}
-                type="button"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <label className="flex flex-col gap-1.5 md:col-span-2">
-                <span className="text-sm font-medium text-on-primary">Task name</span>
-                <input
-                  className={FORM_INPUT_CLASS_NAME}
-                  onChange={(event) => handleLogFieldChange(selectedLog.id, 'taskName', event.target.value)}
-                  type="text"
-                  value={logForms[selectedLog.id]?.taskName ?? ''}
-                />
-              </label>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-on-primary">Start time</span>
-                <input
-                  className={FORM_INPUT_CLASS_NAME}
-                  onChange={(event) => handleLogFieldChange(selectedLog.id, 'signInAt', event.target.value)}
-                  type="datetime-local"
-                  value={logForms[selectedLog.id]?.signInAt ?? ''}
-                />
-              </label>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-on-primary">End time</span>
-                <input
-                  className={FORM_INPUT_CLASS_NAME}
-                  onChange={(event) => handleLogFieldChange(selectedLog.id, 'signOutAt', event.target.value)}
-                  type="datetime-local"
-                  value={logForms[selectedLog.id]?.signOutAt ?? ''}
-                />
-              </label>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-on-primary">Sign-in notes</span>
-                <textarea
-                  className={`${FORM_TEXTAREA_CLASS_NAME} min-h-28`}
-                  onChange={(event) => handleLogFieldChange(selectedLog.id, 'signInNotes', event.target.value)}
-                  value={logForms[selectedLog.id]?.signInNotes ?? ''}
-                />
-              </label>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium text-on-primary">Sign-out notes</span>
-                <textarea
-                  className={`${FORM_TEXTAREA_CLASS_NAME} min-h-28`}
-                  onChange={(event) => handleLogFieldChange(selectedLog.id, 'signOutNotes', event.target.value)}
-                  value={logForms[selectedLog.id]?.signOutNotes ?? ''}
-                />
-              </label>
-            </div>
-
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                className="inline-flex items-center justify-center rounded-xl border border-border px-4 py-3 text-sm font-semibold text-on-primary transition hover:bg-accent/10"
-                onClick={() => setSelectedLogId(null)}
-                type="button"
-              >
-                Cancel
-              </button>
-              <Button
-                className="sm:w-auto"
-                disabled={savingLogId === selectedLog.id}
-                onClick={() => handleLogSave(selectedLog)}
-                type="button"
-              >
-                {savingLogId === selectedLog.id ? 'Saving...' : 'Save Log'}
-              </Button>
-            </div>
-          </div>
-        </div>,
-        document.body,
+      {selectedLog && (
+        <TimeLogEditorDialog
+          log={selectedLog}
+          onClose={() => setSelectedLogId(null)}
+          onSaved={async () => {
+            await loadLogs(selectedStudent);
+            setStatus({ message: 'Time log saved.', tone: 'muted' });
+          }}
+          student={selectedStudent}
+          studentName={selectedStudent ? getStudentName(selectedStudent) : 'Student'}
+        />
       )}
     </article>
   );
@@ -1371,6 +1330,10 @@ const StudentManagementDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME 
           error={studentsError}
           isLoading={isLoadingStudents}
           students={students}
+        />
+        <ExtraTimeRequestsCard
+          cardClassName={`${cardClassName} xl:col-span-2`}
+          reviewedBy={enteredBy}
         />
       </div>
 

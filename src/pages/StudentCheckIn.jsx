@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import { scheduleConfig, studentAuthConfig, taskConfig } from '../config/appConfig';
@@ -6,7 +6,11 @@ import { isScheduleActive } from '../features/schedules/validateSchedule';
 import { useSchedules } from '../features/schedules/useSchedules';
 import { useTasks } from '../features/tasks/useTasks';
 import { FORM_TEXTAREA_CLASS_NAME } from '../styles/classNames';
-import { endStudentSession, startStudentSession } from '../features/timeLogs/timeLogService';
+import {
+  endStaleStudentSession,
+  endStudentSession,
+  startStudentSession,
+} from '../features/timeLogs/timeLogService';
 import { useAuth } from '../features/auth/useAuth.jsx';
 
 const normalizeTaskRef = (value) => String(value ?? '')
@@ -33,6 +37,7 @@ const StudentCheckIn = () => {
   const [notes, setNotes] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const staleSessionAttemptRef = useRef('');
   const { signOutStudent, studentSession } = useAuth();
   const { tasks, isLoading: isLoadingTasks, error: tasksError } = useTasks();
   const { schedules, isLoading: isLoadingSchedules, error: schedulesError } = useSchedules();
@@ -112,6 +117,44 @@ const StudentCheckIn = () => {
   useEffect(() => {
     setStatusMessage('');
   }, [formMode, selectedTaskId, notes]);
+
+  useEffect(() => {
+    const activeTimeLogId = studentSession?.[studentAuthConfig.activeTimeLogIdField];
+
+    if (
+      !studentSession?.[studentAuthConfig.signedInField]
+      || !activeTimeLogId
+      || isLoadingSchedules
+      || staleSessionAttemptRef.current === activeTimeLogId
+    ) {
+      return;
+    }
+
+    staleSessionAttemptRef.current = activeTimeLogId;
+
+    endStaleStudentSession({
+      schedules,
+      student: studentSession,
+    }).then(async (didEndSession) => {
+      if (!didEndSession) {
+        return;
+      }
+
+      const destination = studentSession.authMode === 'kiosk' ? '/kiosk' : '/';
+      await signOutStudent();
+      navigate(destination, { replace: true });
+    }).catch((autoCheckoutError) => {
+      setStatusMessage(
+        autoCheckoutError.message || 'Failed to automatically close the previous session.',
+      );
+    });
+  }, [
+    isLoadingSchedules,
+    navigate,
+    schedules,
+    signOutStudent,
+    studentSession,
+  ]);
 
   const handleSignOut = async () => {
     const destination = studentSession?.authMode === 'kiosk' ? '/kiosk' : '/';

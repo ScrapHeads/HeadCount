@@ -18,6 +18,7 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [coachUser, setCoachUser] = useState(null);
   const [kioskUser, setKioskUser] = useState(null);
+  const [studentUser, setStudentUser] = useState(null);
   const [isLoadingCoachAuth, setIsLoadingCoachAuth] = useState(true);
   const { studentSession, setStudentSession } = useStudentSession();
 
@@ -25,6 +26,7 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = watchCoachAuth((user) => {
       setCoachUser(user && !isStudentAuthEmail(user.email) && !isKioskAuthEmail(user.email) ? user : null);
       setKioskUser(user && isKioskAuthEmail(user.email) ? user : null);
+      setStudentUser(user && isStudentAuthEmail(user.email) ? user : null);
       setIsLoadingCoachAuth(false);
     });
 
@@ -35,6 +37,7 @@ export const AuthProvider = ({ children }) => {
     const user = await loginCoach({ email, password });
     setCoachUser(user);
     setKioskUser(null);
+    setStudentUser(null);
     return user;
   };
 
@@ -42,6 +45,7 @@ export const AuthProvider = ({ children }) => {
     const user = await loginKiosk({ email, password });
     setCoachUser(null);
     setKioskUser(user);
+    setStudentUser(null);
     return user;
   };
 
@@ -51,6 +55,10 @@ export const AuthProvider = ({ children }) => {
     if (student.isFirebaseAuthenticated) {
       setCoachUser(null);
       setKioskUser(null);
+      setStudentUser({
+        email: student.authEmail,
+        uid: student.authUid,
+      });
     }
 
     setStudentSession(student);
@@ -64,6 +72,7 @@ export const AuthProvider = ({ children }) => {
 
     if (activeStudentSession?.authMode === 'student') {
       await logoutStudent();
+      setStudentUser(null);
     }
   };
 
@@ -110,6 +119,7 @@ export const AuthProvider = ({ children }) => {
         signInStudent,
         signOutStudent,
         studentSession,
+        studentUser,
         updateStudentSession,
       }}
     >
