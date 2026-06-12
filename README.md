@@ -63,7 +63,7 @@ Firebase config is read from `.env` through Vite environment variables in `src/s
 Current authentication model:
 
 - Coaches sign in with Firebase Authentication using email/password.
-- The main student kiosk signs in once with the configured Firebase Authentication email in `VITE_KIOSK_AUTH_EMAIL`, then students use only their student ID for the sign-in/out form.
+- The main student kiosk signs in once with the configured Firebase Authentication email in `VITE_KIOSK_AUTH_EMAIL`, then students use either their student ID or assigned NFC card for the sign-in/out form.
 - Students can still sign in with a student ID and password from the access portal. The app turns the student ID into a generated Firebase Authentication email.
 - Student passwords live only in Firebase Authentication. Firestore stores the student ID and profile/session fields.
 - Student sessions are stored in `sessionStorage` for the current browser tab.
@@ -75,6 +75,15 @@ Main auth files:
 - `src/services/firestore.js`: student lookup against Firestore.
 - `src/features/auth/useAuth.jsx`: React auth context and shared session state.
 - `src/config/appConfig.js`: configurable Firestore collection name, student ID field, and roster/session fields.
+- `src/config/studentIdGenerator.js`: team-editable automatic student ID format.
+
+## Automatic Student IDs
+
+The coach student-creation form includes a **Generate ID** button. By default, it combines the current year with a random number from `10` through `99`. For example, an ID generated in 2026 could be `202647`.
+
+Before returning an ID, the app checks Firestore to confirm that it is not already used as either a student ID or an NFC card ID. Student creation performs the uniqueness check again before saving.
+
+Teams can change the generated format by editing `generateUniqueStudentId()` in `src/config/studentIdGenerator.js`. Keep the `isAvailable(candidateId)` check in the function so customized IDs remain unique.
 
 ## Firestore Student Collection
 
@@ -90,6 +99,7 @@ Recommended student document shape:
 ```json
 {
   "studentId": "12345",
+  "nfcCardId": null,
   "name": "Jane Doe",
   "currentMember": true,
   "signedIn": false,

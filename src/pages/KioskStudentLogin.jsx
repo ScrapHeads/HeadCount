@@ -31,12 +31,12 @@ const KioskStudentLogin = () => {
   const handleStudentLogin = async (e) => {
     e.preventDefault();
     if (!studentId) {
-      setError('Please enter your student ID.');
+      setError('Please enter your student ID or scan your NFC card.');
       return;
     }
 
     if (!kioskUser) {
-      setError('This device must be signed in as the student kiosk before students can use ID-only sign-in.');
+      setError('This device must be signed in as the student kiosk before students can sign in or scan a card.');
       return;
     }
 
@@ -92,24 +92,26 @@ const KioskStudentLogin = () => {
                 Student Hours
               </p>
               <h2 className="text-3xl font-semibold tracking-tight text-on-primary">
-                Enter your student ID
+                Enter your student ID or scan your NFC card
               </h2>
             </div>
 
             {!isLoadingCoachAuth && !kioskUser && (
               <div className="mb-4 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
-                Sign in this device as the student kiosk before using ID-only student sign-in.
+                Sign in this device as the student kiosk before students enter an ID or scan a card.
               </div>
             )}
 
             <form className="space-y-4" onSubmit={handleStudentLogin}>
               <Input
+                autoComplete="off"
+                autoFocus
                 className="placeholder:!text-on-secondary focus:border-accent focus:ring-accent/15"
-                label="Student ID"
+                label="Student ID or NFC Card ID"
                 type="text"
                 value={studentId}
                 onChange={e => setStudentId(e.target.value)}
-                placeholder="Enter your student ID"
+                placeholder="Enter student ID or scan card"
                 required
               />
               <Button className="bg-secondary border-2 border-transparent text-on-secondary hover:border-accent" disabled={isSubmitting || isLoadingCoachAuth || !kioskUser} type="submit">
@@ -124,7 +126,7 @@ const KioskStudentLogin = () => {
             )}
 
             <p className="mt-4 text-center text-xs leading-5 text-on-primary ">
-              Students are matched against Firestore before entering the hours form.
+              NFC scanners that type the card serial number and press Enter are supported.
             </p>
 
             <button

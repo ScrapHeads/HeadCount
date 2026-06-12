@@ -1,4 +1,8 @@
-import { findStudentRecord, updateStudentRecord } from '../../services/firestore';
+import {
+  findStudentRecord,
+  findStudentRecordByIdentifier,
+  updateStudentRecord,
+} from '../../services/firestore';
 import { studentAuthConfig } from '../../config/appConfig';
 import {
   getCurrentAuthUser,
@@ -62,15 +66,19 @@ export const loginStudent = async ({ studentId, password, requirePassword = fals
     kioskAuthUser = getCurrentAuthUser();
 
     if (!isKioskAuthEmail(kioskAuthUser?.email)) {
-      throw new Error('This device must be signed in as the student kiosk before students can use ID-only sign-in.');
+      throw new Error('This device must be signed in as the student kiosk before students can enter an ID or scan a card.');
     }
   }
 
   try {
-    studentRecord = await findStudentRecord(studentId);
+    studentRecord = requirePassword
+      ? await findStudentRecord(studentId)
+      : await findStudentRecordByIdentifier(studentId);
 
     if (!studentRecord) {
-      throw new Error('Student ID not found.');
+      throw new Error(requirePassword
+        ? 'Student ID not found.'
+        : 'Student ID or NFC card ID not found.');
     }
 
     if (studentRecord.active === false) {

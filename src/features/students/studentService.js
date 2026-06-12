@@ -6,6 +6,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { studentAuthConfig } from '../../config/appConfig';
+import { generateUniqueStudentId } from '../../config/studentIdGenerator';
 import {
   createStudentAuthAccount,
   deleteStudentAuthAccount,
@@ -14,7 +15,13 @@ import {
   updateExistingStudentAuthPassword,
 } from '../../services/auth';
 import { db } from '../../services/firebase';
-import { createDocument, findStudentRecord, updateDocument } from '../../services/firestore';
+import {
+  createDocument,
+  findStudentRecord,
+  findStudentRecordByNfcCardId,
+  normalizeNfcCardId,
+  updateDocument,
+} from '../../services/firestore';
 
 const nullableString = (value) => {
   const trimmedValue = String(value ?? '').trim();
@@ -22,11 +29,17 @@ const nullableString = (value) => {
   return trimmedValue || null;
 };
 
-export const buildStudentCreatePayload = ({ currentMember, name, studentId }) => ({
+export const buildStudentCreatePayload = ({
+  currentMember,
+  name,
+  nfcCardId,
+  studentId,
+}) => ({
   [studentAuthConfig.activeTimeLogIdField]: null,
   [studentAuthConfig.currentTaskField]: null,
   [studentAuthConfig.currentTaskIdField]: null,
   name: nullableString(name),
+  [studentAuthConfig.nfcCardIdField]: normalizeNfcCardId(nfcCardId) || null,
   [studentAuthConfig.signedInField]: null,
   [studentAuthConfig.signedInAtField]: null,
   [studentAuthConfig.idField]: normalizeStudentAuthId(studentId),
@@ -70,7 +83,43 @@ export const watchStudents = (callback, onError) => {
   );
 };
 
-export const createStudent = async ({ currentMember = true, name, password, studentId }) => {
+const assertNfcCardIdAvailable = async ({ nfcCardId, studentDocId = null }) => {
+  const normalizedNfcCardId = normalizeNfcCardId(nfcCardId);
+
+  if (!normalizedNfcCardId) {
+    return;
+  }
+
+  const [studentWithCard, studentWithMatchingId] = await Promise.all([
+    findStudentRecordByNfcCardId(normalizedNfcCardId),
+    findStudentRecord(normalizedNfcCardId),
+  ]);
+  const conflictingStudent = [studentWithCard, studentWithMatchingId]
+    .find((student) => student && student.id !== studentDocId);
+
+  if (conflictingStudent) {
+    throw new Error('That NFC card ID is already assigned to another student.');
+  }
+};
+
+export const generateAvailableStudentId = () => generateUniqueStudentId({
+  isAvailable: async (candidateId) => {
+    const [studentWithId, studentWithCardId] = await Promise.all([
+      findStudentRecord(candidateId),
+      findStudentRecordByNfcCardId(candidateId),
+    ]);
+
+    return !studentWithId && !studentWithCardId;
+  },
+});
+
+export const createStudent = async ({
+  currentMember = true,
+  name,
+  nfcCardId,
+  password,
+  studentId,
+}) => {
   const normalizedStudentId = normalizeStudentAuthId(studentId);
 
   if (!nullableString(name)) {
@@ -95,6 +144,14 @@ export const createStudent = async ({ currentMember = true, name, password, stud
     throw new Error('A student record already exists for this student ID.');
   }
 
+  const studentWithMatchingCardId = await findStudentRecordByNfcCardId(normalizedStudentId);
+
+  if (studentWithMatchingCardId) {
+    throw new Error('That student ID is already assigned as another student\'s NFC card ID.');
+  }
+
+  await assertNfcCardIdAvailable({ nfcCardId });
+
   let studentAuthUser = null;
 
   try {
@@ -106,6 +163,7 @@ export const createStudent = async ({ currentMember = true, name, password, stud
     const studentData = buildStudentCreatePayload({
       currentMember,
       name,
+      nfcCardId,
       studentId: normalizedStudentId,
     });
     const studentDocId = await createDocument(studentAuthConfig.collectionName, studentData);
@@ -132,14 +190,33 @@ export const updateStudent = async ({ password, studentDocId, updates }) => {
     throw new Error('Student document ID is required.');
   }
 
+  const normalizedUpdates = { ...updates };
+  const includesNfcCardId = Object.prototype.hasOwnProperty.call(
+    normalizedUpdates,
+    studentAuthConfig.nfcCardIdField,
+  );
+
+  if (includesNfcCardId) {
+    normalizedUpdates[studentAuthConfig.nfcCardIdField] = (
+      normalizeNfcCardId(normalizedUpdates[studentAuthConfig.nfcCardIdField]) || null
+    );
+  }
+
   if (password) {
     await updateExistingStudentAuthPassword();
   }
 
-  await updateDocument(studentAuthConfig.collectionName, studentDocId, updates);
+  if (includesNfcCardId) {
+    await assertNfcCardIdAvailable({
+      nfcCardId: normalizedUpdates[studentAuthConfig.nfcCardIdField],
+      studentDocId,
+    });
+  }
+
+  await updateDocument(studentAuthConfig.collectionName, studentDocId, normalizedUpdates);
 
   return {
     id: studentDocId,
-    ...updates,
+    ...normalizedUpdates,
   };
 };

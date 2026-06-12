@@ -13,8 +13,12 @@ import {
 import { studentAuthConfig } from '../config/appConfig';
 import { db } from './firebase';
 
-const normalizeStudentId = (studentId) => studentId.trim();
+const normalizeStudentId = (studentId) => String(studentId ?? '').trim();
 const isNumericString = (value) => /^-?\d+(\.\d+)?$/.test(value);
+
+export const normalizeNfcCardId = (nfcCardId) => (
+  String(nfcCardId ?? '').trim().toLowerCase()
+);
 
 const buildCandidateValues = (studentId) => {
   const candidates = [];
@@ -72,6 +76,56 @@ export const findStudentRecord = async (studentId) => {
   }
 
   return null;
+};
+
+export const findStudentRecordByNfcCardId = async (nfcCardId) => {
+  const normalizedNfcCardId = normalizeNfcCardId(nfcCardId);
+
+  if (!normalizedNfcCardId) {
+    return null;
+  }
+
+  try {
+    const studentQuery = query(
+      collection(db, studentAuthConfig.collectionName),
+      where(studentAuthConfig.nfcCardIdField, '==', normalizedNfcCardId),
+      limit(1),
+    );
+    const studentSnapshot = await getDocs(studentQuery);
+
+    if (studentSnapshot.empty) {
+      return null;
+    }
+
+    const matchingStudent = studentSnapshot.docs[0];
+
+    return {
+      id: matchingStudent.id,
+      ...matchingStudent.data(),
+    };
+  } catch (error) {
+    if (error?.code === 'permission-denied') {
+      throw new Error('Firestore denied NFC card lookup. Check your Firestore security rules.');
+    }
+
+    throw new Error(`NFC card lookup failed: ${error?.message || 'unknown Firestore error'}`);
+  }
+};
+
+export const findStudentRecordByIdentifier = async (identifier) => {
+  const normalizedIdentifier = String(identifier ?? '').trim();
+
+  if (!normalizedIdentifier) {
+    throw new Error('Student ID or NFC card ID is required.');
+  }
+
+  const studentById = await findStudentRecord(normalizedIdentifier);
+
+  if (studentById) {
+    return studentById;
+  }
+
+  return findStudentRecordByNfcCardId(normalizedIdentifier);
 };
 
 export const updateStudentRecord = async (studentDocId, updates) => {

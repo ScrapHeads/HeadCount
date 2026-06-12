@@ -11,7 +11,11 @@ import { reviewExtraTimeRequest } from '../../features/extraTimeRequests/extraTi
 import { useExtraTimeRequests } from '../../features/extraTimeRequests/useExtraTimeRequests';
 import { isScheduleActive } from '../../features/schedules/validateSchedule';
 import { useSchedules } from '../../features/schedules/useSchedules';
-import { createStudent, updateStudent } from '../../features/students/studentService';
+import {
+  createStudent,
+  generateAvailableStudentId,
+  updateStudent,
+} from '../../features/students/studentService';
 import { useStudents } from '../../features/students/useStudents';
 import { useTasks } from '../../features/tasks/useTasks';
 import { useCompletedTimeLogs } from '../../features/timeLogs/useCompletedTimeLogs';
@@ -43,6 +47,7 @@ const timeLogsPageSize = 10;
 const emptyCreateForm = {
   currentMember: true,
   name: '',
+  nfcCardId: '',
   password: '',
   studentId: '',
 };
@@ -50,6 +55,7 @@ const emptyCreateForm = {
 const emptyEditForm = {
   currentMember: false,
   name: '',
+  nfcCardId: '',
   password: '',
   studentId: '',
 };
@@ -237,6 +243,7 @@ const StudentDropdown = ({
 const CreateStudentCard = ({ cardClassName }) => {
   const [form, setForm] = useState(emptyCreateForm);
   const [showPassword, setShowPassword] = useState(false);
+  const [isGeneratingId, setIsGeneratingId] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState({ message: '', tone: 'muted' });
 
@@ -246,6 +253,27 @@ const CreateStudentCard = ({ cardClassName }) => {
       [field]: value,
     }));
     setStatus({ message: '', tone: 'muted' });
+  };
+
+  const handleGenerateStudentId = async () => {
+    setIsGeneratingId(true);
+    setStatus({ message: '', tone: 'muted' });
+
+    try {
+      const generatedStudentId = await generateAvailableStudentId();
+
+      setForm((currentForm) => ({
+        ...currentForm,
+        studentId: generatedStudentId,
+      }));
+    } catch (error) {
+      setStatus({
+        message: error?.message || 'Failed to generate an available student ID.',
+        tone: 'error',
+      });
+    } finally {
+      setIsGeneratingId(false);
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -290,15 +318,40 @@ const CreateStudentCard = ({ cardClassName }) => {
           />
         </label>
 
-        <label className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-on-primary">Student ID</span>
+          <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <input
+              aria-label="Student ID"
+              className={`${FORM_INPUT_CLASS_NAME} min-w-0`}
+              onChange={(event) => handleFieldChange('studentId', event.target.value)}
+              placeholder="202610"
+              required
+              type="text"
+              value={form.studentId}
+            />
+            <Button
+              className="!w-full whitespace-nowrap bg-secondary sm:!w-auto sm:px-3"
+              disabled={isGeneratingId || isSaving}
+              onClick={handleGenerateStudentId}
+              type="button"
+            >
+              {isGeneratingId ? 'Checking...' : 'Generate'}
+            </Button>
+          </div>
+          <p className="text-xs text-on-primary/80">
+            Generates the current year plus a unique random number from 10-99.
+          </p>
+        </div>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-on-primary">NFC Card ID (optional)</span>
           <input
             className={FORM_INPUT_CLASS_NAME}
-            onChange={(event) => handleFieldChange('studentId', event.target.value)}
-            placeholder="12345"
-            required
+            onChange={(event) => handleFieldChange('nfcCardId', event.target.value)}
+            placeholder="Scan card or enter its serial number"
             type="text"
-            value={form.studentId}
+            value={form.nfcCardId}
           />
         </label>
 
@@ -338,7 +391,7 @@ const CreateStudentCard = ({ cardClassName }) => {
           </div>
         </fieldset>
 
-        <Button disabled={isSaving} type="submit">
+        <Button disabled={isSaving || isGeneratingId} type="submit">
           {isSaving ? 'Creating Student...' : 'Create Student'}
         </Button>
       </form>
@@ -885,6 +938,7 @@ const EditStudentCard = ({
     setForm({
       currentMember: getCurrentMemberValue(selectedStudent),
       name: selectedStudent.name ?? '',
+      nfcCardId: selectedStudent[studentAuthConfig.nfcCardIdField] ?? '',
       password: '',
       studentId: getStudentId(selectedStudent),
     });
@@ -935,6 +989,7 @@ const EditStudentCard = ({
     try {
       const updates = {
         name: nullableString(form.name),
+        [studentAuthConfig.nfcCardIdField]: nullableString(form.nfcCardId),
         [studentAuthConfig.idField]: normalizedStudentId,
         [studentAuthConfig.currentMemberField]: form.currentMember,
       };
@@ -1007,6 +1062,17 @@ const EditStudentCard = ({
               required
               type="text"
               value={form.studentId}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5 md:col-span-2">
+            <span className="text-sm font-medium text-on-primary">NFC Card ID (optional)</span>
+            <input
+              className={FORM_INPUT_CLASS_NAME}
+              onChange={(event) => handleFieldChange('nfcCardId', event.target.value)}
+              placeholder="Scan card or enter its serial number"
+              type="text"
+              value={form.nfcCardId}
             />
           </label>
 
@@ -1210,33 +1276,35 @@ const StudentTimeLogsCard = ({
                       <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Status</th>
                       <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Start</th>
                       <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>End</th>
-                      <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} text-right`}>Hours</th>
-                      <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} text-right`}>Action</th>
+                      <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Hours</th>
+                      <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {visibleLogs.map((log) => {
                       const durationMinutes = getDurationMinutes(log);
                       const isActive = log[timeLogConfig.statusField] === timeLogConfig.activeStatus;
+                      const signInAt = log[timeLogConfig.signInAtField];
+                      const signOutAt = log[timeLogConfig.signOutAtField];
 
                       return (
                         <tr key={log.id}>
-                          <td className="rounded-l-2xl border-y border-l border-border bg-transparent px-4 py-4 text-sm text-on-primary">
+                          <td className="rounded-l-2xl border-y border-l border-border bg-transparent px-4 py-4 text-center text-sm text-on-primary">
                             <span className="font-semibold">
                               {formatTaskName(log[timeLogConfig.taskNameField], 'Task')}
                             </span>
                           </td>
-                          <td className={tableCellClassName}>{isActive ? 'Active' : 'Completed'}</td>
-                          <td className={`${tableCellClassName} whitespace-nowrap`}>
-                            {formatLogDateTime(log[timeLogConfig.signInAtField])}
+                          <td className={`${tableCellClassName} text-center`}>{isActive ? 'Active' : 'Completed'}</td>
+                          <td className={`${tableCellClassName} whitespace-nowrap text-center`}>
+                            {formatLogDateTime(signInAt)}
                           </td>
-                          <td className={`${tableCellClassName} whitespace-nowrap`}>
-                            {formatLogDateTime(log[timeLogConfig.signOutAtField])}
+                          <td className={`${tableCellClassName} whitespace-nowrap text-center`}>
+                            {formatLogDateTime(signOutAt)}
                           </td>
-                          <td className={`${tableCellClassName} text-right font-semibold`}>
+                          <td className={`${tableCellClassName} text-center font-semibold`}>
                             {minutesToHours(durationMinutes).toFixed(2)}
                           </td>
-                          <td className="rounded-r-2xl border-y border-r border-border bg-transparent px-4 py-4 text-right">
+                          <td className="rounded-r-2xl border-y border-r border-border bg-transparent px-4 py-4 text-center">
                             <button
                               className="inline-flex items-center justify-center bg-secondary rounded-xl border border-border px-4 py-2 text-sm font-semibold text-on-secondary transition hover:bg-accent/10"
                               onClick={() => setSelectedLogId(log.id)}

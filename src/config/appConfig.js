@@ -1,6 +1,7 @@
 export const studentAuthConfig = {
   collectionName: 'students',
   idField: 'studentId',
+  nfcCardIdField: 'nfcCardId',
   authEmailDomain: 'myapp.internal',
   signedInField: 'signedIn',
   currentTaskField: 'currentTask',
