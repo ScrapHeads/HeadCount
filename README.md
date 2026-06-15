@@ -72,10 +72,58 @@ Main auth files:
 
 - `src/services/firebase.js`: Firebase app, Auth, and Firestore initialization.
 - `src/services/auth.js`: coach, kiosk, and student auth helpers.
+- `src/services/adminFunctions.js`: client wrapper for trusted credential-management functions.
 - `src/services/firestore.js`: student lookup against Firestore.
 - `src/features/auth/useAuth.jsx`: React auth context and shared session state.
 - `src/config/appConfig.js`: configurable Firestore collection name, student ID field, and roster/session fields.
 - `src/config/studentIdGenerator.js`: team-editable automatic student ID format.
+
+## Coach Credential Management
+
+Changing an existing Student ID also changes the generated Firebase Authentication email used for password login. Password resets and Student ID changes therefore run through the trusted Firebase Admin backend in `functions/index.js`; they are not performed directly by browser code.
+
+The callable function:
+
+- Updates the student Firebase Authentication email when the Student ID changes.
+- Resets the password when the coach enters a new password.
+- Revokes existing password-authenticated sessions after a credential change.
+- Updates the Student ID on the student record, time logs, and extra-time requests.
+- Rejects IDs already used by another student or NFC card.
+- Allows callers with a `coach: true` custom claim or an email listed in `COACH_EMAILS`.
+
+Configure the backend:
+
+```powershell
+Copy-Item functions\.env.example functions\.env
+```
+
+Edit `functions/.env`:
+
+```dotenv
+COACH_EMAILS=leadcoach@example.com,assistantcoach@example.com
+STUDENT_AUTH_EMAIL_DOMAIN=myapp.internal
+```
+
+`STUDENT_AUTH_EMAIL_DOMAIN` must match `studentAuthConfig.authEmailDomain` in `src/config/appConfig.js`. Every coach who needs to reset credentials must either be listed in `COACH_EMAILS` or have a Firebase Authentication custom claim named `coach` set to `true`.
+
+Install and deploy the backend:
+
+```powershell
+Set-Location functions
+npm.cmd install
+Set-Location ..
+firebase deploy --only functions
+```
+
+Cloud Functions for Firebase deployment requires the Firebase project to have billing enabled. After deploying, the Vercel frontend calls the function directly through the Firebase Web SDK.
+
+If every Student ID or password change fails while ordinary profile edits still work, inspect the deployed function's runtime service account in Google Cloud IAM. It must have the **Firebase Authentication Admin** role (`roles/firebaseauth.admin`). Second-generation functions commonly run as the project's default Compute Engine service account unless a different runtime service account was selected during deployment.
+
+After changing the function code or its environment configuration, redeploy it:
+
+```powershell
+npx.cmd firebase-tools deploy --only functions --project robotics-time-tracker-demo
+```
 
 ## Automatic Student IDs
 
@@ -181,6 +229,8 @@ firebase deploy --only firestore:rules
 ```
 
 Important security note: with the current client-only app, any signed-in non-student, non-kiosk Firebase Auth user is treated as a coach by the rules. For a stricter production setup, use Firebase custom claims such as `coach: true` and update `isCoach()` to check that claim instead of using email shape.
+
+The credential-management callable function is stricter than the current Firestore rules: it requires the `coach: true` custom claim or membership in the deployed `COACH_EMAILS` allowlist.
 
 ## Notes For Teams
 

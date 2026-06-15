@@ -12,8 +12,8 @@ import {
   deleteStudentAuthAccount,
   normalizeStudentAuthId,
   signOutStudentManagementAuth,
-  updateExistingStudentAuthPassword,
 } from '../../services/auth';
+import { updateStudentCredentials } from '../../services/adminFunctions';
 import { db } from '../../services/firebase';
 import {
   createDocument,
@@ -29,7 +29,7 @@ const nullableString = (value) => {
   return trimmedValue || null;
 };
 
-export const buildStudentCreatePayload = ({
+const buildStudentCreatePayload = ({
   currentMember,
   name,
   nfcCardId,
@@ -185,38 +185,54 @@ export const createStudent = async ({
   }
 };
 
-export const updateStudent = async ({ password, studentDocId, updates }) => {
+export const updateStudent = async ({
+  originalStudentId,
+  password,
+  studentDocId,
+  updates,
+}) => {
   if (!studentDocId) {
     throw new Error('Student document ID is required.');
   }
 
   const normalizedUpdates = { ...updates };
+  const normalizedOriginalStudentId = normalizeStudentAuthId(originalStudentId);
+  const normalizedStudentId = normalizeStudentAuthId(
+    normalizedUpdates[studentAuthConfig.idField] ?? normalizedOriginalStudentId,
+  );
   const includesNfcCardId = Object.prototype.hasOwnProperty.call(
     normalizedUpdates,
     studentAuthConfig.nfcCardIdField,
+  );
+  const credentialsChanged = (
+    Boolean(password)
+    || normalizedStudentId !== normalizedOriginalStudentId
   );
 
   if (includesNfcCardId) {
     normalizedUpdates[studentAuthConfig.nfcCardIdField] = (
       normalizeNfcCardId(normalizedUpdates[studentAuthConfig.nfcCardIdField]) || null
     );
-  }
-
-  if (password) {
-    await updateExistingStudentAuthPassword();
-  }
-
-  if (includesNfcCardId) {
     await assertNfcCardIdAvailable({
       nfcCardId: normalizedUpdates[studentAuthConfig.nfcCardIdField],
       studentDocId,
     });
   }
 
+  if (credentialsChanged) {
+    await updateStudentCredentials({
+      password,
+      studentDocId,
+      studentId: normalizedStudentId,
+    });
+  }
+
+  delete normalizedUpdates[studentAuthConfig.idField];
   await updateDocument(studentAuthConfig.collectionName, studentDocId, normalizedUpdates);
 
   return {
     id: studentDocId,
+    [studentAuthConfig.idField]: normalizedStudentId,
     ...normalizedUpdates,
   };
 };

@@ -141,10 +141,6 @@ export const deleteStudentAuthAccount = (studentAuthUser) => {
 
 export const signOutStudentManagementAuth = () => signOut(getStudentManagementAuth());
 
-export const updateExistingStudentAuthPassword = async () => {
-  throw new Error('Changing an existing student password requires a trusted Firebase Admin backend.');
-};
-
 export const signOutCurrentAuthUser = () => signOut(auth);
 
 export const signOutCoach = () => signOutCurrentAuthUser();

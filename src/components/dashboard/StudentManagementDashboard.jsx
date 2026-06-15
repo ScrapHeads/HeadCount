@@ -908,6 +908,7 @@ const EditStudentCard = ({
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [form, setForm] = useState(emptyEditForm);
   const [showPassword, setShowPassword] = useState(false);
+  const [isGeneratingId, setIsGeneratingId] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState({ message: '', tone: 'muted' });
 
@@ -954,6 +955,27 @@ const EditStudentCard = ({
     setStatus({ message: '', tone: 'muted' });
   };
 
+  const handleGenerateStudentId = async () => {
+    setIsGeneratingId(true);
+    setStatus({ message: '', tone: 'muted' });
+
+    try {
+      const generatedStudentId = await generateAvailableStudentId();
+
+      setForm((currentForm) => ({
+        ...currentForm,
+        studentId: generatedStudentId,
+      }));
+    } catch (error) {
+      setStatus({
+        message: error?.message || 'Failed to generate an available student ID.',
+        tone: 'error',
+      });
+    } finally {
+      setIsGeneratingId(false);
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -975,14 +997,6 @@ const EditStudentCard = ({
       return;
     }
 
-    if (normalizedStudentId !== originalStudentId) {
-      setStatus({
-        message: 'Student ID changes require a matching Firebase Auth update through a trusted Firebase Admin backend.',
-        tone: 'error',
-      });
-      return;
-    }
-
     setIsSaving(true);
     setStatus({ message: '', tone: 'muted' });
 
@@ -995,6 +1009,7 @@ const EditStudentCard = ({
       };
 
       await updateStudent({
+        originalStudentId,
         password: trimmedPassword,
         studentDocId: selectedStudent.id,
         updates,
@@ -1021,7 +1036,7 @@ const EditStudentCard = ({
       <div className="border-b border-border pb-5">
         <h3 className="text-lg font-semibold text-on-primary">Edit Student</h3>
         <p className="mt-2 text-sm leading-6 text-on-primary/90">
-          Select a student and update their Firestore profile fields.
+          Update profile details, generate a new student ID, or reset the student password.
         </p>
       </div>
 
@@ -1054,16 +1069,27 @@ const EditStudentCard = ({
             />
           </label>
 
-          <label className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-on-primary">Student ID</span>
-            <input
-              className={FORM_INPUT_CLASS_NAME}
-              onChange={(event) => handleFieldChange('studentId', event.target.value)}
-              required
-              type="text"
-              value={form.studentId}
-            />
-          </label>
+            <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <input
+                aria-label="Student ID"
+                className={`${FORM_INPUT_CLASS_NAME} min-w-0`}
+                onChange={(event) => handleFieldChange('studentId', event.target.value)}
+                required
+                type="text"
+                value={form.studentId}
+              />
+              <Button
+                className="!w-full whitespace-nowrap bg-secondary sm:!w-auto sm:px-3"
+                disabled={isGeneratingId || isSaving}
+                onClick={handleGenerateStudentId}
+                type="button"
+              >
+                {isGeneratingId ? 'Checking...' : 'Generate'}
+              </Button>
+            </div>
+          </div>
 
           <label className="flex flex-col gap-1.5 md:col-span-2">
             <span className="text-sm font-medium text-on-primary">NFC Card ID (optional)</span>
@@ -1105,7 +1131,7 @@ const EditStudentCard = ({
           <div className="md:col-span-2">
             <PasswordField
               id="edit-student-password"
-              label="New password"
+              label="Reset password (optional)"
               onChange={(value) => handleFieldChange('password', value)}
               placeholder="Leave blank to keep password"
               showPassword={showPassword}
@@ -1115,7 +1141,11 @@ const EditStudentCard = ({
           </div>
 
           <div className="md:col-span-2">
-            <Button className="md:w-auto" disabled={isSaving} type="submit">
+            <Button
+              className="md:w-auto"
+              disabled={isSaving || isGeneratingId}
+              type="submit"
+            >
               {isSaving ? 'Saving Student...' : 'Save Student'}
             </Button>
           </div>
