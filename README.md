@@ -76,6 +76,7 @@ Main auth files:
 - `src/services/firestore.js`: student lookup against Firestore.
 - `src/features/auth/useAuth.jsx`: React auth context and shared session state.
 - `src/config/appConfig.js`: configurable Firestore collection name, student ID field, and roster/session fields.
+- `functions/sharedConfig.json`: defaults shared by the frontend and trusted backend.
 - `src/config/studentIdGenerator.js`: team-editable automatic student ID format.
 
 ## Coach Credential Management
@@ -104,7 +105,12 @@ COACH_EMAILS=leadcoach@example.com,assistantcoach@example.com
 STUDENT_AUTH_EMAIL_DOMAIN=myapp.internal
 ```
 
-`STUDENT_AUTH_EMAIL_DOMAIN` must match `studentAuthConfig.authEmailDomain` in `src/config/appConfig.js`. Every coach who needs to reset credentials must either be listed in `COACH_EMAILS` or have a Firebase Authentication custom claim named `coach` set to `true`.
+The frontend and Functions use `functions/sharedConfig.json` for the default student
+authentication domain and password policy. When overriding
+`STUDENT_AUTH_EMAIL_DOMAIN`, set `VITE_STUDENT_AUTH_EMAIL_DOMAIN` to the same value
+in the frontend environment. Every coach who needs to reset credentials must either
+be listed in `COACH_EMAILS` or have a Firebase Authentication custom claim named
+`coach` set to `true`.
 
 Install and deploy the backend:
 
@@ -214,7 +220,9 @@ This repo includes Firebase CLI config and Firestore rules:
 - `firestore.rules`
 - `firestore.indexes.json`
 
-Before deploying the rules, update the `kioskEmail()` value in `firestore.rules` so it exactly matches `VITE_KIOSK_AUTH_EMAIL` from your `.env`.
+Before deploying the rules, update the `kioskEmail()` value in `firestore.rules` so it
+exactly matches `VITE_KIOSK_AUTH_EMAIL` from your `.env`. If you change the student
+authentication domain, also update the email suffix checked by `isStudentAuth()`.
 
 The default rules assume this authentication model:
 

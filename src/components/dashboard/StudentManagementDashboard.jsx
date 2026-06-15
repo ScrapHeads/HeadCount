@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   extraTimeRequestConfig,
-  scheduleConfig,
   studentAuthConfig,
   taskConfig,
   timeLogConfig,
@@ -9,7 +8,6 @@ import {
 import { useAuth } from '../../features/auth/useAuth.jsx';
 import { reviewExtraTimeRequest } from '../../features/extraTimeRequests/extraTimeRequestService';
 import { useExtraTimeRequests } from '../../features/extraTimeRequests/useExtraTimeRequests';
-import { isScheduleActive } from '../../features/schedules/validateSchedule';
 import { useSchedules } from '../../features/schedules/useSchedules';
 import {
   createStudent,
@@ -17,6 +15,7 @@ import {
   updateStudent,
 } from '../../features/students/studentService';
 import { useStudents } from '../../features/students/useStudents';
+import { getAvailableSignInTasks } from '../../features/tasks/taskUtils';
 import { useTasks } from '../../features/tasks/useTasks';
 import { useCompletedTimeLogs } from '../../features/timeLogs/useCompletedTimeLogs';
 import {
@@ -30,8 +29,13 @@ import {
   isCompletedLog,
   minutesToHours,
 } from '../../lib/analyticsUtils';
+import { MISSING_VALUE_LABEL } from '../../lib/constants';
 import { toDate } from '../../lib/dateUtils';
 import { isCurrentMember } from '../../lib/studentUtils';
+import {
+  getMinimumLengthMessage,
+  nullableString,
+} from '../../lib/validators';
 import {
   DASHBOARD_CARD_CLASS_NAME,
   DASHBOARD_TABLE_HEADER_CLASS_NAME,
@@ -39,6 +43,7 @@ import {
   FORM_TEXTAREA_CLASS_NAME,
 } from '../../styles/classNames';
 import Button from '../shared/Button';
+import CardMessage from '../shared/CardMessage';
 import Dropdown from '../shared/Dropdown';
 import TimeLogEditorDialog from './TimeLogEditorDialog';
 
@@ -74,12 +79,6 @@ const currentMemberOptions = [
   },
 ];
 
-const nullableString = (value) => {
-  const trimmedValue = String(value ?? '').trim();
-
-  return trimmedValue || null;
-};
-
 const normalizeStudentId = (studentId) => String(studentId ?? '').trim().toLowerCase();
 
 const getStudentName = (student) => String(student?.name ?? '').trim() || 'Student';
@@ -92,36 +91,6 @@ const sortStudentsByName = (students) => [...students].sort((left, right) => (
   getStudentName(left).localeCompare(getStudentName(right))
   || getStudentId(left).localeCompare(getStudentId(right))
 ));
-
-const normalizeTaskRef = (value) => String(value ?? '')
-  .trim()
-  .toLowerCase()
-  .replace(/[\s_-]+/g, '');
-
-const getAvailableSignInTasks = (tasks, schedules) => {
-  const activeScheduledTaskIds = new Set();
-  const currentTime = new Date();
-
-  schedules
-    .filter((schedule) => isScheduleActive(schedule, currentTime))
-    .forEach((schedule) => {
-      activeScheduledTaskIds.add(normalizeTaskRef(schedule[scheduleConfig.taskIdField]));
-    });
-
-  return tasks.filter((task) => {
-    if (!task[taskConfig.scheduledField]) {
-      return true;
-    }
-
-    const taskIdKey = normalizeTaskRef(task.id);
-    const taskNameKey = normalizeTaskRef(task[taskConfig.nameField]);
-
-    return (
-      activeScheduledTaskIds.has(taskIdKey)
-      || activeScheduledTaskIds.has(taskNameKey)
-    );
-  });
-};
 
 const formatLogDateTime = (value) => {
   const date = toDate(value);
@@ -170,18 +139,6 @@ const getStudentTotalMinutes = (student, totalsByStudent) => {
 
   return 0;
 };
-
-const CardMessage = ({ children, tone = 'muted' }) => (
-  <div
-    className={`mt-5 rounded-2xl border px-4 py-4 text-sm ${
-      tone === 'error'
-        ? 'border-accent/30 bg-accent/12 text-on-primary'
-        : 'border-border bg-accent/10 text-on-primary/90'
-    }`}
-  >
-    {children}
-  </div>
-);
 
 const PasswordField = ({
   id,
@@ -446,7 +403,9 @@ const ActiveRosterCard = ({
                 <td className={`${tableCellClassName} rounded-l-xl border-l font-semibold`}>
                   {getStudentName(student)}
                 </td>
-                <td className={tableCellClassName}>{getStudentId(student) || 'Not set'}</td>
+                <td className={tableCellClassName}>
+                  {getStudentId(student) || MISSING_VALUE_LABEL}
+                </td>
                 <td className={`${tableCellClassName} rounded-r-xl border-r text-right font-semibold`}>
                   {student.totalHours.toFixed(1)}
                 </td>
@@ -707,7 +666,9 @@ const ExtraHoursCard = ({
   return (
     <article className={cardClassName}>
       <div className="border-b border-border pb-5">
-        <h3 className="text-lg font-semibold text-on-primary">Extra Hours</h3>
+        <h3 className="text-lg font-semibold text-on-primary">
+          {timeLogConfig.extraTimeTaskName}
+        </h3>
         <p className="mt-2 text-sm leading-6 text-on-primary/90">
           Add completed manual hours with a reason for reports.
         </p>
@@ -762,7 +723,7 @@ const ExtraHoursCard = ({
           </label>
 
           <Button disabled={isSaving} type="submit">
-            {isSaving ? 'Adding Hours...' : 'Add Extra Hours'}
+            {isSaving ? 'Adding Hours...' : `Add ${timeLogConfig.extraTimeTaskName}`}
           </Button>
         </form>
       )}
@@ -814,7 +775,8 @@ const ExtraTimeRequestsCard = ({ cardClassName, reviewedBy }) => {
       <div className="border-b border-border pb-5">
         <h3 className="text-lg font-semibold text-on-primary">Extra Time Requests</h3>
         <p className="mt-2 text-sm leading-6 text-on-primary/90">
-          Approve requests to create completed Extra Hours logs, or deny them without adding hours.
+          Approve requests to create completed {timeLogConfig.extraTimeTaskName} logs,
+          or deny them without adding hours.
         </p>
       </div>
 
@@ -989,8 +951,17 @@ const EditStudentCard = ({
       return;
     }
 
-    if (trimmedPassword && trimmedPassword.length < 6) {
-      setStatus({ message: 'Student passwords must be at least 6 characters.', tone: 'error' });
+    if (
+      trimmedPassword
+      && trimmedPassword.length < studentAuthConfig.minPasswordLength
+    ) {
+      setStatus({
+        message: getMinimumLengthMessage(
+          'Student passwords',
+          studentAuthConfig.minPasswordLength,
+        ),
+        tone: 'error',
+      });
       return;
     }
 

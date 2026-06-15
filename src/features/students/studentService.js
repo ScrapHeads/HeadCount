@@ -9,6 +9,10 @@ import { studentAuthConfig } from '../../config/appConfig';
 import { generateUniqueStudentId } from '../../config/studentIdGenerator';
 import { isCurrentMember } from '../../lib/studentUtils';
 import {
+  getMinimumLengthMessage,
+  nullableString,
+} from '../../lib/validators';
+import {
   createStudentAuthAccount,
   deleteStudentAuthAccount,
   normalizeStudentAuthId,
@@ -23,12 +27,6 @@ import {
   normalizeNfcCardId,
   updateDocument,
 } from '../../services/firestore';
-
-const nullableString = (value) => {
-  const trimmedValue = String(value ?? '').trim();
-
-  return trimmedValue || null;
-};
 
 const buildStudentCreatePayload = ({
   currentMember,
@@ -137,8 +135,11 @@ export const createStudent = async ({
     throw new Error('Student password is required.');
   }
 
-  if (password.length < 6) {
-    throw new Error('Student passwords must be at least 6 characters.');
+  if (password.length < studentAuthConfig.minPasswordLength) {
+    throw new Error(getMinimumLengthMessage(
+      'Student passwords',
+      studentAuthConfig.minPasswordLength,
+    ));
   }
 
   const existingStudent = await findStudentRecord(normalizedStudentId);

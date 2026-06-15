@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
 import { branding } from '../config/branding';
+import { ROUTES } from '../config/routesConfig';
 import { useAuth } from '../features/auth/useAuth.jsx';
 
 const KioskStudentLogin = () => {
@@ -21,8 +22,8 @@ const KioskStudentLogin = () => {
   useEffect(() => {
     if (studentSession) {
       const destination = studentSession.isFirebaseAuthenticated
-        ? '/student/dashboard'
-        : '/student/session';
+        ? ROUTES.studentDashboard
+        : ROUTES.studentSession;
 
       navigate(destination, { replace: true });
     }
@@ -46,8 +47,8 @@ const KioskStudentLogin = () => {
     try {
       const student = await signInStudent({ studentId });
       const destination = student.isFirebaseAuthenticated
-        ? '/student/dashboard'
-        : '/student/session';
+        ? ROUTES.studentDashboard
+        : ROUTES.studentSession;
 
       navigate(destination, { replace: true });
     } catch (loginError) {
@@ -59,7 +60,7 @@ const KioskStudentLogin = () => {
 
   const handleKioskSignOut = async () => {
     await signOutKiosk();
-    navigate('/', { replace: true });
+    navigate(ROUTES.accessPortal, { replace: true });
   };
 
   return (

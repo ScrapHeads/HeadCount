@@ -13,6 +13,7 @@ import {
   studentAuthConfig,
   timeLogConfig,
 } from '../../config/appConfig';
+import { MINUTES_PER_HOUR } from '../../lib/constants';
 import { db } from '../../services/firebase';
 import { isCurrentMember } from '../../lib/studentUtils';
 
@@ -49,7 +50,9 @@ export const createExtraTimeRequest = async ({ hours, reason, student }) => {
       student[studentAuthConfig.idField] ?? student.studentId ?? student.id,
     ),
     [extraTimeRequestConfig.studentNameField]: student.name ?? 'Student',
-    [extraTimeRequestConfig.durationMinutesField]: Math.round(numericHours * 60),
+    [extraTimeRequestConfig.durationMinutesField]: Math.round(
+      numericHours * MINUTES_PER_HOUR,
+    ),
     [extraTimeRequestConfig.reasonField]: trimmedReason,
     [extraTimeRequestConfig.statusField]: extraTimeRequestConfig.pendingStatus,
     [extraTimeRequestConfig.requestedAtField]: serverTimestamp(),

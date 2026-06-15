@@ -1,15 +1,5 @@
 import { scheduleConfig } from '../../config/appConfig';
-import { toDate } from '../../lib/dateUtils';
-
-const isValidMonthDay = (year, month, dayOfMonth) => {
-  const candidateDate = new Date(year, month, dayOfMonth);
-
-  return (
-    candidateDate.getFullYear() === year
-    && candidateDate.getMonth() === month
-    && candidateDate.getDate() === dayOfMonth
-  );
-};
+import { isValidMonthDay, toDate } from '../../lib/dateUtils';
 
 export const getScheduleWindowForTime = (schedule, value = new Date()) => {
   const now = toDate(value);

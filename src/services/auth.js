@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { getApps, initializeApp } from 'firebase/app';
 import { kioskAuthConfig, studentAuthConfig } from '../config/appConfig';
+import { getMinimumLengthMessage } from '../lib/validators';
 import { auth, firebaseConfig } from './firebase';
 
 const studentEmailSuffix = `@${studentAuthConfig.authEmailDomain}`;
@@ -71,7 +72,10 @@ const mapStudentCreationError = (error) => {
   }
 
   if (error?.code === 'auth/weak-password') {
-    throw new Error('Student passwords must be at least 6 characters.');
+    throw new Error(getMinimumLengthMessage(
+      'Student passwords',
+      studentAuthConfig.minPasswordLength,
+    ));
   }
 
   if (error?.code === 'auth/invalid-email') {

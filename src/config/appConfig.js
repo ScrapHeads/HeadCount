@@ -1,8 +1,14 @@
+import sharedConfig from '../../functions/sharedConfig.json';
+
 export const studentAuthConfig = {
-  collectionName: 'students',
-  idField: 'studentId',
-  nfcCardIdField: 'nfcCardId',
-  authEmailDomain: 'myapp.internal',
+  collectionName: sharedConfig.studentAuth.collectionName,
+  idField: sharedConfig.studentAuth.idField,
+  nfcCardIdField: sharedConfig.studentAuth.nfcCardIdField,
+  authEmailDomain: (
+    import.meta.env.VITE_STUDENT_AUTH_EMAIL_DOMAIN
+    || sharedConfig.studentAuth.authEmailDomain
+  ),
+  minPasswordLength: sharedConfig.studentAuth.minPasswordLength,
   signedInField: 'signedIn',
   currentTaskField: 'currentTask',
   // Store the task id separately so sessions survive task renames.
@@ -47,11 +53,11 @@ export const scheduleConfig = {
 };
 
 export const timeLogConfig = {
-  collectionName: 'timeLogs',
+  collectionName: sharedConfig.timeLogs.collectionName,
   // Keep both ids and snapshot names so historical logs remain readable if
   // the source student or task document is renamed later.
-  studentDocIdField: 'studentDocId',
-  studentIdField: 'studentId',
+  studentDocIdField: sharedConfig.sharedFields.studentDocIdField,
+  studentIdField: sharedConfig.sharedFields.studentIdField,
   studentNameField: 'studentName',
   taskIdField: 'taskId',
   taskNameField: 'taskName',
@@ -62,7 +68,7 @@ export const timeLogConfig = {
   statusField: 'status',
   durationMinutesField: 'durationMinutes',
   createdAtField: 'createdAt',
-  updatedAtField: 'updatedAt',
+  updatedAtField: sharedConfig.sharedFields.updatedAtField,
   reasonField: 'reason',
   enteredByField: 'enteredBy',
   extraTimeTaskName: 'Extra Hours',
@@ -71,9 +77,9 @@ export const timeLogConfig = {
 };
 
 export const extraTimeRequestConfig = {
-  collectionName: 'extraTimeRequests',
-  studentDocIdField: 'studentDocId',
-  studentIdField: 'studentId',
+  collectionName: sharedConfig.extraTimeRequests.collectionName,
+  studentDocIdField: sharedConfig.sharedFields.studentDocIdField,
+  studentIdField: sharedConfig.sharedFields.studentIdField,
   studentNameField: 'studentName',
   durationMinutesField: 'durationMinutes',
   reasonField: 'reason',
@@ -81,6 +87,7 @@ export const extraTimeRequestConfig = {
   requestedAtField: 'requestedAt',
   reviewedAtField: 'reviewedAt',
   reviewedByField: 'reviewedBy',
+  updatedAtField: sharedConfig.sharedFields.updatedAtField,
   pendingStatus: 'pending',
   approvedStatus: 'approved',
   deniedStatus: 'denied',

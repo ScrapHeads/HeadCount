@@ -7,12 +7,14 @@ import {
   timeLogConfig,
 } from '../config/appConfig';
 import { branding } from '../config/branding';
+import { ROUTES } from '../config/routesConfig';
 import { useAuth } from '../features/auth/useAuth.jsx';
 import { createExtraTimeRequest } from '../features/extraTimeRequests/extraTimeRequestService';
 import { useStudentExtraTimeRequests } from '../features/extraTimeRequests/useExtraTimeRequests';
 import { useStudentTimeLogs } from '../features/timeLogs/useStudentTimeLogs';
 import {
   calculateHoursByCategory,
+  formatHours,
   formatTaskName,
   getDurationMinutes,
   getEndOfDay,
@@ -20,44 +22,16 @@ import {
   getStartOfDay,
   minutesToHours,
 } from '../lib/analyticsUtils';
+import { MISSING_VALUE_LABEL } from '../lib/constants';
+import {
+  formatSignedInAt,
+  getDefaultDateRange,
+  toDate,
+} from '../lib/dateUtils';
 import {
   DASHBOARD_GRADIENT_CLASS_NAME,
   DASHBOARD_TABLE_HEADER_CLASS_NAME,
 } from '../styles/classNames';
-import { toDate } from '../lib/dateUtils';
-
-const signedInFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-});
-
-const formatSignedInAt = (value) => {
-  const parsedDate = toDate(value);
-  return parsedDate ? signedInFormatter.format(parsedDate) : 'Not recorded';
-};
-
-const toDateInputValue = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-};
-
-const getDefaultDateRange = () => {
-  const endDate = new Date();
-  const startDate = new Date(endDate);
-  startDate.setDate(endDate.getDate() - 29);
-
-  return {
-    startDate: toDateInputValue(startDate),
-    endDate: toDateInputValue(endDate),
-  };
-};
-
-const formatHours = (hours) => Number(hours || 0).toFixed(1);
 
 const inputClassName = 'w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/20';
 const studentCardClassName = `rounded-2xl border border-on-primary/15 ${DASHBOARD_GRADIENT_CLASS_NAME} p-5 text-on-primary shadow-lg shadow-primary/15`;
@@ -319,7 +293,11 @@ const StudentDashboard = () => {
   const [dateRange, setDateRange] = useState(getDefaultDateRange);
   const navigate = useNavigate();
   const isSignedIn = Boolean(studentSession?.[studentAuthConfig.signedInField]);
-  const studentId = studentSession?.[studentAuthConfig.idField] ?? studentSession?.studentId ?? 'Not set';
+  const studentId = (
+    studentSession?.[studentAuthConfig.idField]
+    ?? studentSession?.studentId
+    ?? MISSING_VALUE_LABEL
+  );
   const currentTask = studentSession?.[studentAuthConfig.currentTaskField] ?? 'No active task';
   const parsedDateRange = useMemo(() => {
     const startDate = getStartOfDay(dateRange.startDate);
@@ -365,11 +343,13 @@ const StudentDashboard = () => {
   };
 
   const handleOpenHoursForm = () => {
-    navigate('/student/session');
+    navigate(ROUTES.studentSession);
   };
 
   const handleDashboardSignOut = async () => {
-    const destination = studentSession?.authMode === 'kiosk' ? '/kiosk' : '/';
+    const destination = studentSession?.authMode === 'kiosk'
+      ? ROUTES.kiosk
+      : ROUTES.accessPortal;
 
     await signOutStudent();
     navigate(destination, { replace: true });

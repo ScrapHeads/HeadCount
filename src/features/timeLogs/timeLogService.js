@@ -15,8 +15,13 @@ import { studentAuthConfig, taskConfig, timeLogConfig } from '../../config/appCo
 import { getScheduledTaskEndTime } from '../schedules/validateSchedule';
 import { getCurrentAuthUser, getStudentIdFromAuthEmail } from '../../services/auth';
 import { db } from '../../services/firebase';
+import {
+  MILLISECONDS_PER_MINUTE,
+  MINUTES_PER_HOUR,
+} from '../../lib/constants';
 import { toDate } from '../../lib/dateUtils';
 import { isCurrentMember } from '../../lib/studentUtils';
+import { isNumericString, nullableString } from '../../lib/validators';
 
 // Duration is stored as a convenience field for analytics. We still keep the
 // raw timestamps so teams can recalculate later if they want different rules.
@@ -29,16 +34,8 @@ const calculateDurationMinutes = (signInAt, signOutAt) => {
   }
 
   const elapsedMs = endedAt.getTime() - startedAt.getTime();
-  return Math.max(0, Math.round(elapsedMs / 60000));
+  return Math.max(0, Math.round(elapsedMs / MILLISECONDS_PER_MINUTE));
 };
-
-const nullableString = (value) => {
-  const trimmedValue = String(value ?? '').trim();
-
-  return trimmedValue || null;
-};
-
-const isNumericString = (value) => /^-?\d+(\.\d+)?$/.test(value);
 
 const getStudentLogIdCandidates = (student) => {
   const rawValues = [
@@ -244,7 +241,7 @@ export const createExtraHoursTimeLog = async ({
     throw new Error('A reason is required to add extra hours.');
   }
 
-  const durationMinutes = Math.round(numericHours * 60);
+  const durationMinutes = Math.round(numericHours * MINUTES_PER_HOUR);
   const timeLogDocRef = doc(collection(db, timeLogConfig.collectionName));
   const studentId = student[studentAuthConfig.idField] ?? student.studentId ?? student.id;
   const batch = writeBatch(db);

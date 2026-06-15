@@ -11,10 +11,10 @@ import {
   where,
 } from 'firebase/firestore';
 import { studentAuthConfig } from '../config/appConfig';
+import { isNumericString } from '../lib/validators';
 import { db } from './firebase';
 
 const normalizeStudentId = (studentId) => String(studentId ?? '').trim();
-const isNumericString = (value) => /^-?\d+(\.\d+)?$/.test(value);
 
 export const normalizeNfcCardId = (nfcCardId) => (
   String(nfcCardId ?? '').trim().toLowerCase()

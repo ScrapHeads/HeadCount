@@ -4,6 +4,7 @@ const { FieldValue, getFirestore } = require('firebase-admin/firestore');
 const { defineString } = require('firebase-functions/params');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const { HttpsError, onCall } = require('firebase-functions/v2/https');
+const sharedConfig = require('./sharedConfig.json');
 
 initializeApp();
 setGlobalOptions({
@@ -13,8 +14,11 @@ setGlobalOptions({
 
 const coachEmails = defineString('COACH_EMAILS', { default: '' });
 const studentAuthEmailDomain = defineString('STUDENT_AUTH_EMAIL_DOMAIN', {
-  default: 'myapp.internal',
+  default: sharedConfig.studentAuth.authEmailDomain,
 });
+const studentPasswordRequirementMessage = (
+  `Student passwords must be at least ${sharedConfig.studentAuth.minPasswordLength} characters.`
+);
 
 const normalizeStudentId = (value) => String(value ?? '').trim().toLowerCase();
 
@@ -86,8 +90,14 @@ const assertAuthorizedCoach = (request) => {
 
 const assertStudentIdAvailable = async ({ db, studentDocId, studentId }) => {
   const [studentIdSnapshot, nfcCardSnapshot] = await Promise.all([
-    db.collection('students').where('studentId', '==', studentId).limit(2).get(),
-    db.collection('students').where('nfcCardId', '==', studentId).limit(2).get(),
+    db.collection(sharedConfig.studentAuth.collectionName)
+      .where(sharedConfig.studentAuth.idField, '==', studentId)
+      .limit(2)
+      .get(),
+    db.collection(sharedConfig.studentAuth.collectionName)
+      .where(sharedConfig.studentAuth.nfcCardIdField, '==', studentId)
+      .limit(2)
+      .get(),
   ]);
   const conflict = [...studentIdSnapshot.docs, ...nfcCardSnapshot.docs]
     .find((studentDoc) => studentDoc.id !== studentDocId);
@@ -102,8 +112,12 @@ const assertStudentIdAvailable = async ({ db, studentDocId, studentId }) => {
 
 const loadStudentIdReferences = async ({ db, studentDoc }) => {
   const [timeLogsSnapshot, extraTimeRequestsSnapshot] = await Promise.all([
-    db.collection('timeLogs').where('studentDocId', '==', studentDoc.id).get(),
-    db.collection('extraTimeRequests').where('studentDocId', '==', studentDoc.id).get(),
+    db.collection(sharedConfig.timeLogs.collectionName)
+      .where(sharedConfig.sharedFields.studentDocIdField, '==', studentDoc.id)
+      .get(),
+    db.collection(sharedConfig.extraTimeRequests.collectionName)
+      .where(sharedConfig.sharedFields.studentDocIdField, '==', studentDoc.id)
+      .get(),
   ]);
 
   if (1 + timeLogsSnapshot.size + extraTimeRequestsSnapshot.size > 500) {
@@ -127,8 +141,8 @@ const updateStudentIdReferences = async ({
 }) => {
   const batch = db.batch();
   const updates = {
-    studentId,
-    updatedAt: FieldValue.serverTimestamp(),
+    [sharedConfig.sharedFields.studentIdField]: studentId,
+    [sharedConfig.sharedFields.updatedAtField]: FieldValue.serverTimestamp(),
   };
 
   batch.update(studentDoc.ref, updates);
@@ -154,21 +168,29 @@ exports.updateStudentCredentials = onCall(async (request) => {
     throw new HttpsError('invalid-argument', 'Student ID is required.');
   }
 
-  if (newPassword && newPassword.length < 6) {
+  if (
+    newPassword
+    && newPassword.length < sharedConfig.studentAuth.minPasswordLength
+  ) {
     throw new HttpsError(
       'invalid-argument',
-      'Student passwords must be at least 6 characters.',
+      studentPasswordRequirementMessage,
     );
   }
 
   const db = getFirestore();
-  const studentDoc = await db.collection('students').doc(studentDocId).get();
+  const studentDoc = await db
+    .collection(sharedConfig.studentAuth.collectionName)
+    .doc(studentDocId)
+    .get();
 
   if (!studentDoc.exists) {
     throw new HttpsError('not-found', 'Student record not found.');
   }
 
-  const currentStudentId = normalizeStudentId(studentDoc.get('studentId'));
+  const currentStudentId = normalizeStudentId(
+    studentDoc.get(sharedConfig.studentAuth.idField),
+  );
   const studentIdChanged = requestedStudentId !== currentStudentId;
 
   if (!currentStudentId) {
@@ -331,7 +353,7 @@ exports.updateStudentCredentials = onCall(async (request) => {
       if (error?.code === 'auth/invalid-password') {
         throw new HttpsError(
           'invalid-argument',
-          'Student passwords must be at least 6 characters.',
+          studentPasswordRequirementMessage,
         );
       }
 

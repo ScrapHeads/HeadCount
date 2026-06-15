@@ -9,10 +9,13 @@ import {
   calculateStudentCategoryBreakdown,
   calculateStudentHourTotals,
   calculateTeamHoursOverTime,
+  formatHours,
   getEndOfDay,
   getLogsInDateRange,
   getStartOfDay,
 } from '../../lib/analyticsUtils';
+import { MINUTES_PER_HOUR, MISSING_VALUE_LABEL } from '../../lib/constants';
+import { getDefaultDateRange } from '../../lib/dateUtils';
 import {
   filterLogsForCurrentStudents,
   isCurrentMember,
@@ -22,6 +25,7 @@ import {
   DASHBOARD_TABLE_HEADER_CLASS_NAME,
   FORM_INPUT_CLASS_NAME,
 } from '../../styles/classNames';
+import CardMessage from '../shared/CardMessage';
 import Dropdown from '../shared/Dropdown';
 import TimeLogEditorDialog from './TimeLogEditorDialog';
 
@@ -36,37 +40,16 @@ const shortDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
 });
 
-const toDateInputValue = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-};
-
-const getDefaultDateRange = () => {
-  const endDate = new Date();
-  const startDate = new Date(endDate);
-  startDate.setDate(endDate.getDate() - 29);
-
-  return {
-    startDate: toDateInputValue(startDate),
-    endDate: toDateInputValue(endDate),
-  };
-};
-
 const formatDate = (value, formatter = dateFormatter) => {
   const date = value instanceof Date ? value : getStartOfDay(value);
 
   return date ? formatter.format(date) : 'Not selected';
 };
 
-const formatHours = (hours) => Number(hours || 0).toFixed(1);
-
 const formatDuration = (minutes) => {
   const safeMinutes = Math.max(0, Math.round(Number(minutes) || 0));
-  const hours = Math.floor(safeMinutes / 60);
-  const remainingMinutes = safeMinutes % 60;
+  const hours = Math.floor(safeMinutes / MINUTES_PER_HOUR);
+  const remainingMinutes = safeMinutes % MINUTES_PER_HOUR;
 
   if (hours === 0) {
     return `${remainingMinutes} min`;
@@ -113,18 +96,6 @@ const getPieSlicePath = ({ center, endAngle, radius, startAngle }) => {
     'Z',
   ].join(' ');
 };
-
-const CardMessage = ({ children, tone = 'muted' }) => (
-  <div
-    className={`mt-5 rounded-2xl border px-4 py-4 text-sm ${
-      tone === 'error'
-        ? 'border-accent/30 bg-accent/12 text-on-primary'
-        : 'border-border bg-accent/10 text-on-primary/90'
-    }`}
-  >
-    {children}
-  </div>
-);
 
 const AnalyticsCard = ({
   children,
@@ -471,7 +442,10 @@ const StudentCategoryBreakdownCard = ({
       <SummaryGrid
         metrics={[
           { label: 'Selected Student', value: selectedStudent?.studentName ?? 'Student' },
-          { label: 'Student ID', value: selectedStudent?.studentId ?? 'Not set' },
+          {
+            label: 'Student ID',
+            value: selectedStudent?.studentId ?? MISSING_VALUE_LABEL,
+          },
           { label: 'Student Total Hours', value: formatHours(analytics.totalHours) },
         ]}
       />

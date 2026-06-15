@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { ROUTES } from '../config/routesConfig';
 
 const NotFound = () => {
   return (
@@ -10,7 +11,7 @@ const NotFound = () => {
         <p className="mt-3 text-sm leading-6 text-text-muted">
           The page you requested does not exist or has been moved.
         </p>
-        <Link className="mt-6 inline-flex rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-on-primary transition hover:opacity-90" to="/">
+        <Link className="mt-6 inline-flex rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-on-primary transition hover:opacity-90" to={ROUTES.accessPortal}>
           Return to access portal
         </Link>
       </section>

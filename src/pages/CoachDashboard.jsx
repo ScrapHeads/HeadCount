@@ -6,6 +6,7 @@ import Button from '../components/shared/Button';
 import Dropdown from '../components/shared/Dropdown';
 import { branding } from '../config/branding';
 import { scheduleConfig, studentAuthConfig, taskConfig } from '../config/appConfig';
+import { ROUTES } from '../config/routesConfig';
 import { useAuth } from '../features/auth/useAuth.jsx';
 import { useSchedules } from '../features/schedules/useSchedules';
 import { createSchedule } from '../features/schedules/scheduleService';
@@ -16,7 +17,12 @@ import {
   endStaleStudentSession,
   endStudentSessionByCoach,
 } from '../features/timeLogs/timeLogService';
-import { toDate } from '../lib/dateUtils';
+import {
+  formatSignedInAt,
+  isValidMonthDay,
+  toDate,
+} from '../lib/dateUtils';
+import { MISSING_VALUE_LABEL } from '../lib/constants';
 import { isCurrentMember } from '../lib/studentUtils';
 import {
   DASHBOARD_CARD_CLASS_NAME,
@@ -63,18 +69,6 @@ const getSectionFromSlug = (sectionSlug) => (
 const getSectionScrollStorageKey = (sectionId) => (
   `coach-dashboard-scroll:${getSectionSlug(sectionId)}`
 );
-
-const signedInFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-});
-
-const formatSignedInAt = (value) => {
-  const parsedDate = toDate(value);
-  return parsedDate ? signedInFormatter.format(parsedDate) : 'Not recorded';
-};
 
 const scheduleDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -182,16 +176,6 @@ const buildRecurringDateTime = (timeValue) => {
   }
 
   return new Date(`2000-01-02T${timeValue}`);
-};
-
-const isValidMonthDay = (year, month, dayOfMonth) => {
-  const candidateDate = new Date(year, month, dayOfMonth);
-
-  return (
-    candidateDate.getFullYear() === year
-    && candidateDate.getMonth() === month
-    && candidateDate.getDate() === dayOfMonth
-  );
 };
 
 const buildRecurringOccurrenceStart = ({ schedule, fromDate = new Date() }) => {
@@ -507,7 +491,7 @@ const CoachDashboard = () => {
 
   const handleSignOut = async () => {
     await signOutCoach();
-    navigate('/', { replace: true });
+    navigate(ROUTES.accessPortal, { replace: true });
   };
 
   const handleSectionChange = (sectionId) => {
@@ -760,7 +744,7 @@ const CoachDashboard = () => {
                                     <span className="font-semibold">{student.name ?? 'Student'}</span>
                                   </td>
                                   <td className="border-y border-border bg-transparent px-4 py-4  text-on-primary">
-                                    {student.studentId ?? 'Not set'}
+                                    {student.studentId ?? MISSING_VALUE_LABEL}
                                   </td>
                                   <td className="border-y border-border bg-transparent px-4 py-4 text-on-primary">
                                     {formatSignedInAt(student[studentAuthConfig.signedInAtField])}
@@ -830,7 +814,7 @@ const CoachDashboard = () => {
                                   <span className="font-semibold">{student.name ?? 'Student'}</span>
                                 </td>
                                 <td className="border-y border-border bg-transparent px-4 py-4 text-on-primary">
-                                  {student[studentAuthConfig.idField] ?? 'Not set'}
+                                  {student[studentAuthConfig.idField] ?? MISSING_VALUE_LABEL}
                                 </td>
                                 <td className="rounded-r-2xl border-y border-r border-border bg-transparent px-4 py-4 text-on-primary">
                                   Not signed in
