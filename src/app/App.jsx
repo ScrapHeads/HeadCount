@@ -18,6 +18,9 @@ const FullScreenMessage = ({ message }) => (
   </main>
 );
 
+// Route guards prevent a page from briefly rendering before Firebase finishes
+// restoring the signed-in user. Each guard also redirects the wrong account
+// type back to the access portal.
 const CoachRoute = ({ children }) => {
   const { coachUser, isLoadingCoachAuth } = useAuth();
 
@@ -62,6 +65,8 @@ const StudentRoute = ({ children }) => {
     return <Navigate replace to={kioskUser ? ROUTES.kiosk : ROUTES.accessPortal} />;
   }
 
+  // Kiosk students borrow the kiosk's Firebase login. Password students have
+  // their own Firebase login, so the required account depends on authMode.
   if (studentSession.authMode === 'kiosk') {
     if (!kioskUser) {
       return <Navigate replace to={ROUTES.accessPortal} />;

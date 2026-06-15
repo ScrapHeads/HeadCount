@@ -30,6 +30,8 @@ const StudentCheckIn = () => {
   const currentTime = new Date();
   const navigate = useNavigate();
 
+  // Open tasks are always shown; scheduled tasks are shown only during an
+  // active schedule window.
   const availableTasks = useMemo(
     () => getAvailableSignInTasks(tasks, schedules, currentTime),
     [currentTime, schedules, tasks],
@@ -84,6 +86,8 @@ const StudentCheckIn = () => {
       return;
     }
 
+    // Remember the log ID so normal re-renders do not repeat the same Firestore
+    // cleanup request.
     staleSessionAttemptRef.current = activeTimeLogId;
 
     endStaleStudentSession({

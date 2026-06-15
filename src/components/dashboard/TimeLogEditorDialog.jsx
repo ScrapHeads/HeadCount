@@ -92,6 +92,8 @@ const TimeLogEditorDialog = ({
     }
   };
 
+  // Rendering at document.body keeps the modal above dashboard containers
+  // that use scrolling or overflow clipping.
   return createPortal(
     <div
       aria-labelledby="time-log-dialog-title"

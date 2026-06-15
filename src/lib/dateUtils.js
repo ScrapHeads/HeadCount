@@ -9,6 +9,8 @@ export const toDate = (value) => {
     return value;
   }
 
+  // Firestore Timestamp objects expose toDate(), while forms and API values
+  // may arrive as strings. This helper lets the rest of the app handle both.
   if (typeof value?.toDate === 'function') {
     return value.toDate();
   }
@@ -36,6 +38,8 @@ export const isValidMonthDay = (year, month, dayOfMonth) => {
 };
 
 export const toDateInputValue = (date) => {
+  // Build the value from local date parts. toISOString() would convert to UTC
+  // first and can move the displayed date backward or forward by one day.
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -49,6 +53,7 @@ export const getDefaultDateRange = ({
 } = {}) => {
   const rangeEndDate = new Date(endDate);
   const startDate = new Date(rangeEndDate);
+  // Subtract days - 1 because both the first and last date are included.
   startDate.setDate(rangeEndDate.getDate() - (days - 1));
 
   return {

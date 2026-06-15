@@ -31,7 +31,7 @@ import {
 } from '../../lib/analyticsUtils';
 import { MISSING_VALUE_LABEL } from '../../lib/constants';
 import { toDate } from '../../lib/dateUtils';
-import { isCurrentMember } from '../../lib/studentUtils';
+import { getStudentIdHistory, isCurrentMember } from '../../lib/studentUtils';
 import {
   getMinimumLengthMessage,
   nullableString,
@@ -107,6 +107,8 @@ const buildStudentHourTotals = (logs) => {
     const durationMinutes = getDurationMinutes(log);
     const studentDocId = String(log?.[timeLogConfig.studentDocIdField] ?? '').trim();
     const studentId = String(log?.[timeLogConfig.studentIdField] ?? '').trim();
+    // Historical logs may identify the same student by document ID, original
+    // student ID, or different capitalization. Index all usable forms.
     const keys = [
       studentDocId ? `doc:${studentDocId}` : '',
       studentId ? `student:${studentId}` : '',
@@ -122,11 +124,9 @@ const buildStudentHourTotals = (logs) => {
 };
 
 const getStudentTotalMinutes = (student, totalsByStudent) => {
-  const studentId = getStudentId(student);
   const keys = [
     student?.id ? `doc:${student.id}` : '',
-    studentId ? `student:${studentId}` : '',
-    studentId ? `student:${studentId.toLowerCase()}` : '',
+    ...getStudentIdHistory(student).map((studentId) => `student:${studentId}`),
   ].filter(Boolean);
 
   for (const key of keys) {
@@ -976,6 +976,8 @@ const EditStudentCard = ({
         [studentAuthConfig.currentMemberField]: form.currentMember,
       };
 
+      // Profile fields are written by the browser. ID and password changes are
+      // delegated by updateStudent() to the trusted callable function.
       await updateStudent({
         originalStudentId,
         password: trimmedPassword,
@@ -1148,6 +1150,8 @@ const StudentTimeLogsCard = ({
     [logs, selectedLogId],
   );
 
+  // Pagination is local because a single student's compatible log queries are
+  // merged and de-duplicated before reaching this component.
   const totalPages = Math.max(1, Math.ceil(logs.length / timeLogsPageSize));
   const visibleLogs = logs.slice(
     pageIndex * timeLogsPageSize,
@@ -1348,6 +1352,8 @@ const StudentManagementDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME 
   const { logs, isLoading: isLoadingLogs, error: logsError } = useCompletedTimeLogs();
   const enteredBy = coachUser?.email ?? coachUser?.displayName ?? 'Coach';
 
+  // These subscriptions feed every card below. Memoized derived lists keep the
+  // cards in agreement about current students, available tasks, and totals.
   const signInTasks = useMemo(
     () => getAvailableSignInTasks(tasks, schedules),
     [schedules, tasks],

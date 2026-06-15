@@ -339,9 +339,9 @@ const recurrenceLabel = (schedule) => {
   return 'Recurring';
 };
 
-// The coach dashboard is intentionally a shell for adopters. Keep layout and
-// navigation stable here, then swap the section bodies to real Firestore-backed
-// panels as each team customizes the demo.
+// This page coordinates the coach sections and their shared Firestore data.
+// Larger student-management and analytics sections live in separate components
+// so this file can focus on navigation, live sessions, and scheduling.
 const CoachDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [endingStudentId, setEndingStudentId] = useState('');
@@ -378,6 +378,8 @@ const CoachDashboard = () => {
   );
 
   useEffect(() => {
+    // Each dashboard section remembers its own scroll position for this tab.
+    // Two animation frames give React time to render the new section first.
     const storageKey = getSectionScrollStorageKey(activeSection);
     const savedScrollPosition = Number(sessionStorage.getItem(storageKey));
     let secondAnimationFrame = 0;
@@ -405,6 +407,8 @@ const CoachDashboard = () => {
   }, [activeSection]);
 
   useEffect(() => {
+    // Trigger the stale-session check just after each midnight, even when the
+    // dashboard remains open overnight.
     const now = new Date();
     const nextMidnight = new Date(now);
     nextMidnight.setHours(24, 0, 1, 0);
@@ -420,6 +424,8 @@ const CoachDashboard = () => {
       return;
     }
 
+    // The ref prevents duplicate checkout requests while a student's first
+    // request is still in progress.
     activeStudents.forEach((student) => {
       if (autoCheckoutStudentIdsRef.current.has(student.id)) {
         return;
@@ -478,13 +484,9 @@ const CoachDashboard = () => {
 
   const homeStats = useMemo(() => {
     const activeCount = activeStudents.length;
-    const uniqueSessionTypes = new Set(
-      activeStudents.map((student) => student[studentAuthConfig.currentTaskField]).filter(Boolean),
-    ).size;
 
     return {
       activeCount,
-      uniqueSessionTypes,
       earliestSignIn: activeStudents[0]?.[studentAuthConfig.signedInAtField] ?? null,
     };
   }, [activeStudents]);
@@ -530,6 +532,8 @@ const CoachDashboard = () => {
     e.preventDefault();
 
     const isRecurring = scheduleForm.scheduleMode !== scheduleConfig.recurrenceTypes.oneTime;
+    // Recurring schedules need only a time-of-day template. One-time schedules
+    // use the exact dates entered by the coach.
     const startDateTime = isRecurring
       ? buildRecurringDateTime(scheduleForm.startTime)
       : buildDateTimeFromForm(scheduleForm.startDate, scheduleForm.startTime);
@@ -638,7 +642,6 @@ const CoachDashboard = () => {
                     {item.eyebrow}
                   </p>
                   <p className="mt-2 text-lg font-semibold text-on-primary">{item.label}</p>
-                  {/* <p className="mt-1 text-sm leading-5 text-on-primary/75">{item.description}</p> */}
                 </button>
               );
             })}
@@ -671,10 +674,6 @@ const CoachDashboard = () => {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-primary">Signed in</p>
                 <p className="mt-2 text-2xl font-semibold text-on-primary">{homeStats.activeCount}</p>
               </div>
-              {/* <div className="rounded-2xl border border-border bg-secondary px-4 py-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-primary/90">Session Types</p>
-                <p className="mt-2 text-2xl font-semibold text-on-primary">{homeStats.uniqueSessionTypes}</p>
-              </div> */}
               <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-transparent px-4 py-4 text-center shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-primary">Earliest Sign-In</p>
                 <p className="mt-2 text-2xl font-semibold text-on-primary">

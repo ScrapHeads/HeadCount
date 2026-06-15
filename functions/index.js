@@ -6,6 +6,8 @@ const { setGlobalOptions } = require('firebase-functions/v2');
 const { HttpsError, onCall } = require('firebase-functions/v2/https');
 const sharedConfig = require('./sharedConfig.json');
 
+// Cloud Functions handle credential changes because browser code must never
+// receive Firebase Admin privileges.
 initializeApp();
 setGlobalOptions({
   maxInstances: 10,
@@ -80,6 +82,8 @@ const assertAuthorizedCoach = (request) => {
     throw new HttpsError('unauthenticated', 'Sign in as a coach before managing student credentials.');
   }
 
+  // A deployment can authorize coaches with a custom claim or with the
+  // comma-separated COACH_EMAILS environment parameter.
   if (token?.coach !== true && !allowedCoachEmails.has(email)) {
     throw new HttpsError(
       'permission-denied',
@@ -89,7 +93,7 @@ const assertAuthorizedCoach = (request) => {
 };
 
 const assertStudentIdAvailable = async ({ db, studentDocId, studentId }) => {
-  const [studentIdSnapshot, nfcCardSnapshot] = await Promise.all([
+  const [studentIdSnapshot, nfcCardSnapshot, previousStudentIdSnapshot] = await Promise.all([
     db.collection(sharedConfig.studentAuth.collectionName)
       .where(sharedConfig.studentAuth.idField, '==', studentId)
       .limit(2)
@@ -98,60 +102,50 @@ const assertStudentIdAvailable = async ({ db, studentDocId, studentId }) => {
       .where(sharedConfig.studentAuth.nfcCardIdField, '==', studentId)
       .limit(2)
       .get(),
+    db.collection(sharedConfig.studentAuth.collectionName)
+      .where(sharedConfig.studentAuth.previousStudentIdField, 'array-contains', studentId)
+      .limit(2)
+      .get(),
   ]);
-  const conflict = [...studentIdSnapshot.docs, ...nfcCardSnapshot.docs]
+  const conflict = [
+    ...studentIdSnapshot.docs,
+    ...nfcCardSnapshot.docs,
+    ...previousStudentIdSnapshot.docs,
+  ]
     .find((studentDoc) => studentDoc.id !== studentDocId);
 
   if (conflict) {
     throw new HttpsError(
       'already-exists',
-      'That student ID is already assigned to another student or NFC card.',
+      'That student ID is already assigned to another student, NFC card, or previous ID history.',
     );
   }
 };
 
-const loadStudentIdReferences = async ({ db, studentDoc }) => {
-  const [timeLogsSnapshot, extraTimeRequestsSnapshot] = await Promise.all([
-    db.collection(sharedConfig.timeLogs.collectionName)
-      .where(sharedConfig.sharedFields.studentDocIdField, '==', studentDoc.id)
-      .get(),
-    db.collection(sharedConfig.extraTimeRequests.collectionName)
-      .where(sharedConfig.sharedFields.studentDocIdField, '==', studentDoc.id)
-      .get(),
-  ]);
-
-  if (1 + timeLogsSnapshot.size + extraTimeRequestsSnapshot.size > 500) {
-    throw new HttpsError(
-      'resource-exhausted',
-      'This student has too many related records for an automatic ID change.',
-    );
-  }
-
-  return {
-    extraTimeRequestDocs: extraTimeRequestsSnapshot.docs,
-    timeLogDocs: timeLogsSnapshot.docs,
-  };
-};
-
-const updateStudentIdReferences = async ({
-  db,
-  referenceDocs,
+const updateStudentIdHistory = async ({
+  currentStudentId,
+  requestedStudentId,
   studentDoc,
-  studentId,
 }) => {
-  const batch = db.batch();
-  const updates = {
-    [sharedConfig.sharedFields.studentIdField]: studentId,
+  const storedPreviousStudentIds = studentDoc.get(
+    sharedConfig.studentAuth.previousStudentIdField,
+  );
+  const previousStudentIds = new Set(
+    (Array.isArray(storedPreviousStudentIds) ? storedPreviousStudentIds : [])
+      .map(normalizeStudentId)
+      .filter(Boolean),
+  );
+
+  // The requested ID becomes current, so remove it from history if a coach is
+  // switching back to an older ID. The ID being replaced becomes historical.
+  previousStudentIds.delete(requestedStudentId);
+  previousStudentIds.add(currentStudentId);
+
+  await studentDoc.ref.update({
+    [sharedConfig.sharedFields.studentIdField]: requestedStudentId,
+    [sharedConfig.studentAuth.previousStudentIdField]: [...previousStudentIds],
     [sharedConfig.sharedFields.updatedAtField]: FieldValue.serverTimestamp(),
-  };
-
-  batch.update(studentDoc.ref, updates);
-  referenceDocs.timeLogDocs.forEach((timeLogDoc) => batch.update(timeLogDoc.ref, updates));
-  referenceDocs.extraTimeRequestDocs.forEach((requestDoc) => (
-    batch.update(requestDoc.ref, updates)
-  ));
-
-  await batch.commit();
+  });
 };
 
 exports.updateStudentCredentials = onCall(async (request) => {
@@ -213,28 +207,6 @@ exports.updateStudentCredentials = onCall(async (request) => {
     });
   }
 
-  let referenceDocs = null;
-
-  if (studentIdChanged) {
-    try {
-      referenceDocs = await loadStudentIdReferences({ db, studentDoc });
-    } catch (error) {
-      if (error instanceof HttpsError) {
-        throw error;
-      }
-
-      console.error('Failed to prepare Student ID reference updates.', {
-        code: error?.code,
-        message: error?.message,
-        studentDocId,
-      });
-      throw new HttpsError(
-        'unavailable',
-        'Could not prepare the Student ID change. No credentials were changed.',
-      );
-    }
-  }
-
   const auth = getAuth();
   let authUser;
 
@@ -282,16 +254,17 @@ exports.updateStudentCredentials = onCall(async (request) => {
 
   if (studentIdChanged) {
     try {
+      // Change Authentication first, then update the student profile. If the
+      // Firestore write fails, restore the original Authentication email.
       await auth.updateUser(authUser.uid, {
         email: buildStudentAuthEmail(requestedStudentId),
       });
 
       try {
-        await updateStudentIdReferences({
-          db,
-          referenceDocs,
+        await updateStudentIdHistory({
+          currentStudentId,
+          requestedStudentId,
           studentDoc,
-          studentId: requestedStudentId,
         });
       } catch (firestoreError) {
         let authRollbackSucceeded = false;
@@ -308,7 +281,7 @@ exports.updateStudentCredentials = onCall(async (request) => {
           });
         });
 
-        console.error('Failed to synchronize the Student ID in Firestore.', {
+        console.error('Failed to update Student ID history in Firestore.', {
           authRollbackSucceeded,
           code: firestoreError?.code,
           message: firestoreError?.message,
@@ -318,7 +291,7 @@ exports.updateStudentCredentials = onCall(async (request) => {
         throw new HttpsError(
           authRollbackSucceeded ? 'aborted' : 'data-loss',
           authRollbackSucceeded
-            ? 'The Student ID was not changed because Firestore synchronization failed.'
+            ? 'The Student ID was not changed because the student profile update failed.'
             : 'The Student ID update may be inconsistent. Check Firebase Authentication and Firestore.',
         );
       }
@@ -367,6 +340,8 @@ exports.updateStudentCredentials = onCall(async (request) => {
     }
   }
 
+  // Existing sessions should not continue using credentials that a coach has
+  // replaced. Revocation takes effect when Firebase next refreshes the token.
   await auth.revokeRefreshTokens(authUser.uid).catch((error) => {
     console.error('Student credentials changed, but session revocation failed.', error);
   });

@@ -14,6 +14,9 @@ import { auth, firebaseConfig } from './firebase';
 const studentEmailSuffix = `@${studentAuthConfig.authEmailDomain}`;
 const studentManagementAppName = 'student-management';
 
+// Firebase signs a newly created account into the app that created it. A
+// secondary Firebase app lets a coach create a student account without
+// replacing the coach's login in the main browser session.
 const getStudentManagementApp = () => {
   const existingApp = getApps().find((candidateApp) => candidateApp.name === studentManagementAppName);
 
@@ -34,6 +37,8 @@ export const buildStudentAuthEmail = (studentId) => {
   return `${normalizedStudentId}${studentEmailSuffix}`;
 };
 
+// Student IDs are converted to internal email addresses because Firebase
+// Authentication uses email/password accounts, while students enter only an ID.
 export const getStudentIdFromAuthEmail = (email) => {
   const normalizedEmail = String(email ?? '').trim().toLowerCase();
 
@@ -154,6 +159,8 @@ export const signOutStudentAuth = async () => {
   const currentUser = auth.currentUser;
 
   if (!isStudentAuthEmail(currentUser?.email)) {
+    // A kiosk student does not own the Firebase login, so signing out the
+    // student must not sign out the kiosk device.
     return;
   }
 

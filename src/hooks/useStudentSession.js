@@ -16,6 +16,9 @@ const readStoredSession = () => {
   }
 };
 
+// sessionStorage is scoped to one browser tab. It remembers which student is
+// using that tab, but it is not a security boundary; Firestore rules still
+// decide which data the Firebase user may read or change.
 export const useStudentSession = () => {
   const [studentSession, setStudentSession] = useState(() => readStoredSession());
 

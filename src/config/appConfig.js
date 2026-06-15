@@ -1,8 +1,14 @@
 import sharedConfig from '../../functions/sharedConfig.json';
 
+// This file gives the frontend readable names for Firestore collections and
+// fields. Values shared with Cloud Functions live in sharedConfig.json so both
+// sides continue to agree if a collection or login setting changes.
 export const studentAuthConfig = {
   collectionName: sharedConfig.studentAuth.collectionName,
   idField: sharedConfig.studentAuth.idField,
+  // Old IDs remain on the student profile so historical logs do not need to
+  // be rewritten when a coach changes the current login ID.
+  previousStudentIdField: sharedConfig.studentAuth.previousStudentIdField,
   nfcCardIdField: sharedConfig.studentAuth.nfcCardIdField,
   authEmailDomain: (
     import.meta.env.VITE_STUDENT_AUTH_EMAIL_DOMAIN

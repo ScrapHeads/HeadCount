@@ -11,6 +11,8 @@ export const useStudentTimeLogs = ({ enabled = true, student }) => {
   const fallbackStudentId = student?.studentId ?? '';
 
   useEffect(() => {
+    // An async request can finish after the user changes pages or students.
+    // isMounted prevents that old request from updating current screen state.
     let isMounted = true;
 
     if (!enabled || (!studentDocId && !configuredStudentId && !fallbackStudentId)) {

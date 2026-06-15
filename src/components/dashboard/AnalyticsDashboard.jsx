@@ -84,6 +84,8 @@ const getPiePoint = (center, radius, angleInDegrees) => {
 };
 
 const getPieSlicePath = ({ center, endAngle, radius, startAngle }) => {
+  // SVG pie slices are drawn as a line from the center, a circular arc, and a
+  // closing line back to the center.
   const adjustedEndAngle = endAngle - startAngle >= 360 ? endAngle - 0.01 : endAngle;
   const start = getPiePoint(center, radius, startAngle);
   const end = getPiePoint(center, radius, adjustedEndAngle);
@@ -302,6 +304,8 @@ const CategoryProgressList = ({ categories }) => (
 );
 
 const CategoryPieChart = ({ categories, totalHours, totalMinutes }) => {
+  // Each category starts where the previous category ended, producing one
+  // continuous circle without a charting dependency.
   let cumulativeAngle = 0;
   const center = 90;
   const radius = 78;
@@ -762,6 +766,8 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
     [students],
   );
 
+  // Analytics excludes archived students while preserving their historical
+  // records in Firestore for administrators who still need them.
   const logsInDateRange = useMemo(() => (
     analyticsError
       ? []
@@ -777,9 +783,11 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
     parsedDateRange.startDate,
   ]);
 
+  // The following summaries share the same filtered logs but group them for
+  // different views: student totals, weekly trends, task categories, and attendance.
   const studentHourTotals = useMemo(
-    () => calculateStudentHourTotals(logsInDateRange),
-    [logsInDateRange],
+    () => calculateStudentHourTotals(logsInDateRange, currentStudents),
+    [currentStudents, logsInDateRange],
   );
   const teamHoursOverTime = useMemo(
     () => calculateTeamHoursOverTime(logsInDateRange),
@@ -799,8 +807,12 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
     (student) => student.studentKey === effectiveStudentKey,
   ) ?? null;
   const studentCategoryBreakdown = useMemo(
-    () => calculateStudentCategoryBreakdown(logsInDateRange, effectiveStudentKey),
-    [effectiveStudentKey, logsInDateRange],
+    () => calculateStudentCategoryBreakdown(
+      logsInDateRange,
+      effectiveStudentKey,
+      currentStudents,
+    ),
+    [currentStudents, effectiveStudentKey, logsInDateRange],
   );
 
   useEffect(() => {

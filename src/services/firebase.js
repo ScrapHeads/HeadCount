@@ -3,6 +3,9 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
 
+// Vite exposes browser environment variables through import.meta.env. These
+// values identify the Firebase project; authorization is still enforced by
+// Firebase Authentication and Firestore Security Rules.
 export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -20,9 +23,12 @@ if (missingConfig.length > 0) {
   throw new Error(`Missing Firebase environment variables: ${missingConfig.join(', ')}`);
 }
 
+// Reuse an existing Firebase app during development hot reloads. Initializing
+// the same default app twice would otherwise throw an error.
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+// This region must match the region configured in functions/index.js.
 const functions = getFunctions(app, 'us-central1');
 
 export { app, auth, db, functions };

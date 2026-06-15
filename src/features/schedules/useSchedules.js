@@ -8,6 +8,7 @@ export const useSchedules = (taskId) => {
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
+    // Ignore results from an older task selection or an unmounted component.
     let isMounted = true;
 
     const loadSchedules = async () => {
@@ -44,6 +45,7 @@ export const useSchedules = (taskId) => {
     schedules,
     isLoading,
     error,
+    // The dashboard calls this after creating a schedule to refresh the list.
     reloadSchedules: () => setReloadToken((currentValue) => currentValue + 1),
   };
 };

@@ -1,247 +1,191 @@
-# robotics-team-hours-tracker
+# Robotics Team Hours Tracker
 
-Demo React + Vite app for tracking robotics team hours. The project is set up so teams can copy it and mostly rebrand it by editing a single file.
+A React and Firebase application for recording robotics team hours. Students can
+check in through a kiosk or their own login, while coaches manage the roster,
+schedules, time logs, extra-time requests, and attendance analytics.
+
+## Features
+
+- Coach, kiosk, and student sign-in flows
+- Student ID, password, and optional NFC card lookup
+- Live check-in and check-out with required session notes
+- One-time, weekly, monthly, and yearly schedules
+- Coach roster and student account management
+- Manual extra hours and student extra-time requests
+- Editable time-log history
+- Team hours, task category, and attendance analytics
+- Centralized colors, text, routes, and Firestore field configuration
+
+## Technology
+
+- React 19
+- Vite 8
+- Tailwind CSS 4
+- Firebase Authentication
+- Cloud Firestore
+- Cloud Functions for Firebase (optional)
+- Vercel Analytics and Speed Insights
+
+## Before You Start
+
+Install these tools:
+
+- [Node.js](https://nodejs.org/) 20 or newer
+- npm, which is included with Node.js
+- A Firebase project
+
+Cloud Functions in this repository use Node.js 20, but deploying them is
+optional. The main application works without Functions; coaches must then
+change student IDs and passwords manually in Firebase. Deploying
+second-generation Cloud Functions requires the Firebase Blaze plan with billing
+enabled.
 
 ## Local Setup
 
-Install dependencies:
+1. Install the frontend dependencies:
+
+   ```powershell
+   npm.cmd install
+   ```
+
+2. Create the frontend environment file:
+
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+3. Add your Firebase web app values to `.env`.
+
+4. Complete the Authentication, Firestore, rules, and optional Functions setup in
+   [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md).
+
+5. Start the development server:
+
+   ```powershell
+   npm.cmd run dev
+   ```
+
+Vite prints the local URL in the terminal. The access portal is the root page,
+and it links users into the coach, kiosk, or student flow.
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm.cmd run dev` | Start the Vite development server |
+| `npm.cmd run build` | Create a production frontend build |
+| `npm.cmd run preview` | Preview the production build locally |
+| `npm.cmd --prefix functions run check` | Check optional Cloud Function JavaScript syntax |
+
+There is currently no automated test suite. Run the production build and
+Functions syntax check before deploying changes.
+
+## Configuration
+
+The main files teams are expected to customize are:
+
+| File | Purpose |
+| --- | --- |
+| `src/config/branding.js` | App name, team text, fonts, and theme colors |
+| `src/config/studentIdGenerator.js` | Automatically generated student ID format |
+| `src/config/routesConfig.js` | Browser route paths |
+| `src/config/appConfig.js` | Frontend names for Firestore collections and fields |
+| `functions/sharedConfig.json` | Values shared by the frontend and Cloud Functions |
+| `.env` | Frontend Firebase and kiosk settings |
+| `functions/.env` | Optional Function coach allowlist and student login domain |
+| `firestore.rules` | Browser permissions for Firestore data |
+
+Changes to collection names, student ID fields, the student authentication
+domain, or password requirements should begin in
+`functions/sharedConfig.json`. Review `src/config/appConfig.js` and
+`firestore.rules` at the same time because rules cannot import the JSON file.
+
+## Branding And Styling
+
+Start rebranding in `src/config/branding.js`. The theme is applied in this order:
+
+1. `branding.js` defines the editable theme.
+2. `applyBrandingTheme()` writes values to CSS variables.
+3. `src/main.jsx` applies the theme before React renders.
+4. `src/styles/globals.css` exposes the variables as Tailwind theme tokens.
+5. Components use classes such as `bg-primary`, `text-on-primary`, and
+   `border-border`.
+
+Prefer the existing theme-backed classes when adding UI. Hardcoded colors make
+future rebranding more difficult.
+
+## Authentication And Sessions
+
+- Coaches use normal Firebase email and password accounts.
+- A kiosk uses one dedicated Firebase account and selects students by ID or NFC
+  card. The kiosk Firebase user remains signed in between students.
+- Direct student logins turn a student ID into an internal email such as
+  `12345@myapp.internal`. These addresses are identifiers and do not need inboxes.
+- The selected student profile is stored in `sessionStorage` for the current
+  browser tab. Firebase Authentication and Firestore Security Rules provide the
+  actual access control.
+- Student sign-in and sign-out update the live student record and historical
+  time log in one Firestore batch.
+
+Student ID changes and password resets can use the optional callable function in
+`functions/index.js`. Browser code does not receive Firebase Admin access. If
+the Function is not deployed, use the manual credential instructions in
+[docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md#manual-student-credential-changes-without-functions).
+When an ID changes, the old value is added to the student's
+`previousStudentId` array. Historical logs remain unchanged and are matched
+using the stable student document ID or that ID history.
+
+## Project Structure
+
+```text
+src/
+  app/                  App providers and route definitions
+  components/           Shared controls and dashboard sections
+  config/               Branding, routes, IDs, and data field names
+  features/             Authentication and feature-specific services/hooks
+  hooks/                Reusable React hooks
+  lib/                  Date, analytics, validation, and student helpers
+  pages/                Route-level screens
+  services/             Firebase initialization and shared service wrappers
+  styles/               Tailwind setup and shared class names
+functions/
+  index.js              Optional trusted student credential management
+  sharedConfig.json     Frontend/backend shared defaults
+docs/
+  FIREBASE_SETUP.md     Complete Firebase setup and deployment guide
+```
+
+## Deployment
+
+The frontend can be deployed to Vercel or another static host. Add every
+`VITE_*` value from `.env.example` to the host's environment settings before
+building. `vercel.json` includes the rewrite needed for client-side routes.
+
+Deploy the database rules and indexes:
 
 ```powershell
-npm.cmd install
+npx.cmd firebase-tools deploy --only "firestore:rules,firestore:indexes"
 ```
 
-Start the development server:
+If you enabled the optional credential-management Function, include it:
 
 ```powershell
-npm.cmd run dev
+npx.cmd firebase-tools deploy --only "functions,firestore:rules,firestore:indexes"
 ```
 
-Create a production build:
+Always confirm the selected Firebase project first. This repository's
+`.firebaserc` contains a demo project ID that should not be used for another
+team's production deployment.
 
-```powershell
-npm.cmd run build
-```
+## Security Notes
 
-## Styling
+The included Firestore rules recognize students and the kiosk by email pattern.
+Any other signed-in Firebase user is currently treated as a coach for browser
+Firestore access. Limit who can create Authentication users, and consider a
+`coach: true` custom claim check before using the app with sensitive data.
 
-This project now uses Tailwind CSS v4 through the Vite plugin.
+When enabled, the credential-management Function is stricter: it requires
+either the `coach: true` custom claim or an email listed in `COACH_EMAILS`.
 
-Main styling files:
-
-- `src/styles/globals.css`: imports Tailwind and maps app CSS variables into Tailwind theme tokens.
-- `src/config/branding.js`: the main branding file teams should edit.
-- `src/components/shared/Button.jsx` and `src/components/shared/Input.jsx`: shared UI primitives using Tailwind utility classes.
-
-## Rebranding
-
-Teams should start in `src/config/branding.js`.
-
-The most common values to change are:
-
-- `appName`
-- `tagline`
-- `teamLabel`
-- `theme.fontFamily`
-- `theme.colors`
-
-The `theme.colors` values are applied to CSS variables at startup, and Tailwind utilities reference those variables. That means teams can change the app colors without rewriting component class names.
-
-## How The Theme Flow Works
-
-1. `src/config/branding.js` defines the editable branding object.
-2. `applyBrandingTheme()` writes branding values into CSS variables on the document root.
-3. `src/main.jsx` runs `applyBrandingTheme()` before rendering the React app.
-4. `src/styles/globals.css` exposes those CSS variables to Tailwind with `@theme inline`.
-5. Components use Tailwind classes like `bg-primary`, `text-text`, and `border-border`, which automatically pick up the current branding values.
-
-When extending the demo, keep new styling inside this system. Prefer theme-backed classes such as `bg-surface`, `text-onPrimary`, `border-border`, and `bg-surface-muted` over hardcoded hex colors, `rgba(...)`, or one-off literal color utilities.
-
-## Firebase Auth Setup
-
-Firebase config is read from `.env` through Vite environment variables in `src/services/firebase.js`.
-
-Current authentication model:
-
-- Coaches sign in with Firebase Authentication using email/password.
-- The main student kiosk signs in once with the configured Firebase Authentication email in `VITE_KIOSK_AUTH_EMAIL`, then students use either their student ID or assigned NFC card for the sign-in/out form.
-- Students can still sign in with a student ID and password from the access portal. The app turns the student ID into a generated Firebase Authentication email.
-- Student passwords live only in Firebase Authentication. Firestore stores the student ID and profile/session fields.
-- Student sessions are stored in `sessionStorage` for the current browser tab.
-
-Main auth files:
-
-- `src/services/firebase.js`: Firebase app, Auth, and Firestore initialization.
-- `src/services/auth.js`: coach, kiosk, and student auth helpers.
-- `src/services/adminFunctions.js`: client wrapper for trusted credential-management functions.
-- `src/services/firestore.js`: student lookup against Firestore.
-- `src/features/auth/useAuth.jsx`: React auth context and shared session state.
-- `src/config/appConfig.js`: configurable Firestore collection name, student ID field, and roster/session fields.
-- `functions/sharedConfig.json`: defaults shared by the frontend and trusted backend.
-- `src/config/studentIdGenerator.js`: team-editable automatic student ID format.
-
-## Coach Credential Management
-
-Changing an existing Student ID also changes the generated Firebase Authentication email used for password login. Password resets and Student ID changes therefore run through the trusted Firebase Admin backend in `functions/index.js`; they are not performed directly by browser code.
-
-The callable function:
-
-- Updates the student Firebase Authentication email when the Student ID changes.
-- Resets the password when the coach enters a new password.
-- Revokes existing password-authenticated sessions after a credential change.
-- Updates the Student ID on the student record, time logs, and extra-time requests.
-- Rejects IDs already used by another student or NFC card.
-- Allows callers with a `coach: true` custom claim or an email listed in `COACH_EMAILS`.
-
-Configure the backend:
-
-```powershell
-Copy-Item functions\.env.example functions\.env
-```
-
-Edit `functions/.env`:
-
-```dotenv
-COACH_EMAILS=leadcoach@example.com,assistantcoach@example.com
-STUDENT_AUTH_EMAIL_DOMAIN=myapp.internal
-```
-
-The frontend and Functions use `functions/sharedConfig.json` for the default student
-authentication domain and password policy. When overriding
-`STUDENT_AUTH_EMAIL_DOMAIN`, set `VITE_STUDENT_AUTH_EMAIL_DOMAIN` to the same value
-in the frontend environment. Every coach who needs to reset credentials must either
-be listed in `COACH_EMAILS` or have a Firebase Authentication custom claim named
-`coach` set to `true`.
-
-Install and deploy the backend:
-
-```powershell
-Set-Location functions
-npm.cmd install
-Set-Location ..
-firebase deploy --only functions
-```
-
-Cloud Functions for Firebase deployment requires the Firebase project to have billing enabled. After deploying, the Vercel frontend calls the function directly through the Firebase Web SDK.
-
-If every Student ID or password change fails while ordinary profile edits still work, inspect the deployed function's runtime service account in Google Cloud IAM. It must have the **Firebase Authentication Admin** role (`roles/firebaseauth.admin`). Second-generation functions commonly run as the project's default Compute Engine service account unless a different runtime service account was selected during deployment.
-
-After changing the function code or its environment configuration, redeploy it:
-
-```powershell
-npx.cmd firebase-tools deploy --only functions --project robotics-time-tracker-demo
-```
-
-## Automatic Student IDs
-
-The coach student-creation form includes a **Generate ID** button. By default, it combines the current year with a random number from `10` through `99`. For example, an ID generated in 2026 could be `202647`.
-
-Before returning an ID, the app checks Firestore to confirm that it is not already used as either a student ID or an NFC card ID. Student creation performs the uniqueness check again before saving.
-
-Teams can change the generated format by editing `generateUniqueStudentId()` in `src/config/studentIdGenerator.js`. Keep the `isAvailable(candidateId)` check in the function so customized IDs remain unique.
-
-## Firestore Student Collection
-
-By default, student login checks the `students` collection.
-
-It supports either of these shapes:
-
-1. Document ID is the student ID.
-2. Document contains a field named `studentId` matching the entered value.
-
-Recommended student document shape:
-
-```json
-{
-  "studentId": "12345",
-  "nfcCardId": null,
-  "name": "Jane Doe",
-  "currentMember": true,
-  "signedIn": false,
-  "currentTask": null,
-  "currentTaskId": null,
-  "activeTimeLogId": null,
-  "signedInAt": null
-}
-```
-
-If your Firestore schema uses a different collection name or student ID field, change `src/config/appConfig.js`.
-
-## Firestore Session Model
-
-Student sign-in and sign-out now use two Firestore data shapes:
-
-- `students`: current live session state for the student kiosk and coach dashboard.
-- `timeLogs`: historical session records used for reporting and analytics.
-
-Recommended live session fields on each student document:
-
-```json
-{
-  "signedIn": false,
-  "currentTask": null,
-  "currentTaskId": null,
-  "activeTimeLogId": null,
-  "signedInAt": null
-}
-```
-
-Recommended `timeLogs` document shape:
-
-```json
-{
-  "studentDocId": "abc123",
-  "studentId": "12345",
-  "studentName": "Jane Doe",
-  "taskId": "cad",
-  "taskName": "CAD",
-  "signInAt": "Firestore Timestamp",
-  "signOutAt": null,
-  "signInNotes": "Finish drivetrain plate layout",
-  "signOutNotes": null,
-  "status": "active",
-  "durationMinutes": null,
-  "createdAt": "Firestore Timestamp",
-  "updatedAt": "Firestore Timestamp"
-}
-```
-
-Implementation notes:
-
-- `currentTaskId` is the stable reference and should be preferred over task name matching.
-- `currentTask` is still kept as a readable snapshot for simpler displays and backwards compatibility.
-- Sign-in and sign-out are written as Firestore batches so the student live state and historical time log stay in sync.
-- `signedInAt` should be a Firestore timestamp while a session is active and `null` when it is not.
-
-## Firestore Security Rules
-
-This repo includes Firebase CLI config and Firestore rules:
-
-- `firebase.json`
-- `firestore.rules`
-- `firestore.indexes.json`
-
-Before deploying the rules, update the `kioskEmail()` value in `firestore.rules` so it
-exactly matches `VITE_KIOSK_AUTH_EMAIL` from your `.env`. If you change the student
-authentication domain, also update the email suffix checked by `isStudentAuth()`.
-
-The default rules assume this authentication model:
-
-- Coaches are signed-in Firebase Auth users whose email is not the kiosk email and does not end in `@myapp.internal`.
-- The kiosk is the single signed-in Firebase Auth user matching `kioskEmail()`.
-- Student Auth accounts use generated emails like `12345@myapp.internal`.
-
-Deploy the rules with the Firebase CLI:
-
-```powershell
-firebase deploy --only firestore:rules
-```
-
-Important security note: with the current client-only app, any signed-in non-student, non-kiosk Firebase Auth user is treated as a coach by the rules. For a stricter production setup, use Firebase custom claims such as `coach: true` and update `isCoach()` to check that claim instead of using email shape.
-
-The credential-management callable function is stricter than the current Firestore rules: it requires the `coach: true` custom claim or membership in the deployed `COACH_EMAILS` allowlist.
-
-## Notes For Teams
-
-- If a team only wants new colors and text, they should not need to touch the page layout files.
-- The coach dashboard is intentionally a shell with `Home`, `Schedule`, and `Analytics` sections so teams can drop in their own Firestore-powered panels without rebuilding the layout.
-- Shared UI code now lives under `src/components`.
+See [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md) for the exact values that
+must stay synchronized and a deployment verification checklist.

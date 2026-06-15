@@ -21,6 +21,8 @@ import {
 
 export { isKioskAuthEmail, isStudentAuthEmail };
 
+// Coach, kiosk, and student accounts share Firebase Authentication. These
+// checks stop one account type from entering through another account's form.
 export const loginCoach = async ({ email, password }) => {
   const user = await signInCoachWithEmail({ email, password });
 
@@ -62,8 +64,11 @@ export const loginStudent = async ({ studentId, password, requirePassword = fals
   let studentRecord = null;
 
   if (requirePassword) {
+    // Direct student access signs in with the generated internal email.
     studentAuthUser = await signInStudentWithGeneratedEmail({ studentId, password });
   } else {
+    // Kiosk access keeps the device's Firebase user signed in and stores only
+    // the selected student's profile in the tab's student session.
     kioskAuthUser = getCurrentAuthUser();
 
     if (!isKioskAuthEmail(kioskAuthUser?.email)) {
@@ -87,6 +92,8 @@ export const loginStudent = async ({ studentId, password, requirePassword = fals
     }
   } catch (error) {
     if (studentAuthUser) {
+      // Do not leave a partially authenticated student signed in when their
+      // Firestore profile is missing or archived.
       await signOutStudentAuth().catch(() => {});
     }
 

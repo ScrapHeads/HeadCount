@@ -299,6 +299,8 @@ const StudentDashboard = () => {
     ?? MISSING_VALUE_LABEL
   );
   const currentTask = studentSession?.[studentAuthConfig.currentTaskField] ?? 'No active task';
+  // Parse and validate the form values once, then reuse the same local-day
+  // boundaries for the timeline and summary cards.
   const parsedDateRange = useMemo(() => {
     const startDate = getStartOfDay(dateRange.startDate);
     const endDate = getEndOfDay(dateRange.endDate);
@@ -330,6 +332,8 @@ const StudentDashboard = () => {
       ? []
       : getLogsInDateRange(logs, parsedDateRange.startDate, parsedDateRange.endDate)
   ), [analyticsError, logs, parsedDateRange.endDate, parsedDateRange.startDate]);
+  // The service loads raw logs. The page derives display-ready summaries in
+  // memory so changing the date range does not write anything to Firestore.
   const hoursAnalytics = useMemo(
     () => calculateHoursByCategory(logsInDateRange),
     [logsInDateRange],

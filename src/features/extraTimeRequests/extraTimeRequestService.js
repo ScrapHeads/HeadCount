@@ -63,18 +63,12 @@ export const createExtraTimeRequest = async ({ hours, reason, student }) => {
 
 export const watchExtraTimeRequestsForStudent = ({ student, onData, onError }) => {
   const requestsCollection = collection(db, extraTimeRequestConfig.collectionName);
-  const studentId = String(
-    student?.[studentAuthConfig.idField] ?? student?.studentId ?? '',
+  // The Firestore document ID stays the same when a Student ID changes, so it
+  // keeps requests from both current and previous IDs in one timeline.
+  const requestsQuery = query(
+    requestsCollection,
+    where(extraTimeRequestConfig.studentDocIdField, '==', student?.id ?? ''),
   );
-  const requestsQuery = student?.authMode === 'kiosk'
-    ? query(
-      requestsCollection,
-      where(extraTimeRequestConfig.studentDocIdField, '==', student?.id ?? ''),
-    )
-    : query(
-      requestsCollection,
-      where(extraTimeRequestConfig.studentIdField, '==', studentId ?? ''),
-    );
 
   return onSnapshot(
     requestsQuery,
@@ -113,6 +107,8 @@ export const reviewExtraTimeRequest = async ({ decision, request, reviewedBy }) 
 
   const requestDocRef = doc(db, extraTimeRequestConfig.collectionName, request.id);
 
+  // Approval and its matching time log are written in one transaction. Either
+  // both changes succeed, or neither is saved.
   await runTransaction(db, async (transaction) => {
     const requestSnapshot = await transaction.get(requestDocRef);
 

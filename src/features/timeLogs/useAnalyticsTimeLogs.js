@@ -10,6 +10,8 @@ export const useAnalyticsTimeLogs = ({ startDate, endDate, enabled = true }) => 
   const endTime = endDate?.getTime() ?? null;
 
   useEffect(() => {
+    // Incrementing reloadToken re-runs this effect after a coach edits a log,
+    // without making the token part of the data returned to the UI.
     let isMounted = true;
 
     if (!enabled || startTime === null || endTime === null) {

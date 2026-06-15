@@ -13,6 +13,8 @@ export const taskMatchesReference = (task, reference) => {
     return false;
   }
 
+  // Older data sometimes stored a task name where newer data stores the
+  // Firestore document ID. Matching both keeps those records usable.
   return (
     normalizeTaskRef(task.id) === normalizedReference
     || normalizeTaskRef(task[taskConfig.nameField]) === normalizedReference
@@ -34,6 +36,8 @@ export const getAvailableSignInTasks = (
       ));
     });
 
+  // Unscheduled tasks are always available. Scheduled tasks appear only while
+  // one of their schedule occurrences is active.
   return tasks.filter((task) => {
     if (!task[taskConfig.scheduledField]) {
       return true;

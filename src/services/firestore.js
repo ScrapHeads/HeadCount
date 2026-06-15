@@ -29,6 +29,8 @@ const buildCandidateValues = (studentId) => {
 
   candidates.push(studentId);
 
+  // Older Firestore data may have stored IDs as numbers. In "auto" mode the
+  // app checks both the text and numeric forms so those records still work.
   if (
     studentAuthConfig.idValueType === 'auto' &&
     isNumericString(studentId)
@@ -78,6 +80,43 @@ export const findStudentRecord = async (studentId) => {
   return null;
 };
 
+export const findStudentRecordByPreviousStudentId = async (studentId) => {
+  const normalizedStudentId = normalizeStudentId(studentId).toLowerCase();
+
+  if (!normalizedStudentId) {
+    return null;
+  }
+
+  try {
+    const studentQuery = query(
+      collection(db, studentAuthConfig.collectionName),
+      where(
+        studentAuthConfig.previousStudentIdField,
+        'array-contains',
+        normalizedStudentId,
+      ),
+      limit(1),
+    );
+    const studentSnapshot = await getDocs(studentQuery);
+
+    if (studentSnapshot.empty) {
+      return null;
+    }
+
+    const matchingStudent = studentSnapshot.docs[0];
+    return {
+      id: matchingStudent.id,
+      ...matchingStudent.data(),
+    };
+  } catch (error) {
+    if (error?.code === 'permission-denied') {
+      throw new Error('Firestore denied previous Student ID lookup. Check your Firestore security rules.');
+    }
+
+    throw new Error(`Previous Student ID lookup failed: ${error?.message || 'unknown Firestore error'}`);
+  }
+};
+
 export const findStudentRecordByNfcCardId = async (nfcCardId) => {
   const normalizedNfcCardId = normalizeNfcCardId(nfcCardId);
 
@@ -119,6 +158,8 @@ export const findStudentRecordByIdentifier = async (identifier) => {
     throw new Error('Student ID or NFC card ID is required.');
   }
 
+  // Prefer the student's normal ID before treating the same input as an NFC
+  // card serial number.
   const studentById = await findStudentRecord(normalizedIdentifier);
 
   if (studentById) {
@@ -138,6 +179,8 @@ export const updateStudentRecord = async (studentDocId, updates) => {
 };
 
 export const createDocument = async (collectionName, data) => {
+  // Server timestamps use Firebase's clock, which keeps records consistent
+  // when users' computers have inaccurate local time settings.
   const docRef = await addDoc(collection(db, collectionName), {
     ...data,
     createdAt: serverTimestamp(),

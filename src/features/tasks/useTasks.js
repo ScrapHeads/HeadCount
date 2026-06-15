@@ -8,6 +8,7 @@ export const useTasks = () => {
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
+    // Ignore results from requests that finish after this hook unmounts.
     let isMounted = true;
 
     const loadTasks = async () => {
@@ -42,6 +43,8 @@ export const useTasks = () => {
     tasks,
     isLoading,
     error,
+    // Changing this internal value is a simple way for callers to request a
+    // fresh Firestore read after creating a task.
     reloadTasks: () => setReloadToken((currentValue) => currentValue + 1),
   };
 };
