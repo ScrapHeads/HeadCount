@@ -31,6 +31,7 @@ import {
   minutesToHours,
 } from '../../lib/analyticsUtils';
 import { toDate } from '../../lib/dateUtils';
+import { isCurrentMember } from '../../lib/studentUtils';
 import {
   DASHBOARD_CARD_CLASS_NAME,
   DASHBOARD_TABLE_HEADER_CLASS_NAME,
@@ -86,10 +87,6 @@ const getStudentName = (student) => String(student?.name ?? '').trim() || 'Stude
 const getStudentId = (student) => String(
   student?.[studentAuthConfig.idField] ?? student?.studentId ?? '',
 ).trim();
-
-const getCurrentMemberValue = (student) => (
-  student?.[studentAuthConfig.currentMemberField] ?? student?.['current member'] ?? false
-) === true;
 
 const sortStudentsByName = (students) => [...students].sort((left, right) => (
   getStudentName(left).localeCompare(getStudentName(right))
@@ -937,7 +934,7 @@ const EditStudentCard = ({
     }
 
     setForm({
-      currentMember: getCurrentMemberValue(selectedStudent),
+      currentMember: isCurrentMember(selectedStudent),
       name: selectedStudent.name ?? '',
       nfcCardId: selectedStudent[studentAuthConfig.nfcCardIdField] ?? '',
       password: '',
@@ -1384,11 +1381,14 @@ const StudentManagementDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME 
     () => getAvailableSignInTasks(tasks, schedules),
     [schedules, tasks],
   );
+  const currentStudents = useMemo(
+    () => students.filter(isCurrentMember),
+    [students],
+  );
   const rosterStudents = useMemo(() => {
     const totalsByStudent = buildStudentHourTotals(logs);
 
-    return sortStudentsByName(students)
-      .filter(getCurrentMemberValue)
+    return sortStudentsByName(currentStudents)
       .map((student) => {
         const totalMinutes = getStudentTotalMinutes(student, totalsByStudent);
 
@@ -1398,7 +1398,7 @@ const StudentManagementDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME 
           totalMinutes,
         };
       });
-  }, [logs, students]);
+  }, [currentStudents, logs]);
   const totalRosterHours = useMemo(
     () => minutesToHours(rosterStudents.reduce((sum, student) => sum + student.totalMinutes, 0)),
     [rosterStudents],
@@ -1419,7 +1419,7 @@ const StudentManagementDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME 
           cardClassName={cardClassName}
           error={studentsError || tasksError || schedulesError}
           isLoading={isLoadingStudents || isLoadingTasks || isLoadingSchedules}
-          students={students}
+          students={currentStudents}
           tasks={signInTasks}
         />
         <ExtraHoursCard
@@ -1427,7 +1427,7 @@ const StudentManagementDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME 
           enteredBy={enteredBy}
           error={studentsError}
           isLoading={isLoadingStudents}
-          students={students}
+          students={currentStudents}
         />
         <ExtraTimeRequestsCard
           cardClassName={`${cardClassName} xl:col-span-2`}

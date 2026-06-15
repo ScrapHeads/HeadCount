@@ -17,6 +17,7 @@ import {
   endStudentSessionByCoach,
 } from '../features/timeLogs/timeLogService';
 import { toDate } from '../lib/dateUtils';
+import { isCurrentMember } from '../lib/studentUtils';
 import {
   DASHBOARD_CARD_CLASS_NAME,
   FORM_INPUT_CLASS_NAME,
@@ -480,7 +481,7 @@ const CoachDashboard = () => {
     () => students
       .filter((student) => (
         student[studentAuthConfig.signedInField] !== true
-        && (student[studentAuthConfig.currentMemberField] ?? student['current member'] ?? true) === true
+        && isCurrentMember(student)
       ))
       .sort((left, right) => (
         String(left.name ?? '').localeCompare(String(right.name ?? ''))

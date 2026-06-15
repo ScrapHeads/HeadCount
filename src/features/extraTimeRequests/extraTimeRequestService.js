@@ -14,6 +14,7 @@ import {
   timeLogConfig,
 } from '../../config/appConfig';
 import { db } from '../../services/firebase';
+import { isCurrentMember } from '../../lib/studentUtils';
 
 const sortRequestsNewestFirst = (requests) => [...requests].sort((left, right) => {
   const leftTime = left?.[extraTimeRequestConfig.requestedAtField]?.toMillis?.() ?? 0;
@@ -25,6 +26,10 @@ const sortRequestsNewestFirst = (requests) => [...requests].sort((left, right) =
 export const createExtraTimeRequest = async ({ hours, reason, student }) => {
   if (!student?.id) {
     throw new Error('A student record is required to request extra time.');
+  }
+
+  if (!isCurrentMember(student)) {
+    throw new Error('Archived students cannot request extra time.');
   }
 
   const numericHours = Number(hours);
@@ -134,6 +139,11 @@ export const reviewExtraTimeRequest = async ({ decision, request, reviewedBy }) 
       }
 
       const studentData = studentSnapshot.data();
+
+      if (!isCurrentMember(studentData)) {
+        throw new Error('Archived students cannot receive approved extra time.');
+      }
+
       const timeLogDocRef = doc(collection(db, timeLogConfig.collectionName));
 
       transaction.set(timeLogDocRef, {

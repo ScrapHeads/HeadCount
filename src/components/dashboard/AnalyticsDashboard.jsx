@@ -14,6 +14,10 @@ import {
   getStartOfDay,
 } from '../../lib/analyticsUtils';
 import {
+  filterLogsForCurrentStudents,
+  isCurrentMember,
+} from '../../lib/studentUtils';
+import {
   DASHBOARD_CARD_CLASS_NAME,
   DASHBOARD_TABLE_HEADER_CLASS_NAME,
   FORM_INPUT_CLASS_NAME,
@@ -777,14 +781,27 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
     isLoading: isLoadingStudents,
     error: studentsError,
   } = useStudents();
-  const analyticsError = parsedDateRange.error || loadError;
-  const attendanceError = analyticsError || schedulesError || studentsError;
+  const analyticsError = parsedDateRange.error || loadError || studentsError;
+  const attendanceError = analyticsError || schedulesError;
+  const currentStudents = useMemo(
+    () => students.filter(isCurrentMember),
+    [students],
+  );
 
   const logsInDateRange = useMemo(() => (
     analyticsError
       ? []
-      : getLogsInDateRange(logs, parsedDateRange.startDate, parsedDateRange.endDate)
-  ), [analyticsError, logs, parsedDateRange.endDate, parsedDateRange.startDate]);
+      : filterLogsForCurrentStudents(
+        getLogsInDateRange(logs, parsedDateRange.startDate, parsedDateRange.endDate),
+        currentStudents,
+      )
+  ), [
+    analyticsError,
+    currentStudents,
+    logs,
+    parsedDateRange.endDate,
+    parsedDateRange.startDate,
+  ]);
 
   const studentHourTotals = useMemo(
     () => calculateStudentHourTotals(logsInDateRange),
@@ -799,8 +816,8 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
     [logsInDateRange],
   );
   const attendanceAnalytics = useMemo(
-    () => calculateAttendanceAnalytics(logsInDateRange, schedules, students),
-    [logsInDateRange, schedules, students],
+    () => calculateAttendanceAnalytics(logsInDateRange, schedules, currentStudents),
+    [currentStudents, logsInDateRange, schedules],
   );
   const defaultStudentKey = studentHourTotals.students[0]?.studentKey ?? '';
   const effectiveStudentKey = selectedStudentKey || defaultStudentKey;
@@ -848,28 +865,28 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
           analytics={studentHourTotals}
           cardClassName={cardClassName}
           error={analyticsError}
-          isLoading={isLoading}
+          isLoading={isLoading || isLoadingStudents}
           rangeLabel={parsedDateRange.rangeLabel}
         />
         <TeamHoursOverTimeCard
           analytics={teamHoursOverTime}
           cardClassName={cardClassName}
           error={analyticsError}
-          isLoading={isLoading}
+          isLoading={isLoading || isLoadingStudents}
           rangeLabel={parsedDateRange.rangeLabel}
         />
         <HoursByCategoryCard
           analytics={hoursByCategory}
           cardClassName={`${cardClassName} xl:col-span-2`}
           error={analyticsError}
-          isLoading={isLoading}
+          isLoading={isLoading || isLoadingStudents}
           rangeLabel={parsedDateRange.rangeLabel}
         />
         <StudentCategoryBreakdownCard
           analytics={studentCategoryBreakdown}
           cardClassName={cardClassName}
           error={analyticsError}
-          isLoading={isLoading}
+          isLoading={isLoading || isLoadingStudents}
           onStudentChange={setSelectedStudentKey}
           selectedStudent={selectedStudent}
           selectedStudentKey={effectiveStudentKey}
@@ -884,7 +901,7 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
         isLoading={isLoading || isLoadingSchedules || isLoadingStudents}
         onLogSaved={reloadLogs}
         rangeLabel={parsedDateRange.rangeLabel}
-        students={students}
+        students={currentStudents}
       />
     </div>
   );

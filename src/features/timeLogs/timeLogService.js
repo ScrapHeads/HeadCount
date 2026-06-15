@@ -16,6 +16,7 @@ import { getScheduledTaskEndTime } from '../schedules/validateSchedule';
 import { getCurrentAuthUser, getStudentIdFromAuthEmail } from '../../services/auth';
 import { db } from '../../services/firebase';
 import { toDate } from '../../lib/dateUtils';
+import { isCurrentMember } from '../../lib/studentUtils';
 
 // Duration is stored as a convenience field for analytics. We still keep the
 // raw timestamps so teams can recalculate later if they want different rules.
@@ -228,6 +229,10 @@ export const createExtraHoursTimeLog = async ({
     throw new Error('A student record is required to add extra hours.');
   }
 
+  if (!isCurrentMember(student)) {
+    throw new Error('Archived students cannot receive extra hours.');
+  }
+
   const numericHours = Number(hours);
   const trimmedReason = String(reason ?? '').trim();
 
@@ -268,6 +273,10 @@ export const createExtraHoursTimeLog = async ({
 export const startStudentSession = async ({ student, task, signInNotes }) => {
   if (!student?.id) {
     throw new Error('A student record is required to create a time log.');
+  }
+
+  if (!isCurrentMember(student)) {
+    throw new Error('Archived students cannot be signed in.');
   }
 
   if (!task?.id) {

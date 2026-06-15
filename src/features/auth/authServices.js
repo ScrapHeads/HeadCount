@@ -4,6 +4,7 @@ import {
   updateStudentRecord,
 } from '../../services/firestore';
 import { studentAuthConfig } from '../../config/appConfig';
+import { isCurrentMember } from '../../lib/studentUtils';
 import {
   getCurrentAuthUser,
   isKioskAuthEmail,
@@ -81,8 +82,8 @@ export const loginStudent = async ({ studentId, password, requirePassword = fals
         : 'Student ID or NFC card ID not found.');
     }
 
-    if (studentRecord.active === false) {
-      throw new Error('This student account is inactive.');
+    if (studentRecord.active === false || !isCurrentMember(studentRecord)) {
+      throw new Error('This student is archived and cannot sign in.');
     }
   } catch (error) {
     if (studentAuthUser) {

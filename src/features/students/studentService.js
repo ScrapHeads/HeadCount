@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore';
 import { studentAuthConfig } from '../../config/appConfig';
 import { generateUniqueStudentId } from '../../config/studentIdGenerator';
+import { isCurrentMember } from '../../lib/studentUtils';
 import {
   createStudentAuthAccount,
   deleteStudentAuthAccount,
@@ -58,10 +59,12 @@ export const watchActiveStudents = (callback, onError) => {
     activeStudentsQuery,
     (snapshot) => {
       callback(
-        snapshot.docs.map((studentDoc) => ({
-          id: studentDoc.id,
-          ...studentDoc.data(),
-        })),
+        snapshot.docs
+          .map((studentDoc) => ({
+            id: studentDoc.id,
+            ...studentDoc.data(),
+          }))
+          .filter(isCurrentMember),
       );
     },
     onError,
