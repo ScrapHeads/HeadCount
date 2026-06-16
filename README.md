@@ -4,6 +4,13 @@ A React and Firebase application for recording robotics team hours. Students can
 check in through a kiosk or their own login, while coaches manage the roster,
 schedules, time logs, extra-time requests, and attendance analytics.
 
+## Hosting Note
+
+This project is intended to be hosted on Vercel for the frontend, with Firebase
+handling Authentication, Firestore, Security Rules, and optional Cloud
+Functions. Start with the Firebase guide [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md), then follow
+[docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md) to publish the site.
+
 ## Features
 
 - Coach, kiosk, and student sign-in flows
@@ -32,7 +39,10 @@ Install these tools:
 
 - [Node.js](https://nodejs.org/) 20 or newer
 - npm, which is included with Node.js
+
+Create these accounts and projects
 - A Firebase project
+- A Vercel account for hosting the frontend
 
 Cloud Functions in this repository use Node.js 20, but deploying them is
 optional. The main application works without Functions; coaches must then
@@ -54,10 +64,12 @@ enabled.
    Copy-Item .env.example .env
    ```
 
-3. Add your Firebase web app values to `.env`.
-
-4. Complete the Authentication, Firestore, rules, and optional Functions setup in
+3. Complete the Authentication, Firestore, rules, and optional Functions setup in
    [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md).
+
+4. Add your Firebase web app values to `.env`.
+
+
 
 5. Start the development server:
 
@@ -111,9 +123,6 @@ Start rebranding in `src/config/branding.js`. The theme is applied in this order
 5. Components use classes such as `bg-primary`, `text-on-primary`, and
    `border-border`.
 
-Prefer the existing theme-backed classes when adding UI. Hardcoded colors make
-future rebranding more difficult.
-
 ## Authentication And Sessions
 
 - Coaches use normal Firebase email and password accounts.
@@ -153,13 +162,16 @@ functions/
   sharedConfig.json     Frontend/backend shared defaults
 docs/
   FIREBASE_SETUP.md     Complete Firebase setup and deployment guide
+  VERCEL_SETUP.md       Frontend hosting guide for Vercel
 ```
 
 ## Deployment
 
-The frontend can be deployed to Vercel or another static host. Add every
-`VITE_*` value from `.env.example` to the host's environment settings before
-building. `vercel.json` includes the rewrite needed for client-side routes.
+The frontend is hosted through Vercel. Follow
+[docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md) to connect the repository, add the
+`VITE_*` environment variables, authorize the Vercel domain in Firebase, and
+deploy the site. `vercel.json` includes the rewrite needed for client-side
+routes.
 
 Deploy the database rules and indexes:
 
