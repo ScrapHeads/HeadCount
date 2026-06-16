@@ -370,7 +370,10 @@ Stores work categories available for sessions:
 
 Unscheduled tasks are always available. Scheduled tasks are available only
 during an active schedule occurrence.
-#### To create an unscheduled event you must sign into firestore and change the scheduled field to false. Or create a task inside of firestore by following the stucture above. This will allow students to sign into this task at any time. 
+
+To create an unscheduled task manually, open Firestore and create a `tasks`
+document using the structure above with `scheduled` set to `false`. Students can
+select unscheduled tasks at any time.
 
 ### `schedules`
 

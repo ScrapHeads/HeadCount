@@ -42,12 +42,18 @@ VITE_STUDENT_AUTH_EMAIL_DOMAIN="myapp.internal"
 ```
 
 Use the same values that work in the local `.env` file. Add them for
-**Production** and any **Preview** environments that should connect to Firebase. 
-You can import your local .env file into vercel instaid of creating the varibles
-one at a time.
+**Production** and any **Preview** environments that should connect to Firebase.
+You can import your local `.env` file into Vercel instead of creating the
+variables one at a time.
+
+Only add Firebase-connected values to Preview environments if the team plans to
+test preview deployments. Each preview domain that uses Firebase Authentication
+also needs to be authorized in Firebase.
 
 Only add `VITE_*` variables to Vercel. The optional `functions/.env` values are
-for Firebase Cloud Functions and should be configured in Firebase, not Vercel.
+part of the Firebase Cloud Functions setup in
+[FIREBASE_SETUP.md](FIREBASE_SETUP.md#9-optional-configure-cloud-functions),
+not the Vercel project settings.
 
 ## 3. Deploy The Site
 
@@ -74,6 +80,10 @@ creates the site URL:
    ```
 
 5. If you add a custom domain in Vercel, add that domain to Firebase too.
+
+If Preview deployments have Firebase environment variables, add the exact
+preview domains you plan to test with. Otherwise, Firebase Authentication can
+block sign-in even when the Vercel build succeeds.
 
 ## 5. Deploy Firebase Rules And Optional Functions
 
