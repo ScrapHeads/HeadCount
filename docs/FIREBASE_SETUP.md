@@ -64,7 +64,7 @@ Do not commit `.env`.
 
 In the Firebase console:
 
-1. Open **Build > Authentication**.
+1. Open **Security > Authentication**.
 2. Select **Get started** if Authentication is not initialized.
 3. Open **Sign-in method**.
 4. Enable **Email/Password**.
@@ -77,10 +77,11 @@ stricter, update the shared minimum so the UI gives users the correct message.
 
 In the Firebase console:
 
-1. Open **Build > Firestore Database**.
+1. Open **Databases & Storage > Firestore**.
 2. Select **Create database**.
-3. Choose the production rules option.
+3. Choose the Standard rules option.
 4. Select a database region appropriate for the team.
+5. Start in production mode later you will push the security rules from this project.
 
 The application creates collection documents as they are needed. You do not
 need to create empty collections manually.
@@ -99,6 +100,9 @@ student-id@student-domain
 
 For example, student ID `12345` with the default domain becomes
 `12345@myapp.internal`.
+
+This project already defaults to `@myapp.internal`. Avoid changing it unless you
+are also updating every synced setting below.
 
 The following values must agree:
 
@@ -246,11 +250,17 @@ Skip this section if Cloud Functions are not enabled.
 Student ID changes and password resets use Firebase Admin Authentication.
 If those actions fail while ordinary profile edits still work:
 
-1. Open the Google Cloud console for the Firebase project.
-2. Open **IAM & Admin > IAM**.
-3. Locate the service account used by the deployed second-generation function.
-4. Confirm it has the **Firebase Authentication Admin** role
-   (`roles/firebaseauth.admin`).
+1. In the Firebase console, copy the Firebase **Project ID** from
+   **Project settings > General**.
+2. Open the [Google Cloud console](https://console.cloud.google.com/). This is
+   separate from the Firebase console, even though it uses the same project.
+3. Use the project picker at the top of Google Cloud Console to select the same
+   Project ID.
+4. Select **View all products**, then open **IAM & Admin > IAM**. If you do not
+   see it, use the Google Cloud search bar and search for `IAM`.
+5. Locate the service account used by the deployed second-generation function.
+6. Confirm it has the **Firebase Authentication Admin** role. In Google Cloud,
+   click the edit button and search **Firebase Authentication Admin**.
 
 The runtime commonly uses the project's default Compute Engine service account
 unless the deployment specifies a different account.
@@ -273,7 +283,7 @@ The default internal student email does not have a real inbox, so an emailed
 password-reset link normally cannot be received. The simplest console-only
 method is to recreate the Authentication account:
 
-1. Open **Firebase Console > Build > Authentication > Users**.
+1. Open **Firebase Console > Authentication > Users**.
 2. Find the user whose email matches the student's generated email.
 3. Delete that Authentication user.
 4. Select **Add user**.
@@ -291,7 +301,7 @@ Changing the student ID also changes the generated Authentication email. Old
 IDs are stored in the student's `previousStudentId` array, so historical logs
 do not need to be edited:
 
-1. Open **Firestore Database > Data > students** and find the student.
+1. Open **Firestore > Data > students** and find the student.
 2. Record the current `studentId`.
 3. Confirm the new ID is not used in another student's `studentId`,
    `nfcCardId`, or `previousStudentId` array.
