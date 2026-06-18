@@ -1344,12 +1344,59 @@ const StudentTimeLogsCard = ({
   );
 };
 
-const StudentManagementDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
+const StudentManagementDashboard = ({
+  cardClassName = DASHBOARD_CARD_CLASS_NAME,
+  isLoadingSchedules: providedIsLoadingSchedules = false,
+  isLoadingStudents: providedIsLoadingStudents = false,
+  isLoadingTasks: providedIsLoadingTasks = false,
+  schedules: providedSchedules,
+  schedulesError: providedSchedulesError = '',
+  students: providedStudents,
+  studentsError: providedStudentsError = '',
+  tasks: providedTasks,
+  tasksError: providedTasksError = '',
+}) => {
+  const hasProvidedSchedules = Array.isArray(providedSchedules);
+  const hasProvidedStudents = Array.isArray(providedStudents);
+  const hasProvidedTasks = Array.isArray(providedTasks);
   const { coachUser } = useAuth();
-  const { students, isLoading: isLoadingStudents, error: studentsError } = useStudents();
-  const { tasks, isLoading: isLoadingTasks, error: tasksError } = useTasks();
-  const { schedules, isLoading: isLoadingSchedules, error: schedulesError } = useSchedules();
+  const internalStudentsState = useStudents({
+    enabled: !hasProvidedStudents,
+  });
+  const internalTasksState = useTasks({
+    enabled: !hasProvidedTasks,
+  });
+  const internalSchedulesState = useSchedules(undefined, {
+    enabled: !hasProvidedSchedules,
+  });
   const { logs, isLoading: isLoadingLogs, error: logsError } = useCompletedTimeLogs();
+  const students = hasProvidedStudents
+    ? providedStudents
+    : internalStudentsState.students;
+  const isLoadingStudents = hasProvidedStudents
+    ? providedIsLoadingStudents
+    : internalStudentsState.isLoading;
+  const studentsError = hasProvidedStudents
+    ? providedStudentsError
+    : internalStudentsState.error;
+  const tasks = hasProvidedTasks
+    ? providedTasks
+    : internalTasksState.tasks;
+  const isLoadingTasks = hasProvidedTasks
+    ? providedIsLoadingTasks
+    : internalTasksState.isLoading;
+  const tasksError = hasProvidedTasks
+    ? providedTasksError
+    : internalTasksState.error;
+  const schedules = hasProvidedSchedules
+    ? providedSchedules
+    : internalSchedulesState.schedules;
+  const isLoadingSchedules = hasProvidedSchedules
+    ? providedIsLoadingSchedules
+    : internalSchedulesState.isLoading;
+  const schedulesError = hasProvidedSchedules
+    ? providedSchedulesError
+    : internalSchedulesState.error;
   const enteredBy = coachUser?.email ?? coachUser?.displayName ?? 'Coach';
 
   // These subscriptions feed every card below. Memoized derived lists keep the

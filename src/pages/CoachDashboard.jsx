@@ -344,6 +344,8 @@ const recurrenceLabel = (schedule) => {
 // so this file can focus on navigation, live sessions, and scheduling.
 const CoachDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const activeSection = getSectionFromSlug(searchParams.get('section'));
+  const [visitedSections, setVisitedSections] = useState(() => new Set([activeSection]));
   const [endingStudentId, setEndingStudentId] = useState('');
   const [homeStatusMessage, setHomeStatusMessage] = useState('');
   const [scheduleForm, setScheduleForm] = useState({
@@ -365,17 +367,78 @@ const CoachDashboard = () => {
   const [autoCheckoutTick, setAutoCheckoutTick] = useState(0);
   const autoCheckoutStudentIdsRef = useRef(new Set());
   const { coachUser, signOutCoach } = useAuth();
-  const { students: activeStudents, isLoading: isLoadingActiveStudents, error: activeStudentsError } = useActiveStudents();
-  const { students, isLoading: isLoadingStudents, error: studentsError } = useStudents();
-  const { tasks, isLoading: isLoadingTasks, error: tasksError, reloadTasks } = useTasks();
-  const { schedules, isLoading: isLoadingSchedules, error: schedulesError, reloadSchedules } = useSchedules();
   const navigate = useNavigate();
-  const activeSection = getSectionFromSlug(searchParams.get('section'));
+  const hasVisitedHome = visitedSections.has('home') || activeSection === 'home';
+  const hasVisitedSchedule = visitedSections.has('schedule') || activeSection === 'schedule';
+  const hasVisitedAnalytics = visitedSections.has('analytics') || activeSection === 'analytics';
+  const hasVisitedStudentManagement = (
+    visitedSections.has('student management')
+    || activeSection === 'student management'
+  );
+  const shouldLoadStudents = hasVisitedHome || hasVisitedAnalytics || hasVisitedStudentManagement;
+  const shouldLoadActiveStudents = !shouldLoadStudents;
+  const shouldLoadTasks = hasVisitedSchedule || hasVisitedStudentManagement;
+  const {
+    students: subscribedActiveStudents,
+    isLoading: isLoadingSubscribedActiveStudents,
+    error: subscribedActiveStudentsError,
+  } = useActiveStudents({ enabled: shouldLoadActiveStudents });
+  const { students, isLoading: isLoadingStudents, error: studentsError } = useStudents({
+    enabled: shouldLoadStudents,
+  });
+  const activeStudentsFromRoster = useMemo(
+    () => students
+      .filter((student) => (
+        student[studentAuthConfig.signedInField] === true
+        && isCurrentMember(student)
+      ))
+      .sort((left, right) => {
+        const leftTime = toDate(left[studentAuthConfig.signedInAtField])?.getTime() ?? 0;
+        const rightTime = toDate(right[studentAuthConfig.signedInAtField])?.getTime() ?? 0;
+
+        return leftTime - rightTime;
+      }),
+    [students],
+  );
+  const activeStudents = shouldLoadStudents
+    ? activeStudentsFromRoster
+    : subscribedActiveStudents;
+  const isLoadingActiveStudents = shouldLoadStudents
+    ? isLoadingStudents
+    : isLoadingSubscribedActiveStudents;
+  const activeStudentsError = shouldLoadStudents
+    ? studentsError
+    : subscribedActiveStudentsError;
+  const shouldLoadSchedules = (
+    hasVisitedSchedule
+    || hasVisitedAnalytics
+    || hasVisitedStudentManagement
+    || activeStudents.length > 0
+  );
+  const { tasks, isLoading: isLoadingTasks, error: tasksError, reloadTasks } = useTasks({
+    enabled: shouldLoadTasks,
+  });
+  const { schedules, isLoading: isLoadingSchedules, error: schedulesError, reloadSchedules } = useSchedules(
+    undefined,
+    { enabled: shouldLoadSchedules },
+  );
 
   const activeNavItem = useMemo(
     () => navItems.find((item) => item.id === activeSection) ?? navItems[0],
     [activeSection],
   );
+
+  useEffect(() => {
+    setVisitedSections((currentSections) => {
+      if (currentSections.has(activeSection)) {
+        return currentSections;
+      }
+
+      const nextSections = new Set(currentSections);
+      nextSections.add(activeSection);
+      return nextSections;
+    });
+  }, [activeSection]);
 
   useEffect(() => {
     // Each dashboard section remembers its own scroll position for this tab.
@@ -1126,12 +1189,37 @@ const CoachDashboard = () => {
                     )}
                   </article>
                 </>
-              ) : activeSection === 'analytics' ? (
-                <AnalyticsDashboard cardClassName={DASHBOARD_CARD_CLASS_NAME} />
-              ) : activeSection === 'student management' ? (
-                <StudentManagementDashboard cardClassName={DASHBOARD_CARD_CLASS_NAME} />
-              ) : (
-                null
+              ) : null}
+
+              {hasVisitedAnalytics && (
+                <div className={activeSection === 'analytics' ? 'block' : 'hidden'}>
+                  <AnalyticsDashboard
+                    cardClassName={DASHBOARD_CARD_CLASS_NAME}
+                    isLoadingSchedules={isLoadingSchedules}
+                    isLoadingStudents={isLoadingStudents}
+                    schedules={schedules}
+                    schedulesError={schedulesError}
+                    students={students}
+                    studentsError={studentsError}
+                  />
+                </div>
+              )}
+
+              {hasVisitedStudentManagement && (
+                <div className={activeSection === 'student management' ? 'block' : 'hidden'}>
+                  <StudentManagementDashboard
+                    cardClassName={DASHBOARD_CARD_CLASS_NAME}
+                    isLoadingSchedules={isLoadingSchedules}
+                    isLoadingStudents={isLoadingStudents}
+                    isLoadingTasks={isLoadingTasks}
+                    schedules={schedules}
+                    schedulesError={schedulesError}
+                    students={students}
+                    studentsError={studentsError}
+                    tasks={tasks}
+                    tasksError={tasksError}
+                  />
+                </div>
               )}
             </div>
 

@@ -1,6 +1,61 @@
 import { useEffect, useState } from 'react';
 import { listTimeLogsBySignInRange } from './timeLogService';
 
+const analyticsLogCaches = new Map();
+
+const getAnalyticsCacheKey = ({ endTime, startTime }) => `${startTime}:${endTime}`;
+
+const getAnalyticsLogCache = ({ endTime, startTime }) => {
+  const cacheKey = getAnalyticsCacheKey({ endTime, startTime });
+
+  if (!analyticsLogCaches.has(cacheKey)) {
+    analyticsLogCaches.set(cacheKey, {
+      error: '',
+      hasLoaded: false,
+      logs: [],
+      promise: null,
+    });
+  }
+
+  return analyticsLogCaches.get(cacheKey);
+};
+
+const loadCachedAnalyticsLogs = async ({
+  endTime,
+  force = false,
+  startTime,
+}) => {
+  const cache = getAnalyticsLogCache({ endTime, startTime });
+
+  if (!force && cache.hasLoaded) {
+    return cache.logs;
+  }
+
+  if (!force && cache.promise) {
+    return cache.promise;
+  }
+
+  cache.promise = listTimeLogsBySignInRange({
+    startDate: new Date(startTime),
+    endDate: new Date(endTime),
+  })
+    .then((timeLogs) => {
+      cache.error = '';
+      cache.hasLoaded = true;
+      cache.logs = timeLogs;
+      return timeLogs;
+    })
+    .catch((loadError) => {
+      cache.error = loadError?.message || 'Failed to load analytics time logs.';
+      throw loadError;
+    })
+    .finally(() => {
+      cache.promise = null;
+    });
+
+  return cache.promise;
+};
+
 export const useAnalyticsTimeLogs = ({ startDate, endDate, enabled = true }) => {
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,13 +79,17 @@ export const useAnalyticsTimeLogs = ({ startDate, endDate, enabled = true }) => 
     }
 
     const loadTimeLogs = async () => {
-      setIsLoading(true);
+      const currentCache = getAnalyticsLogCache({ endTime, startTime });
+
+      setLogs(currentCache.logs);
+      setIsLoading(!currentCache.hasLoaded);
       setError('');
 
       try {
-        const timeLogs = await listTimeLogsBySignInRange({
-          startDate: new Date(startTime),
-          endDate: new Date(endTime),
+        const timeLogs = await loadCachedAnalyticsLogs({
+          endTime,
+          force: reloadToken > 0,
+          startTime,
         });
 
         if (isMounted) {

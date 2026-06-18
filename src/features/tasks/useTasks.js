@@ -1,9 +1,43 @@
 import { useEffect, useState } from 'react';
 import { listTasks } from './taskService';
 
-export const useTasks = () => {
-  const [tasks, setTasks] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+const taskCache = {
+  error: '',
+  hasLoaded: false,
+  promise: null,
+  tasks: [],
+};
+
+const loadCachedTasks = async ({ force = false } = {}) => {
+  if (!force && taskCache.hasLoaded) {
+    return taskCache.tasks;
+  }
+
+  if (!force && taskCache.promise) {
+    return taskCache.promise;
+  }
+
+  taskCache.promise = listTasks()
+    .then((loadedTasks) => {
+      taskCache.error = '';
+      taskCache.hasLoaded = true;
+      taskCache.tasks = loadedTasks;
+      return loadedTasks;
+    })
+    .catch((loadError) => {
+      taskCache.error = loadError.message || 'Failed to load tasks.';
+      throw loadError;
+    })
+    .finally(() => {
+      taskCache.promise = null;
+    });
+
+  return taskCache.promise;
+};
+
+export const useTasks = ({ enabled = true } = {}) => {
+  const [tasks, setTasks] = useState(() => taskCache.tasks);
+  const [isLoading, setIsLoading] = useState(() => enabled && !taskCache.hasLoaded);
   const [error, setError] = useState('');
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -11,12 +45,22 @@ export const useTasks = () => {
     // Ignore results from requests that finish after this hook unmounts.
     let isMounted = true;
 
+    if (!enabled) {
+      setTasks(taskCache.tasks);
+      setIsLoading(false);
+      setError(taskCache.error);
+      return () => {
+        isMounted = false;
+      };
+    }
+
     const loadTasks = async () => {
-      setIsLoading(true);
+      setTasks(taskCache.tasks);
+      setIsLoading(!taskCache.hasLoaded);
       setError('');
 
       try {
-        const allTasks = await listTasks();
+        const allTasks = await loadCachedTasks({ force: reloadToken > 0 });
 
         if (isMounted) {
           setTasks(allTasks);
@@ -37,7 +81,7 @@ export const useTasks = () => {
     return () => {
       isMounted = false;
     };
-  }, [reloadToken]);
+  }, [enabled, reloadToken]);
 
   return {
     tasks,

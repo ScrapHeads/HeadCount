@@ -716,7 +716,17 @@ const AttendanceAnalyticsCard = ({
   );
 };
 
-const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
+const AnalyticsDashboard = ({
+  cardClassName = DASHBOARD_CARD_CLASS_NAME,
+  isLoadingSchedules: providedIsLoadingSchedules = false,
+  isLoadingStudents: providedIsLoadingStudents = false,
+  schedules: providedSchedules,
+  schedulesError: providedSchedulesError = '',
+  students: providedStudents,
+  studentsError: providedStudentsError = '',
+}) => {
+  const hasProvidedSchedules = Array.isArray(providedSchedules);
+  const hasProvidedStudents = Array.isArray(providedStudents);
   const [dateRange, setDateRange] = useState(getDefaultDateRange);
   const [selectedStudentKey, setSelectedStudentKey] = useState('');
 
@@ -749,16 +759,30 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
     endDate: parsedDateRange.endDate,
     enabled: !parsedDateRange.error,
   });
-  const {
-    schedules,
-    isLoading: isLoadingSchedules,
-    error: schedulesError,
-  } = useSchedules();
-  const {
-    students,
-    isLoading: isLoadingStudents,
-    error: studentsError,
-  } = useStudents();
+  const internalSchedulesState = useSchedules(undefined, {
+    enabled: !hasProvidedSchedules,
+  });
+  const internalStudentsState = useStudents({
+    enabled: !hasProvidedStudents,
+  });
+  const schedules = hasProvidedSchedules
+    ? providedSchedules
+    : internalSchedulesState.schedules;
+  const isLoadingSchedules = hasProvidedSchedules
+    ? providedIsLoadingSchedules
+    : internalSchedulesState.isLoading;
+  const schedulesError = hasProvidedSchedules
+    ? providedSchedulesError
+    : internalSchedulesState.error;
+  const students = hasProvidedStudents
+    ? providedStudents
+    : internalStudentsState.students;
+  const isLoadingStudents = hasProvidedStudents
+    ? providedIsLoadingStudents
+    : internalStudentsState.isLoading;
+  const studentsError = hasProvidedStudents
+    ? providedStudentsError
+    : internalStudentsState.error;
   const analyticsError = parsedDateRange.error || loadError || studentsError;
   const attendanceError = analyticsError || schedulesError;
   const currentStudents = useMemo(
