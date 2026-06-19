@@ -75,6 +75,33 @@ change student IDs and passwords manually in Firebase. Deploying
 second-generation Cloud Functions requires the Firebase Blaze plan with billing
 enabled.
 
+## Copy This Repository
+
+Before local setup, copy the project into a repository owned by your team.
+Create an empty GitHub repository first; do not initialize it with a README,
+license, or `.gitignore`.
+
+Clone this project:
+
+```powershell
+git clone https://github.com/tebbe21485/robotics-team-hours-tracker.git my-team-hours-tracker
+cd my-team-hours-tracker
+```
+
+Keep this project available as `upstream` for future updates, then connect your
+team's repository as `origin`:
+
+```powershell
+git remote rename origin upstream
+git remote add origin https://github.com/YOUR-ACCOUNT/YOUR-REPO.git
+git push -u origin main
+```
+
+After the push, use your new GitHub repository for Vercel and Firebase setup.
+If you do not want to keep a connection to the original project, use
+`git remote set-url origin https://github.com/YOUR-ACCOUNT/YOUR-REPO.git`
+instead of renaming `origin` to `upstream`.
+
 ## Local Setup
 
 1. Install the frontend dependencies:
