@@ -20,6 +20,21 @@ Functions. Start with the Firebase guide
 [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md), then follow
 [docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md) to publish the site.
 
+## Live Demo
+
+Try the Firebase-free demo here:
+[robotics-team-hours-tracker-jn171dci6-tebbe21485s-projects.vercel.app](https://robotics-team-hours-tracker-jn171dci6-tebbe21485s-projects.vercel.app)
+
+The live demo is meant for exploring the app without setting up Firebase. It
+uses the same React screens and workflows as the main project, but Firebase
+Authentication, Firestore, and Cloud Functions are replaced with browser-local
+demo data. The access portal includes demo buttons for student, kiosk, and
+coach views, and changes are saved only in that browser's `localStorage`.
+
+Because the demo data is local to each visitor, it is not shared with other
+users and is not a production database. Use **Reset demo data** on the access
+portal to restore the seeded walkthrough data.
+
 ## Features
 
 - Coach, kiosk, and student sign-in flows
