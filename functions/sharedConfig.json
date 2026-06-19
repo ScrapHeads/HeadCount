@@ -1,0 +1,21 @@
+{
+  "studentAuth": {
+    "collectionName": "students",
+    "idField": "studentId",
+    "previousStudentIdField": "previousStudentId",
+    "nfcCardIdField": "nfcCardId",
+    "authEmailDomain": "myapp.internal",
+    "minPasswordLength": 6
+  },
+  "timeLogs": {
+    "collectionName": "timeLogs"
+  },
+  "extraTimeRequests": {
+    "collectionName": "extraTimeRequests"
+  },
+  "sharedFields": {
+    "studentDocIdField": "studentDocId",
+    "studentIdField": "studentId",
+    "updatedAtField": "updatedAt"
+  }
+}

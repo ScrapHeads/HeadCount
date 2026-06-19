@@ -1,22 +1,36 @@
-// Teams should primarily edit this file when they want to rebrand the app.
-// Keep the palette values as hex colors so the derived tokens stay predictable.
+// Edit this top section when adapting the app for a new team. The code below
+// this object turns these values into site-wide colors and fonts.
 export const branding = {
+  // Shows in the app header and other visible page headings.
   appName: 'Robotics Team Hours Tracker',
+  // Short sentence used on the public access page to explain the app.
   tagline: 'Track team hours with a setup that is easy to copy, reuse, and rebrand.',
+  // Small label for the team or organization using this copy of the app.
   teamLabel: 'Your Team Name',
   theme: {
+    // Use a web-safe font list or a font that has been loaded in the app.
     fontFamily: '"Segoe UI", Arial, sans-serif',
+    // Use hex colors such as #132840. The helper code below automatically
+    // creates readable text and border colors from this small palette.
     colors: {
+      // Main brand color used for headers, buttons, and strong panels.
       primary: '#132840',
+      // Supporting color used for secondary cards and backgrounds.
       secondary: '#a83a49',
+      // Highlight color used for important actions and visual emphasis.
       accent: '#2a8294',
+      // Page background color.
       background: '#0c121a',
+      // Text color shown on top of the primary color.
       textOnPrimary: '#ffffff',
+      // Text color shown on top of the secondary color.
       textOnSecondary: '#ffffff',
     },
   },
 };
 
+// Most teams should not need to edit below this line. These helpers make sure
+// the simple colors above become usable CSS variables for the whole app.
 const normalizeHexColor = (value) => {
   if (typeof value !== 'string') {
     return null;

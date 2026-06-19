@@ -20,6 +20,8 @@ const useRequestSubscription = ({ enabled = true, subscribe }) => {
     setIsLoading(true);
     setError('');
 
+    // Firestore returns an unsubscribe function; React calls it when the
+    // student changes or the component leaves the page.
     return subscribe(
       (loadedRequests) => {
         setRequests(loadedRequests);
@@ -42,21 +44,13 @@ export const useExtraTimeRequests = () => useRequestSubscription({
 
 export const useStudentExtraTimeRequests = (student) => {
   const studentDocId = student?.id ?? '';
-  const studentId = String(student?.studentId ?? '');
-  const studentName = student?.name ?? 'Student';
-  const authMode = student?.authMode ?? '';
   const subscribe = useCallback(
     (onData, onError) => watchExtraTimeRequestsForStudent({
-      student: {
-        id: studentDocId,
-        studentId,
-        name: studentName,
-        authMode,
-      },
+      student: { id: studentDocId },
       onData,
       onError,
     }),
-    [authMode, studentDocId, studentId, studentName],
+    [studentDocId],
   );
 
   return useRequestSubscription({

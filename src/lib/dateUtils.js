@@ -1,3 +1,5 @@
+import { DEFAULT_ANALYTICS_RANGE_DAYS } from './constants';
+
 export const toDate = (value) => {
   if (!value) {
     return null;
@@ -7,6 +9,8 @@ export const toDate = (value) => {
     return value;
   }
 
+  // Firestore Timestamp objects expose toDate(), while forms and API values
+  // may arrive as strings. This helper lets the rest of the app handle both.
   if (typeof value?.toDate === 'function') {
     return value.toDate();
   }
@@ -21,4 +25,52 @@ export const isSameCalendarDay = (left, right) => {
     && left.getMonth() === right.getMonth()
     && left.getDate() === right.getDate()
   );
+};
+
+export const isValidMonthDay = (year, month, dayOfMonth) => {
+  const candidateDate = new Date(year, month, dayOfMonth);
+
+  return (
+    candidateDate.getFullYear() === year
+    && candidateDate.getMonth() === month
+    && candidateDate.getDate() === dayOfMonth
+  );
+};
+
+export const toDateInputValue = (date) => {
+  // Build the value from local date parts. toISOString() would convert to UTC
+  // first and can move the displayed date backward or forward by one day.
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
+export const getDefaultDateRange = ({
+  days = DEFAULT_ANALYTICS_RANGE_DAYS,
+  endDate = new Date(),
+} = {}) => {
+  const rangeEndDate = new Date(endDate);
+  const startDate = new Date(rangeEndDate);
+  // Subtract days - 1 because both the first and last date are included.
+  startDate.setDate(rangeEndDate.getDate() - (days - 1));
+
+  return {
+    startDate: toDateInputValue(startDate),
+    endDate: toDateInputValue(rangeEndDate),
+  };
+};
+
+const signedInFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+});
+
+export const formatSignedInAt = (value, fallback = 'Not recorded') => {
+  const parsedDate = toDate(value);
+
+  return parsedDate ? signedInFormatter.format(parsedDate) : fallback;
 };

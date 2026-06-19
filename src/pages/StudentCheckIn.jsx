@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
-import { scheduleConfig, studentAuthConfig, taskConfig } from '../config/appConfig';
-import { isScheduleActive } from '../features/schedules/validateSchedule';
+import { studentAuthConfig, taskConfig } from '../config/appConfig';
+import { ROUTES } from '../config/routesConfig';
 import { useSchedules } from '../features/schedules/useSchedules';
+import {
+  getAvailableSignInTasks,
+  taskMatchesReference,
+} from '../features/tasks/taskUtils';
 import { useTasks } from '../features/tasks/useTasks';
 import { FORM_TEXTAREA_CLASS_NAME } from '../styles/classNames';
 import {
@@ -12,24 +16,6 @@ import {
   startStudentSession,
 } from '../features/timeLogs/timeLogService';
 import { useAuth } from '../features/auth/useAuth.jsx';
-
-const normalizeTaskRef = (value) => String(value ?? '')
-  .trim()
-  .toLowerCase()
-  .replace(/[\s_-]+/g, '');
-
-const taskMatchesReference = (task, reference) => {
-  const normalizedReference = normalizeTaskRef(reference);
-
-  if (!normalizedReference) {
-    return false;
-  }
-
-  return (
-    normalizeTaskRef(task.id) === normalizedReference
-    || normalizeTaskRef(task[taskConfig.nameField]) === normalizedReference
-  );
-};
 
 const StudentCheckIn = () => {
   const [formMode, setFormMode] = useState('sign-in');
@@ -44,42 +30,12 @@ const StudentCheckIn = () => {
   const currentTime = new Date();
   const navigate = useNavigate();
 
-  const unscheduledTasks = useMemo(
-    () => tasks.filter((task) => !task[taskConfig.scheduledField]),
-    [tasks],
+  // Open tasks are always shown; scheduled tasks are shown only during an
+  // active schedule window.
+  const availableTasks = useMemo(
+    () => getAvailableSignInTasks(tasks, schedules, currentTime),
+    [currentTime, schedules, tasks],
   );
-
-  const scheduledTasks = useMemo(
-    () => tasks.filter((task) => Boolean(task[taskConfig.scheduledField])),
-    [tasks],
-  );
-
-  const activeScheduledTaskIds = useMemo(() => {
-    const activeTaskKeys = new Set();
-
-    schedules
-      .filter((schedule) => isScheduleActive(schedule, currentTime))
-      .forEach((schedule) => {
-        activeTaskKeys.add(normalizeTaskRef(schedule[scheduleConfig.taskIdField]));
-      });
-
-    return activeTaskKeys;
-  }, [currentTime, schedules]);
-
-  const availableTasks = useMemo(() => {
-    return [
-      ...unscheduledTasks,
-      ...scheduledTasks.filter((task) => {
-        const taskIdKey = normalizeTaskRef(task.id);
-        const taskNameKey = normalizeTaskRef(task[taskConfig.nameField]);
-
-        return (
-          activeScheduledTaskIds.has(taskIdKey)
-          || activeScheduledTaskIds.has(taskNameKey)
-        );
-      }),
-    ];
-  }, [activeScheduledTaskIds, scheduledTasks, unscheduledTasks]);
 
   const currentStudentTask = useMemo(() => {
     // Prefer the stable task id when it exists. The name fallback is only for
@@ -130,6 +86,8 @@ const StudentCheckIn = () => {
       return;
     }
 
+    // Remember the log ID so normal re-renders do not repeat the same Firestore
+    // cleanup request.
     staleSessionAttemptRef.current = activeTimeLogId;
 
     endStaleStudentSession({
@@ -140,7 +98,9 @@ const StudentCheckIn = () => {
         return;
       }
 
-      const destination = studentSession.authMode === 'kiosk' ? '/kiosk' : '/';
+      const destination = studentSession.authMode === 'kiosk'
+        ? ROUTES.kiosk
+        : ROUTES.accessPortal;
       await signOutStudent();
       navigate(destination, { replace: true });
     }).catch((autoCheckoutError) => {
@@ -157,14 +117,16 @@ const StudentCheckIn = () => {
   ]);
 
   const handleSignOut = async () => {
-    const destination = studentSession?.authMode === 'kiosk' ? '/kiosk' : '/';
+    const destination = studentSession?.authMode === 'kiosk'
+      ? ROUTES.kiosk
+      : ROUTES.accessPortal;
 
     await signOutStudent();
     navigate(destination, { replace: true });
   };
 
   const handleBackToDashboard = () => {
-    navigate('/student/dashboard');
+    navigate(ROUTES.studentDashboard);
   };
 
   const handleSubmit = async (e) => {
@@ -179,7 +141,9 @@ const StudentCheckIn = () => {
     setIsSubmitting(true);
 
     try {
-      const destination = studentSession?.authMode === 'kiosk' ? '/kiosk' : '/';
+      const destination = studentSession?.authMode === 'kiosk'
+        ? ROUTES.kiosk
+        : ROUTES.accessPortal;
 
       if (formMode === 'sign-in') {
         await startStudentSession({

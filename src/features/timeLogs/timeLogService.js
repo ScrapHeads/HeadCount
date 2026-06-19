@@ -15,8 +15,13 @@ import { studentAuthConfig, taskConfig, timeLogConfig } from '../../config/appCo
 import { getScheduledTaskEndTime } from '../schedules/validateSchedule';
 import { getCurrentAuthUser, getStudentIdFromAuthEmail } from '../../services/auth';
 import { db } from '../../services/firebase';
+import {
+  MILLISECONDS_PER_MINUTE,
+  MINUTES_PER_HOUR,
+} from '../../lib/constants';
 import { toDate } from '../../lib/dateUtils';
-import { isCurrentMember } from '../../lib/studentUtils';
+import { getStudentIdHistory, isCurrentMember } from '../../lib/studentUtils';
+import { isNumericString, nullableString } from '../../lib/validators';
 
 // Duration is stored as a convenience field for analytics. We still keep the
 // raw timestamps so teams can recalculate later if they want different rules.
@@ -29,25 +34,13 @@ const calculateDurationMinutes = (signInAt, signOutAt) => {
   }
 
   const elapsedMs = endedAt.getTime() - startedAt.getTime();
-  return Math.max(0, Math.round(elapsedMs / 60000));
+  return Math.max(0, Math.round(elapsedMs / MILLISECONDS_PER_MINUTE));
 };
-
-const nullableString = (value) => {
-  const trimmedValue = String(value ?? '').trim();
-
-  return trimmedValue || null;
-};
-
-const isNumericString = (value) => /^-?\d+(\.\d+)?$/.test(value);
 
 const getStudentLogIdCandidates = (student) => {
-  const rawValues = [
-    student?.[studentAuthConfig.idField],
-    student?.studentId,
-  ];
   const candidates = new Set();
 
-  rawValues.forEach((value) => {
+  getStudentIdHistory(student).forEach((value) => {
     const stringValue = String(value ?? '').trim();
 
     if (!stringValue) {
@@ -56,6 +49,8 @@ const getStudentLogIdCandidates = (student) => {
 
     candidates.add(stringValue);
 
+    // Some older Firestore records stored numeric IDs as numbers instead of
+    // strings, so query both forms when the ID can be parsed safely.
     if (studentAuthConfig.idValueType === 'auto' && isNumericString(stringValue)) {
       candidates.add(Number(stringValue));
     }
@@ -84,36 +79,81 @@ export const listTimeLogsForStudent = async ({ student }) => {
 
   const logsById = new Map();
   const timeLogsCollection = collection(db, timeLogConfig.collectionName);
-  const queries = [];
+  const queryRequests = [];
   const authenticatedStudentId = getStudentIdFromAuthEmail(getCurrentAuthUser()?.email);
 
   if (authenticatedStudentId) {
-    // Firestore rules can authorize this collection query because its result
-    // set is constrained to the student ID encoded in Firebase Authentication.
-    queries.push(query(
-      timeLogsCollection,
-      where(timeLogConfig.studentIdField, '==', authenticatedStudentId),
-    ));
+    // The stable document ID includes modern sessions created under previous
+    // Student IDs.
+    if (student?.id) {
+      queryRequests.push({
+        isOptional: false,
+        timeLogsQuery: query(
+          timeLogsCollection,
+          where(timeLogConfig.studentDocIdField, '==', student.id),
+        ),
+      });
+    }
+
+    // Also query the current and previous IDs for older or imported logs. The
+    // security rules confirm that returned logs point to this student profile.
+    const studentIdCandidates = new Set([
+      authenticatedStudentId,
+      ...getStudentLogIdCandidates(student),
+    ]);
+
+    studentIdCandidates.forEach((studentId) => {
+      queryRequests.push({
+        // A legacy query may be rejected when an imported log is missing its
+        // stable studentDocId. It should not hide records from required reads.
+        isOptional: studentId !== authenticatedStudentId,
+        timeLogsQuery: query(
+          timeLogsCollection,
+          where(timeLogConfig.studentIdField, '==', studentId),
+        ),
+      });
+    });
   } else {
     if (student?.id) {
-      queries.push(query(
-        timeLogsCollection,
-        where(timeLogConfig.studentDocIdField, '==', student.id),
-      ));
+      queryRequests.push({
+        isOptional: false,
+        timeLogsQuery: query(
+          timeLogsCollection,
+          where(timeLogConfig.studentDocIdField, '==', student.id),
+        ),
+      });
     }
 
     getStudentLogIdCandidates(student).forEach((studentId) => {
-      queries.push(query(
-        timeLogsCollection,
-        where(timeLogConfig.studentIdField, '==', studentId),
-      ));
+      queryRequests.push({
+        isOptional: false,
+        timeLogsQuery: query(
+          timeLogsCollection,
+          where(timeLogConfig.studentIdField, '==', studentId),
+        ),
+      });
     });
   }
 
-  const snapshots = await Promise.all(queries.map((timeLogsQuery) => getDocs(timeLogsQuery)));
+  const queryResults = await Promise.allSettled(
+    queryRequests.map(({ timeLogsQuery }) => getDocs(timeLogsQuery)),
+  );
+  const requiredFailure = queryResults.find(
+    (result, index) => result.status === 'rejected' && !queryRequests[index].isOptional,
+  );
 
-  snapshots.forEach((snapshot) => {
-    snapshot.docs.forEach((timeLogDoc) => {
+  if (requiredFailure) {
+    throw requiredFailure.reason;
+  }
+
+  // Multiple compatibility queries can return the same log. The document ID
+  // map removes duplicates before the timeline is sorted.
+  queryResults.forEach((result) => {
+    if (result.status !== 'fulfilled') {
+      return;
+    }
+
+    result.value.docs.forEach((timeLogDoc) => {
       logsById.set(timeLogDoc.id, {
         id: timeLogDoc.id,
         ...timeLogDoc.data(),
@@ -192,6 +232,8 @@ export const updateTimeLogByCoach = async ({
   });
 
   if (isSelectedStudentActiveLog) {
+    // Editing the currently active log must also update the live student card,
+    // otherwise the dashboard would show different task or sign-in details.
     const studentDocRef = doc(db, studentAuthConfig.collectionName, student.id);
 
     batch.update(studentDocRef, signOutDate
@@ -244,7 +286,7 @@ export const createExtraHoursTimeLog = async ({
     throw new Error('A reason is required to add extra hours.');
   }
 
-  const durationMinutes = Math.round(numericHours * 60);
+  const durationMinutes = Math.round(numericHours * MINUTES_PER_HOUR);
   const timeLogDocRef = doc(collection(db, timeLogConfig.collectionName));
   const studentId = student[studentAuthConfig.idField] ?? student.studentId ?? student.id;
   const batch = writeBatch(db);
@@ -426,6 +468,8 @@ export const endStaleStudentSession = async ({
   const midnightAfterSignIn = new Date(signInAt);
   midnightAfterSignIn.setHours(24, 0, 0, 0);
 
+  // Automatic cleanup waits until the next calendar day. It then closes the
+  // log at the scheduled end time rather than incorrectly counting overnight.
   if (currentTime < midnightAfterSignIn) {
     return false;
   }
@@ -493,11 +537,14 @@ export const listTimeLogsBySignInRange = async ({ startDate, endDate }) => {
     where(timeLogConfig.createdAtField, '<=', Timestamp.fromDate(end)),
     orderBy(timeLogConfig.createdAtField, 'asc'),
   );
+  // Normal sessions are found by sign-in time. Manually granted extra hours
+  // have no sign-in timestamp, so they are also loaded by creation time.
   const snapshots = await Promise.all([
     getDocs(signInTimeLogsQuery),
     getDocs(createdTimeLogsQuery),
   ]);
 
+  // A regular log has both timestamps and can appear in both queries.
   snapshots.forEach((snapshot) => {
     snapshot.docs.forEach((timeLogDoc) => {
       timeLogsById.set(timeLogDoc.id, {

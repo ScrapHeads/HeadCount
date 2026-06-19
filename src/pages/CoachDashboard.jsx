@@ -6,6 +6,7 @@ import Button from '../components/shared/Button';
 import Dropdown from '../components/shared/Dropdown';
 import { branding } from '../config/branding';
 import { scheduleConfig, studentAuthConfig, taskConfig } from '../config/appConfig';
+import { ROUTES } from '../config/routesConfig';
 import { useAuth } from '../features/auth/useAuth.jsx';
 import { useSchedules } from '../features/schedules/useSchedules';
 import { createSchedule } from '../features/schedules/scheduleService';
@@ -16,7 +17,12 @@ import {
   endStaleStudentSession,
   endStudentSessionByCoach,
 } from '../features/timeLogs/timeLogService';
-import { toDate } from '../lib/dateUtils';
+import {
+  formatSignedInAt,
+  isValidMonthDay,
+  toDate,
+} from '../lib/dateUtils';
+import { MISSING_VALUE_LABEL } from '../lib/constants';
 import { isCurrentMember } from '../lib/studentUtils';
 import {
   DASHBOARD_CARD_CLASS_NAME,
@@ -63,18 +69,6 @@ const getSectionFromSlug = (sectionSlug) => (
 const getSectionScrollStorageKey = (sectionId) => (
   `coach-dashboard-scroll:${getSectionSlug(sectionId)}`
 );
-
-const signedInFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-});
-
-const formatSignedInAt = (value) => {
-  const parsedDate = toDate(value);
-  return parsedDate ? signedInFormatter.format(parsedDate) : 'Not recorded';
-};
 
 const scheduleDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -182,16 +176,6 @@ const buildRecurringDateTime = (timeValue) => {
   }
 
   return new Date(`2000-01-02T${timeValue}`);
-};
-
-const isValidMonthDay = (year, month, dayOfMonth) => {
-  const candidateDate = new Date(year, month, dayOfMonth);
-
-  return (
-    candidateDate.getFullYear() === year
-    && candidateDate.getMonth() === month
-    && candidateDate.getDate() === dayOfMonth
-  );
 };
 
 const buildRecurringOccurrenceStart = ({ schedule, fromDate = new Date() }) => {
@@ -355,11 +339,13 @@ const recurrenceLabel = (schedule) => {
   return 'Recurring';
 };
 
-// The coach dashboard is intentionally a shell for adopters. Keep layout and
-// navigation stable here, then swap the section bodies to real Firestore-backed
-// panels as each team customizes the demo.
+// This page coordinates the coach sections and their shared Firestore data.
+// Larger student-management and analytics sections live in separate components
+// so this file can focus on navigation, live sessions, and scheduling.
 const CoachDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const activeSection = getSectionFromSlug(searchParams.get('section'));
+  const [visitedSections, setVisitedSections] = useState(() => new Set([activeSection]));
   const [endingStudentId, setEndingStudentId] = useState('');
   const [homeStatusMessage, setHomeStatusMessage] = useState('');
   const [scheduleForm, setScheduleForm] = useState({
@@ -381,12 +367,61 @@ const CoachDashboard = () => {
   const [autoCheckoutTick, setAutoCheckoutTick] = useState(0);
   const autoCheckoutStudentIdsRef = useRef(new Set());
   const { coachUser, signOutCoach } = useAuth();
-  const { students: activeStudents, isLoading: isLoadingActiveStudents, error: activeStudentsError } = useActiveStudents();
-  const { students, isLoading: isLoadingStudents, error: studentsError } = useStudents();
-  const { tasks, isLoading: isLoadingTasks, error: tasksError, reloadTasks } = useTasks();
-  const { schedules, isLoading: isLoadingSchedules, error: schedulesError, reloadSchedules } = useSchedules();
   const navigate = useNavigate();
-  const activeSection = getSectionFromSlug(searchParams.get('section'));
+  const hasVisitedHome = visitedSections.has('home') || activeSection === 'home';
+  const hasVisitedSchedule = visitedSections.has('schedule') || activeSection === 'schedule';
+  const hasVisitedAnalytics = visitedSections.has('analytics') || activeSection === 'analytics';
+  const hasVisitedStudentManagement = (
+    visitedSections.has('student management')
+    || activeSection === 'student management'
+  );
+  const shouldLoadStudents = hasVisitedHome || hasVisitedAnalytics || hasVisitedStudentManagement;
+  const shouldLoadActiveStudents = !shouldLoadStudents;
+  const shouldLoadTasks = hasVisitedSchedule || hasVisitedStudentManagement;
+  const {
+    students: subscribedActiveStudents,
+    isLoading: isLoadingSubscribedActiveStudents,
+    error: subscribedActiveStudentsError,
+  } = useActiveStudents({ enabled: shouldLoadActiveStudents });
+  const { students, isLoading: isLoadingStudents, error: studentsError } = useStudents({
+    enabled: shouldLoadStudents,
+  });
+  const activeStudentsFromRoster = useMemo(
+    () => students
+      .filter((student) => (
+        student[studentAuthConfig.signedInField] === true
+        && isCurrentMember(student)
+      ))
+      .sort((left, right) => {
+        const leftTime = toDate(left[studentAuthConfig.signedInAtField])?.getTime() ?? 0;
+        const rightTime = toDate(right[studentAuthConfig.signedInAtField])?.getTime() ?? 0;
+
+        return leftTime - rightTime;
+      }),
+    [students],
+  );
+  const activeStudents = shouldLoadStudents
+    ? activeStudentsFromRoster
+    : subscribedActiveStudents;
+  const isLoadingActiveStudents = shouldLoadStudents
+    ? isLoadingStudents
+    : isLoadingSubscribedActiveStudents;
+  const activeStudentsError = shouldLoadStudents
+    ? studentsError
+    : subscribedActiveStudentsError;
+  const shouldLoadSchedules = (
+    hasVisitedSchedule
+    || hasVisitedAnalytics
+    || hasVisitedStudentManagement
+    || activeStudents.length > 0
+  );
+  const { tasks, isLoading: isLoadingTasks, error: tasksError, reloadTasks } = useTasks({
+    enabled: shouldLoadTasks,
+  });
+  const { schedules, isLoading: isLoadingSchedules, error: schedulesError, reloadSchedules } = useSchedules(
+    undefined,
+    { enabled: shouldLoadSchedules },
+  );
 
   const activeNavItem = useMemo(
     () => navItems.find((item) => item.id === activeSection) ?? navItems[0],
@@ -394,6 +429,20 @@ const CoachDashboard = () => {
   );
 
   useEffect(() => {
+    setVisitedSections((currentSections) => {
+      if (currentSections.has(activeSection)) {
+        return currentSections;
+      }
+
+      const nextSections = new Set(currentSections);
+      nextSections.add(activeSection);
+      return nextSections;
+    });
+  }, [activeSection]);
+
+  useEffect(() => {
+    // Each dashboard section remembers its own scroll position for this tab.
+    // Two animation frames give React time to render the new section first.
     const storageKey = getSectionScrollStorageKey(activeSection);
     const savedScrollPosition = Number(sessionStorage.getItem(storageKey));
     let secondAnimationFrame = 0;
@@ -421,6 +470,8 @@ const CoachDashboard = () => {
   }, [activeSection]);
 
   useEffect(() => {
+    // Trigger the stale-session check just after each midnight, even when the
+    // dashboard remains open overnight.
     const now = new Date();
     const nextMidnight = new Date(now);
     nextMidnight.setHours(24, 0, 1, 0);
@@ -436,6 +487,8 @@ const CoachDashboard = () => {
       return;
     }
 
+    // The ref prevents duplicate checkout requests while a student's first
+    // request is still in progress.
     activeStudents.forEach((student) => {
       if (autoCheckoutStudentIdsRef.current.has(student.id)) {
         return;
@@ -494,20 +547,16 @@ const CoachDashboard = () => {
 
   const homeStats = useMemo(() => {
     const activeCount = activeStudents.length;
-    const uniqueSessionTypes = new Set(
-      activeStudents.map((student) => student[studentAuthConfig.currentTaskField]).filter(Boolean),
-    ).size;
 
     return {
       activeCount,
-      uniqueSessionTypes,
       earliestSignIn: activeStudents[0]?.[studentAuthConfig.signedInAtField] ?? null,
     };
   }, [activeStudents]);
 
   const handleSignOut = async () => {
     await signOutCoach();
-    navigate('/', { replace: true });
+    navigate(ROUTES.accessPortal, { replace: true });
   };
 
   const handleSectionChange = (sectionId) => {
@@ -546,6 +595,8 @@ const CoachDashboard = () => {
     e.preventDefault();
 
     const isRecurring = scheduleForm.scheduleMode !== scheduleConfig.recurrenceTypes.oneTime;
+    // Recurring schedules need only a time-of-day template. One-time schedules
+    // use the exact dates entered by the coach.
     const startDateTime = isRecurring
       ? buildRecurringDateTime(scheduleForm.startTime)
       : buildDateTimeFromForm(scheduleForm.startDate, scheduleForm.startTime);
@@ -654,7 +705,6 @@ const CoachDashboard = () => {
                     {item.eyebrow}
                   </p>
                   <p className="mt-2 text-lg font-semibold text-on-primary">{item.label}</p>
-                  {/* <p className="mt-1 text-sm leading-5 text-on-primary/75">{item.description}</p> */}
                 </button>
               );
             })}
@@ -687,10 +737,6 @@ const CoachDashboard = () => {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-primary">Signed in</p>
                 <p className="mt-2 text-2xl font-semibold text-on-primary">{homeStats.activeCount}</p>
               </div>
-              {/* <div className="rounded-2xl border border-border bg-secondary px-4 py-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-primary/90">Session Types</p>
-                <p className="mt-2 text-2xl font-semibold text-on-primary">{homeStats.uniqueSessionTypes}</p>
-              </div> */}
               <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-transparent px-4 py-4 text-center shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-primary">Earliest Sign-In</p>
                 <p className="mt-2 text-2xl font-semibold text-on-primary">
@@ -760,7 +806,7 @@ const CoachDashboard = () => {
                                     <span className="font-semibold">{student.name ?? 'Student'}</span>
                                   </td>
                                   <td className="border-y border-border bg-transparent px-4 py-4  text-on-primary">
-                                    {student.studentId ?? 'Not set'}
+                                    {student.studentId ?? MISSING_VALUE_LABEL}
                                   </td>
                                   <td className="border-y border-border bg-transparent px-4 py-4 text-on-primary">
                                     {formatSignedInAt(student[studentAuthConfig.signedInAtField])}
@@ -830,7 +876,7 @@ const CoachDashboard = () => {
                                   <span className="font-semibold">{student.name ?? 'Student'}</span>
                                 </td>
                                 <td className="border-y border-border bg-transparent px-4 py-4 text-on-primary">
-                                  {student[studentAuthConfig.idField] ?? 'Not set'}
+                                  {student[studentAuthConfig.idField] ?? MISSING_VALUE_LABEL}
                                 </td>
                                 <td className="rounded-r-2xl border-y border-r border-border bg-transparent px-4 py-4 text-on-primary">
                                   Not signed in
@@ -1143,12 +1189,37 @@ const CoachDashboard = () => {
                     )}
                   </article>
                 </>
-              ) : activeSection === 'analytics' ? (
-                <AnalyticsDashboard cardClassName={DASHBOARD_CARD_CLASS_NAME} />
-              ) : activeSection === 'student management' ? (
-                <StudentManagementDashboard cardClassName={DASHBOARD_CARD_CLASS_NAME} />
-              ) : (
-                null
+              ) : null}
+
+              {hasVisitedAnalytics && (
+                <div className={activeSection === 'analytics' ? 'block' : 'hidden'}>
+                  <AnalyticsDashboard
+                    cardClassName={DASHBOARD_CARD_CLASS_NAME}
+                    isLoadingSchedules={isLoadingSchedules}
+                    isLoadingStudents={isLoadingStudents}
+                    schedules={schedules}
+                    schedulesError={schedulesError}
+                    students={students}
+                    studentsError={studentsError}
+                  />
+                </div>
+              )}
+
+              {hasVisitedStudentManagement && (
+                <div className={activeSection === 'student management' ? 'block' : 'hidden'}>
+                  <StudentManagementDashboard
+                    cardClassName={DASHBOARD_CARD_CLASS_NAME}
+                    isLoadingSchedules={isLoadingSchedules}
+                    isLoadingStudents={isLoadingStudents}
+                    isLoadingTasks={isLoadingTasks}
+                    schedules={schedules}
+                    schedulesError={schedulesError}
+                    students={students}
+                    studentsError={studentsError}
+                    tasks={tasks}
+                    tasksError={tasksError}
+                  />
+                </div>
               )}
             </div>
 

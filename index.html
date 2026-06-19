@@ -3,30 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Edit these values when rebranding. They control search results,
+    browser previews, and the app name shown by some devices. -->
     <meta name="description" content="A robotics team hours tracker for student kiosk sign-in, coach dashboards, schedules, and team hours analytics." />
     <meta name="application-name" content="Robotics Team Hours Tracker" />
     <meta name="author" content="Robotics Team Hours Tracker" />
+    <!-- This color is used by some mobile browsers around the page chrome.
+    Match it to the primary color in src/config/branding.js. -->
     <meta name="theme-color" content="#132840" />
     <meta name="color-scheme" content="dark light" />
-    <meta name="robots" content="index, follow" />
+    <!-- Search engines can index this app. Change to "index, follow" if
+    the team wants the deployed site to appear in search results. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <!-- Open Graph controls the preview card shown by services like Facebook,
+    Slack, and many messaging apps. -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Robotics Team Hours Tracker" />
     <meta property="og:description" content="Track student hours, kiosk sessions, schedules, and coach analytics for robotics teams." />
     <meta property="og:image" content="/assets/logo.png" />
     <meta property="og:site_name" content="Robotics Team Hours Tracker" />
+    <!-- Twitter/X uses these tags for its preview card. Keep the title and
+    description aligned with the Open Graph values above. -->
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Robotics Team Hours Tracker" />
     <meta name="twitter:description" content="Track student hours, kiosk sessions, schedules, and coach analytics for robotics teams." />
     <meta name="twitter:image" content="/assets/logo.png" />
+    <!-- Replace the files in public/favicon_io when changing browser tab or
+    phone home-screen icons. If paths change, update these links too. -->
     <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png" />
     <link rel="shortcut icon" href="/favicon_io/favicon.ico" />
     <link rel="manifest" href="/favicon_io/site.webmanifest" />
+    <!-- Browser tab title. Keep this close to branding.appName. -->
     <title>Robotics Team Hours Tracker</title>
   </head>
   <body>
+    <!-- React renders the app inside this element. Do not remove it. -->
     <div id="root"></div>
+    <!-- Vite starts the React app from src/main.jsx during development and
+    replaces this with built assets for production. -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

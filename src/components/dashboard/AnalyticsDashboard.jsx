@@ -9,10 +9,13 @@ import {
   calculateStudentCategoryBreakdown,
   calculateStudentHourTotals,
   calculateTeamHoursOverTime,
+  formatHours,
   getEndOfDay,
   getLogsInDateRange,
   getStartOfDay,
 } from '../../lib/analyticsUtils';
+import { MINUTES_PER_HOUR, MISSING_VALUE_LABEL } from '../../lib/constants';
+import { getDefaultDateRange } from '../../lib/dateUtils';
 import {
   filterLogsForCurrentStudents,
   isCurrentMember,
@@ -22,6 +25,7 @@ import {
   DASHBOARD_TABLE_HEADER_CLASS_NAME,
   FORM_INPUT_CLASS_NAME,
 } from '../../styles/classNames';
+import CardMessage from '../shared/CardMessage';
 import Dropdown from '../shared/Dropdown';
 import TimeLogEditorDialog from './TimeLogEditorDialog';
 
@@ -36,37 +40,16 @@ const shortDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
 });
 
-const toDateInputValue = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-};
-
-const getDefaultDateRange = () => {
-  const endDate = new Date();
-  const startDate = new Date(endDate);
-  startDate.setDate(endDate.getDate() - 29);
-
-  return {
-    startDate: toDateInputValue(startDate),
-    endDate: toDateInputValue(endDate),
-  };
-};
-
 const formatDate = (value, formatter = dateFormatter) => {
   const date = value instanceof Date ? value : getStartOfDay(value);
 
   return date ? formatter.format(date) : 'Not selected';
 };
 
-const formatHours = (hours) => Number(hours || 0).toFixed(1);
-
 const formatDuration = (minutes) => {
   const safeMinutes = Math.max(0, Math.round(Number(minutes) || 0));
-  const hours = Math.floor(safeMinutes / 60);
-  const remainingMinutes = safeMinutes % 60;
+  const hours = Math.floor(safeMinutes / MINUTES_PER_HOUR);
+  const remainingMinutes = safeMinutes % MINUTES_PER_HOUR;
 
   if (hours === 0) {
     return `${remainingMinutes} min`;
@@ -101,6 +84,8 @@ const getPiePoint = (center, radius, angleInDegrees) => {
 };
 
 const getPieSlicePath = ({ center, endAngle, radius, startAngle }) => {
+  // SVG pie slices are drawn as a line from the center, a circular arc, and a
+  // closing line back to the center.
   const adjustedEndAngle = endAngle - startAngle >= 360 ? endAngle - 0.01 : endAngle;
   const start = getPiePoint(center, radius, startAngle);
   const end = getPiePoint(center, radius, adjustedEndAngle);
@@ -113,18 +98,6 @@ const getPieSlicePath = ({ center, endAngle, radius, startAngle }) => {
     'Z',
   ].join(' ');
 };
-
-const CardMessage = ({ children, tone = 'muted' }) => (
-  <div
-    className={`mt-5 rounded-2xl border px-4 py-4 text-sm ${
-      tone === 'error'
-        ? 'border-accent/30 bg-accent/12 text-on-primary'
-        : 'border-border bg-accent/10 text-on-primary/90'
-    }`}
-  >
-    {children}
-  </div>
-);
 
 const AnalyticsCard = ({
   children,
@@ -331,6 +304,8 @@ const CategoryProgressList = ({ categories }) => (
 );
 
 const CategoryPieChart = ({ categories, totalHours, totalMinutes }) => {
+  // Each category starts where the previous category ended, producing one
+  // continuous circle without a charting dependency.
   let cumulativeAngle = 0;
   const center = 90;
   const radius = 78;
@@ -471,7 +446,10 @@ const StudentCategoryBreakdownCard = ({
       <SummaryGrid
         metrics={[
           { label: 'Selected Student', value: selectedStudent?.studentName ?? 'Student' },
-          { label: 'Student ID', value: selectedStudent?.studentId ?? 'Not set' },
+          {
+            label: 'Student ID',
+            value: selectedStudent?.studentId ?? MISSING_VALUE_LABEL,
+          },
           { label: 'Student Total Hours', value: formatHours(analytics.totalHours) },
         ]}
       />
@@ -738,7 +716,17 @@ const AttendanceAnalyticsCard = ({
   );
 };
 
-const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
+const AnalyticsDashboard = ({
+  cardClassName = DASHBOARD_CARD_CLASS_NAME,
+  isLoadingSchedules: providedIsLoadingSchedules = false,
+  isLoadingStudents: providedIsLoadingStudents = false,
+  schedules: providedSchedules,
+  schedulesError: providedSchedulesError = '',
+  students: providedStudents,
+  studentsError: providedStudentsError = '',
+}) => {
+  const hasProvidedSchedules = Array.isArray(providedSchedules);
+  const hasProvidedStudents = Array.isArray(providedStudents);
   const [dateRange, setDateRange] = useState(getDefaultDateRange);
   const [selectedStudentKey, setSelectedStudentKey] = useState('');
 
@@ -771,16 +759,30 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
     endDate: parsedDateRange.endDate,
     enabled: !parsedDateRange.error,
   });
-  const {
-    schedules,
-    isLoading: isLoadingSchedules,
-    error: schedulesError,
-  } = useSchedules();
-  const {
-    students,
-    isLoading: isLoadingStudents,
-    error: studentsError,
-  } = useStudents();
+  const internalSchedulesState = useSchedules(undefined, {
+    enabled: !hasProvidedSchedules,
+  });
+  const internalStudentsState = useStudents({
+    enabled: !hasProvidedStudents,
+  });
+  const schedules = hasProvidedSchedules
+    ? providedSchedules
+    : internalSchedulesState.schedules;
+  const isLoadingSchedules = hasProvidedSchedules
+    ? providedIsLoadingSchedules
+    : internalSchedulesState.isLoading;
+  const schedulesError = hasProvidedSchedules
+    ? providedSchedulesError
+    : internalSchedulesState.error;
+  const students = hasProvidedStudents
+    ? providedStudents
+    : internalStudentsState.students;
+  const isLoadingStudents = hasProvidedStudents
+    ? providedIsLoadingStudents
+    : internalStudentsState.isLoading;
+  const studentsError = hasProvidedStudents
+    ? providedStudentsError
+    : internalStudentsState.error;
   const analyticsError = parsedDateRange.error || loadError || studentsError;
   const attendanceError = analyticsError || schedulesError;
   const currentStudents = useMemo(
@@ -788,6 +790,8 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
     [students],
   );
 
+  // Analytics excludes archived students while preserving their historical
+  // records in Firestore for administrators who still need them.
   const logsInDateRange = useMemo(() => (
     analyticsError
       ? []
@@ -803,9 +807,11 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
     parsedDateRange.startDate,
   ]);
 
+  // The following summaries share the same filtered logs but group them for
+  // different views: student totals, weekly trends, task categories, and attendance.
   const studentHourTotals = useMemo(
-    () => calculateStudentHourTotals(logsInDateRange),
-    [logsInDateRange],
+    () => calculateStudentHourTotals(logsInDateRange, currentStudents),
+    [currentStudents, logsInDateRange],
   );
   const teamHoursOverTime = useMemo(
     () => calculateTeamHoursOverTime(logsInDateRange),
@@ -825,8 +831,12 @@ const AnalyticsDashboard = ({ cardClassName = DASHBOARD_CARD_CLASS_NAME }) => {
     (student) => student.studentKey === effectiveStudentKey,
   ) ?? null;
   const studentCategoryBreakdown = useMemo(
-    () => calculateStudentCategoryBreakdown(logsInDateRange, effectiveStudentKey),
-    [effectiveStudentKey, logsInDateRange],
+    () => calculateStudentCategoryBreakdown(
+      logsInDateRange,
+      effectiveStudentKey,
+      currentStudents,
+    ),
+    [currentStudents, effectiveStudentKey, logsInDateRange],
   );
 
   useEffect(() => {

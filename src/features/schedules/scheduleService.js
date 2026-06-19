@@ -72,8 +72,12 @@ export const createSchedule = async ({
     throw new Error('A valid month is required for a yearly recurring event.');
   }
 
+  // The task-level flag lets the sign-in page distinguish tasks that are
+  // always available from tasks controlled by a schedule.
   await markTaskAsScheduled(taskId);
 
+  // For recurring schedules the dates act as templates: recurrence fields
+  // choose the calendar day and these timestamps provide the time and length.
   return addDoc(collection(db, scheduleConfig.collectionName), {
     [scheduleConfig.taskIdField]: taskId,
     [scheduleConfig.isRecurringField]: Boolean(isRecurring),

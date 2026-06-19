@@ -2,6 +2,8 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // These rules protect requests made by the web app. Firebase Admin SDK
+    // calls from Cloud Functions bypass Firestore Security Rules.
     function signedIn() {
       return request.auth != null && request.auth.token.email is string;
     }
@@ -22,6 +24,9 @@ service cloud.firestore {
     }
 
     function isCoach() {
+      // For browser access, any authenticated account that is not recognized
+      // as a kiosk or student is treated as a coach. Restrict who can create
+      // Authentication users, and use COACH_EMAILS for the callable function.
       return signedIn() && !isKiosk() && !isStudentAuth();
     }
 
@@ -37,13 +42,22 @@ service cloud.firestore {
       return isStudentAuth() && data.studentId == studentAuthId();
     }
 
+    function ownsStudentDocument(studentDocId) {
+      return isStudentAuth()
+        && studentDocId is string
+        && get(/databases/$(database)/documents/students/$(studentDocId)).data.studentId == studentAuthId();
+    }
+
     function ownsTimeLog(data) {
       return ownsTimeLogByStudentId(data)
-        || (
-          isStudentAuth()
-          && data.studentDocId is string
-          && get(/databases/$(database)/documents/students/$(data.studentDocId)).data.studentId == studentAuthId()
-        );
+        || ownsStudentDocument(data.studentDocId);
+    }
+
+    function ownsExtraTimeRequest(data) {
+      return (
+        isStudentAuth()
+        && data.studentId == studentAuthId()
+      ) || ownsStudentDocument(data.studentDocId);
     }
 
     function onlySessionFieldsChanged() {
@@ -106,6 +120,7 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
     }
 
+    // Student profiles also contain the live fields used by check-in screens.
     match /students/{studentId} {
       allow get, list: if isCoach() || isKiosk() || ownsStudent(resource.data);
       allow create, delete: if isCoach();
@@ -123,11 +138,13 @@ service cloud.firestore {
       allow create, update, delete: if isCoach();
     }
 
+    // Time logs are the historical source used for reports and analytics.
     match /timeLogs/{timeLogId} {
       allow get: if isCoach() || isKiosk() || ownsTimeLog(resource.data);
-      // Student timeline queries must include:
-      // where('studentId', '==', the ID encoded in request.auth.token.email).
-      allow list: if isCoach() || isKiosk() || ownsTimeLogByStudentId(resource.data);
+      // Student timeline queries use the stable studentDocId so logs created
+      // under a previous Student ID remain readable. Compatibility queries can
+      // also use previous IDs when each matching log points to that profile.
+      allow list: if isCoach() || isKiosk() || ownsTimeLog(resource.data);
       allow create: if isCoach()
         || ((isKiosk() || ownsTimeLog(request.resource.data)) && validActiveTimeLogCreate());
       allow update: if isCoach()
@@ -135,13 +152,11 @@ service cloud.firestore {
       allow delete: if isCoach();
     }
 
+    // Students can submit requests; only coaches can approve, deny, or delete.
     match /extraTimeRequests/{requestId} {
       allow get, list: if isCoach()
         || isKiosk()
-        || (
-          isStudentAuth()
-          && resource.data.studentId == studentAuthId()
-        );
+        || ownsExtraTimeRequest(resource.data);
       allow create: if (
           isKiosk()
           || (

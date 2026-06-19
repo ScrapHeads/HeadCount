@@ -1,15 +1,5 @@
 import { scheduleConfig } from '../../config/appConfig';
-import { toDate } from '../../lib/dateUtils';
-
-const isValidMonthDay = (year, month, dayOfMonth) => {
-  const candidateDate = new Date(year, month, dayOfMonth);
-
-  return (
-    candidateDate.getFullYear() === year
-    && candidateDate.getMonth() === month
-    && candidateDate.getDate() === dayOfMonth
-  );
-};
+import { isValidMonthDay, toDate } from '../../lib/dateUtils';
 
 export const getScheduleWindowForTime = (schedule, value = new Date()) => {
   const now = toDate(value);
@@ -66,6 +56,8 @@ export const getScheduleWindowForTime = (schedule, value = new Date()) => {
     return null;
   }
 
+  // Reuse the stored time of day on the current recurrence date. Keeping the
+  // duration also supports events that end after midnight.
   const occurrenceStart = new Date(
     now.getFullYear(),
     now.getMonth(),
@@ -101,5 +93,7 @@ export const getScheduledTaskEndTime = ({ schedules = [], taskId, time }) => {
     .filter(Boolean)
     .sort((left, right) => left - right);
 
+  // A task may have overlapping schedules; the earliest active end is the
+  // safest automatic sign-out point.
   return matchingEndTimes[0] ?? null;
 };

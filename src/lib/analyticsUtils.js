@@ -1,12 +1,18 @@
 import { scheduleConfig, studentAuthConfig, timeLogConfig } from '../config/appConfig';
 import { isScheduleActive } from '../features/schedules/validateSchedule';
+import {
+  MILLISECONDS_PER_MINUTE,
+  MINUTES_PER_HOUR,
+  MISSING_VALUE_LABEL,
+} from './constants';
 import { toDate } from './dateUtils';
+import { findStudentForLog } from './studentUtils';
 
 const UNKNOWN_STUDENT_NAME = 'Unknown student';
-const MISSING_STUDENT_ID = 'Not set';
 const UNCATEGORIZED_TASK_NAME = 'Uncategorized';
-const EXTRA_HOURS_TASK_LABEL = 'Extra Hours';
 
+// Analytics is calculated in the browser from time-log snapshots. These
+// helpers keep the grouping rules identical across cards, tables, and charts.
 const padDatePart = (value) => String(value).padStart(2, '0');
 const normalizeTaskNameKey = (value) => String(value ?? '')
   .trim()
@@ -31,7 +37,7 @@ export const formatTaskName = (value, fallback = UNCATEGORIZED_TASK_NAME) => {
   }
 
   if (isExtraHoursTaskName(taskName)) {
-    return EXTRA_HOURS_TASK_LABEL;
+    return timeLogConfig.extraTimeTaskName;
   }
 
   return taskName
@@ -118,7 +124,9 @@ export const getDurationMinutes = (log) => {
     return 0;
   }
 
-  const calculatedDuration = Math.round((signOutAt.getTime() - signInAt.getTime()) / 60000);
+  const calculatedDuration = Math.round(
+    (signOutAt.getTime() - signInAt.getTime()) / MILLISECONDS_PER_MINUTE,
+  );
 
   return Number.isFinite(calculatedDuration) ? Math.max(0, calculatedDuration) : 0;
 };
@@ -138,14 +146,20 @@ export const minutesToHours = (minutes) => {
     return 0;
   }
 
-  return Number((safeMinutes / 60).toFixed(1));
+  return Number((safeMinutes / MINUTES_PER_HOUR).toFixed(1));
 };
+
+export const formatHours = (hours, fractionDigits = 1) => (
+  Number(hours || 0).toFixed(fractionDigits)
+);
 
 const getStudentKey = (log) => {
   const studentDocId = String(log?.[timeLogConfig.studentDocIdField] ?? '').trim();
   const studentId = String(log?.[timeLogConfig.studentIdField] ?? '').trim();
   const studentName = String(log?.[timeLogConfig.studentNameField] ?? '').trim();
 
+  // Prefer stable identifiers over names so renames do not split one student's
+  // history into multiple rows.
   if (studentDocId) {
     return `doc:${studentDocId}`;
   }
@@ -157,12 +171,6 @@ const getStudentKey = (log) => {
   return `name:${studentName || UNKNOWN_STUDENT_NAME}`;
 };
 
-const getStudentDisplay = (log) => ({
-  studentKey: getStudentKey(log),
-  studentName: String(log?.[timeLogConfig.studentNameField] ?? '').trim() || UNKNOWN_STUDENT_NAME,
-  studentId: String(log?.[timeLogConfig.studentIdField] ?? '').trim() || MISSING_STUDENT_ID,
-});
-
 const getRosterStudentDisplay = (student) => {
   const studentDocId = String(student?.id ?? '').trim();
   const studentId = String(student?.[studentAuthConfig.idField] ?? '').trim();
@@ -173,7 +181,21 @@ const getRosterStudentDisplay = (student) => {
       ? `doc:${studentDocId}`
       : `student:${studentId || studentName || UNKNOWN_STUDENT_NAME}`,
     studentName: studentName || UNKNOWN_STUDENT_NAME,
-    studentId: studentId || MISSING_STUDENT_ID,
+    studentId: studentId || MISSING_VALUE_LABEL,
+  };
+};
+
+const getStudentDisplay = (log, students = []) => {
+  const rosterStudent = findStudentForLog(log, students);
+
+  if (rosterStudent) {
+    return getRosterStudentDisplay(rosterStudent);
+  }
+
+  return {
+    studentKey: getStudentKey(log),
+    studentName: String(log?.[timeLogConfig.studentNameField] ?? '').trim() || UNKNOWN_STUDENT_NAME,
+    studentId: String(log?.[timeLogConfig.studentIdField] ?? '').trim() || MISSING_VALUE_LABEL,
   };
 };
 
@@ -181,6 +203,8 @@ const getCategoryKey = (log) => {
   const taskId = String(log?.[timeLogConfig.taskIdField] ?? '').trim();
   const taskName = String(log?.[timeLogConfig.taskNameField] ?? '').trim();
 
+  // A task document ID survives display-name changes. Name-based keys support
+  // historical logs and manually added extra hours that do not have a task ID.
   if (taskId) {
     return `task:${taskId}`;
   }
@@ -204,13 +228,13 @@ const sortByMinutesDescending = (left, right) => (
   || left.name.localeCompare(right.name)
 );
 
-export const calculateStudentHourTotals = (logs) => {
+export const calculateStudentHourTotals = (logs, rosterStudents = []) => {
   const studentTotals = new Map();
   const completedLogs = getCompletedLogs(logs);
 
   completedLogs.forEach((log) => {
     const durationMinutes = getDurationMinutes(log);
-    const student = getStudentDisplay(log);
+    const student = getStudentDisplay(log, rosterStudents);
     const existingStudent = studentTotals.get(student.studentKey) ?? {
       ...student,
       name: student.studentName,
@@ -223,7 +247,7 @@ export const calculateStudentHourTotals = (logs) => {
       studentName: existingStudent.studentName === UNKNOWN_STUDENT_NAME
         ? student.studentName
         : existingStudent.studentName,
-      studentId: existingStudent.studentId === MISSING_STUDENT_ID
+      studentId: existingStudent.studentId === MISSING_VALUE_LABEL
         ? student.studentId
         : existingStudent.studentId,
       totalMinutes: existingStudent.totalMinutes + durationMinutes,
@@ -345,10 +369,14 @@ export const calculateHoursByCategory = (logs) => {
   };
 };
 
-export const calculateStudentCategoryBreakdown = (logs, studentKey) => {
-  const matchingLogs = getCompletedLogs(logs).filter((log) => getStudentKey(log) === studentKey);
+export const calculateStudentCategoryBreakdown = (logs, studentKey, students = []) => {
+  const matchingLogs = getCompletedLogs(logs).filter(
+    (log) => getStudentDisplay(log, students).studentKey === studentKey,
+  );
   const categorySummary = calculateHoursByCategory(matchingLogs);
-  const student = matchingLogs.length > 0 ? getStudentDisplay(matchingLogs[0]) : null;
+  const student = matchingLogs.length > 0
+    ? getStudentDisplay(matchingLogs[0], students)
+    : null;
 
   return {
     student,
@@ -371,6 +399,8 @@ const logMatchesAttendanceSchedule = (log, schedules) => {
     return false;
   }
 
+  // A log counts as attendance only when its task had an active schedule at
+  // sign-in and that schedule was not explicitly excluded from attendance.
   return schedules.some((schedule) => (
     String(schedule?.[scheduleConfig.taskIdField] ?? '').trim() === taskId
     && schedule?.[scheduleConfig.countsForAttendanceField] !== false
@@ -379,6 +409,8 @@ const logMatchesAttendanceSchedule = (log, schedules) => {
 };
 
 export const calculateAttendanceAnalytics = (logs, schedules = [], students = []) => {
+  // Sets prevent multiple logs on the same meeting day from counting one
+  // student more than once. Maps retain the details needed by drill-down views.
   const meetingDaysByDate = new Map();
   const studentsByKey = new Map(students.map((student) => {
     const studentDisplay = getRosterStudentDisplay(student);
@@ -404,7 +436,7 @@ export const calculateAttendanceAnalytics = (logs, schedules = [], students = []
     }
 
     const dateKey = formatDateKey(signInAt);
-    const student = getStudentDisplay(log);
+    const student = getStudentDisplay(log, students);
     const studentAttendance = studentsByKey.get(student.studentKey) ?? {
       ...student,
       daysAttended: new Set(),

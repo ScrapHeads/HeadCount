@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { ROUTES } from '../config/routesConfig';
 import { useAuth } from '../features/auth/useAuth.jsx';
 import AccessPortal from '../pages/AccessPortal';
 import KioskStudentLogin from '../pages/KioskStudentLogin';
@@ -17,6 +18,9 @@ const FullScreenMessage = ({ message }) => (
   </main>
 );
 
+// Route guards prevent a page from briefly rendering before Firebase finishes
+// restoring the signed-in user. Each guard also redirects the wrong account
+// type back to the access portal.
 const CoachRoute = ({ children }) => {
   const { coachUser, isLoadingCoachAuth } = useAuth();
 
@@ -25,7 +29,7 @@ const CoachRoute = ({ children }) => {
   }
 
   if (!coachUser) {
-    return <Navigate replace to="/" />;
+    return <Navigate replace to={ROUTES.accessPortal} />;
   }
 
   return children;
@@ -39,7 +43,7 @@ const KioskRoute = ({ children }) => {
   }
 
   if (!kioskUser) {
-    return <Navigate replace to="/" />;
+    return <Navigate replace to={ROUTES.accessPortal} />;
   }
 
   return children;
@@ -58,15 +62,17 @@ const StudentRoute = ({ children }) => {
   }
 
   if (!studentSession) {
-    return <Navigate replace to={kioskUser ? '/kiosk' : '/'} />;
+    return <Navigate replace to={kioskUser ? ROUTES.kiosk : ROUTES.accessPortal} />;
   }
 
+  // Kiosk students borrow the kiosk's Firebase login. Password students have
+  // their own Firebase login, so the required account depends on authMode.
   if (studentSession.authMode === 'kiosk') {
     if (!kioskUser) {
-      return <Navigate replace to="/" />;
+      return <Navigate replace to={ROUTES.accessPortal} />;
     }
   } else if (!studentUser) {
-    return <Navigate replace to="/" />;
+    return <Navigate replace to={ROUTES.accessPortal} />;
   }
 
   return children;
@@ -75,10 +81,13 @@ const StudentRoute = ({ children }) => {
 const App = () => (
   <BrowserRouter>
     <Routes>
-      <Route path="/" element={<AccessPortal />} />
-      <Route path="/access" element={<Navigate replace to="/" />} />
+      <Route path={ROUTES.accessPortal} element={<AccessPortal />} />
       <Route
-        path="/kiosk"
+        path={ROUTES.legacyAccessPortal}
+        element={<Navigate replace to={ROUTES.accessPortal} />}
+      />
+      <Route
+        path={ROUTES.kiosk}
         element={(
           <KioskRoute>
             <KioskStudentLogin />
@@ -86,7 +95,7 @@ const App = () => (
         )}
       />
       <Route
-        path="/coach/dashboard"
+        path={ROUTES.coachDashboard}
         element={(
           <CoachRoute>
             <CoachDashboard />
@@ -94,7 +103,7 @@ const App = () => (
         )}
       />
       <Route
-        path="/student/dashboard"
+        path={ROUTES.studentDashboard}
         element={(
           <StudentRoute>
             <StudentDashboard />
@@ -102,7 +111,7 @@ const App = () => (
         )}
       />
       <Route
-        path="/student/session"
+        path={ROUTES.studentSession}
         element={(
           <StudentRoute>
             <StudentCheckIn />
@@ -110,11 +119,11 @@ const App = () => (
         )}
       />
       <Route
-        path="/student/checkin"
-        element={<Navigate replace to="/student/session" />}
+        path={ROUTES.legacyStudentCheckIn}
+        element={<Navigate replace to={ROUTES.studentSession} />}
       />
       <Route
-        path="/student/checkout"
+        path={ROUTES.studentCheckOut}
         element={(
           <StudentRoute>
             <StudentCheckOut />

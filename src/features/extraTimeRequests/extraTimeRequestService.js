@@ -13,6 +13,7 @@ import {
   studentAuthConfig,
   timeLogConfig,
 } from '../../config/appConfig';
+import { MINUTES_PER_HOUR } from '../../lib/constants';
 import { db } from '../../services/firebase';
 import { isCurrentMember } from '../../lib/studentUtils';
 
@@ -49,7 +50,9 @@ export const createExtraTimeRequest = async ({ hours, reason, student }) => {
       student[studentAuthConfig.idField] ?? student.studentId ?? student.id,
     ),
     [extraTimeRequestConfig.studentNameField]: student.name ?? 'Student',
-    [extraTimeRequestConfig.durationMinutesField]: Math.round(numericHours * 60),
+    [extraTimeRequestConfig.durationMinutesField]: Math.round(
+      numericHours * MINUTES_PER_HOUR,
+    ),
     [extraTimeRequestConfig.reasonField]: trimmedReason,
     [extraTimeRequestConfig.statusField]: extraTimeRequestConfig.pendingStatus,
     [extraTimeRequestConfig.requestedAtField]: serverTimestamp(),
@@ -60,18 +63,12 @@ export const createExtraTimeRequest = async ({ hours, reason, student }) => {
 
 export const watchExtraTimeRequestsForStudent = ({ student, onData, onError }) => {
   const requestsCollection = collection(db, extraTimeRequestConfig.collectionName);
-  const studentId = String(
-    student?.[studentAuthConfig.idField] ?? student?.studentId ?? '',
+  // The Firestore document ID stays the same when a Student ID changes, so it
+  // keeps requests from both current and previous IDs in one timeline.
+  const requestsQuery = query(
+    requestsCollection,
+    where(extraTimeRequestConfig.studentDocIdField, '==', student?.id ?? ''),
   );
-  const requestsQuery = student?.authMode === 'kiosk'
-    ? query(
-      requestsCollection,
-      where(extraTimeRequestConfig.studentDocIdField, '==', student?.id ?? ''),
-    )
-    : query(
-      requestsCollection,
-      where(extraTimeRequestConfig.studentIdField, '==', studentId ?? ''),
-    );
 
   return onSnapshot(
     requestsQuery,
@@ -110,6 +107,8 @@ export const reviewExtraTimeRequest = async ({ decision, request, reviewedBy }) 
 
   const requestDocRef = doc(db, extraTimeRequestConfig.collectionName, request.id);
 
+  // Approval and its matching time log are written in one transaction. Either
+  // both changes succeed, or neither is saved.
   await runTransaction(db, async (transaction) => {
     const requestSnapshot = await transaction.get(requestDocRef);
 

@@ -6,6 +6,9 @@ const updateStudentCredentialsCallable = httpsCallable(
   'updateStudentCredentials',
 );
 
+// Password resets and Student ID changes require Firebase Admin privileges.
+// The browser sends the request to a callable Cloud Function instead of trying
+// to perform those trusted operations directly.
 export const updateStudentCredentials = async ({
   password,
   studentDocId,

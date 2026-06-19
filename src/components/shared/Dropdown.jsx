@@ -34,6 +34,8 @@ const Dropdown = ({
       }
     };
 
+    // These document-level listeners let clicks outside the component and the
+    // Escape key close the custom menu like a native select control.
     document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
 

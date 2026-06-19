@@ -9,6 +9,10 @@ import { studentAuthConfig } from '../../config/appConfig';
 import { generateUniqueStudentId } from '../../config/studentIdGenerator';
 import { isCurrentMember } from '../../lib/studentUtils';
 import {
+  getMinimumLengthMessage,
+  nullableString,
+} from '../../lib/validators';
+import {
   createStudentAuthAccount,
   deleteStudentAuthAccount,
   normalizeStudentAuthId,
@@ -20,15 +24,10 @@ import {
   createDocument,
   findStudentRecord,
   findStudentRecordByNfcCardId,
+  findStudentRecordByPreviousStudentId,
   normalizeNfcCardId,
   updateDocument,
 } from '../../services/firestore';
-
-const nullableString = (value) => {
-  const trimmedValue = String(value ?? '').trim();
-
-  return trimmedValue || null;
-};
 
 const buildStudentCreatePayload = ({
   currentMember,
@@ -44,10 +43,12 @@ const buildStudentCreatePayload = ({
   [studentAuthConfig.signedInField]: null,
   [studentAuthConfig.signedInAtField]: null,
   [studentAuthConfig.idField]: normalizeStudentAuthId(studentId),
+  [studentAuthConfig.previousStudentIdField]: [],
   [studentAuthConfig.currentMemberField]: Boolean(currentMember),
 });
 
-// Subscribe to currently active student sessions for the coach dashboard.
+// Firestore subscriptions update the coach dashboard as soon as another
+// browser signs a student in or out.
 export const watchActiveStudents = (callback, onError) => {
   const activeStudentsQuery = query(
     collection(db, studentAuthConfig.collectionName),
@@ -93,11 +94,16 @@ const assertNfcCardIdAvailable = async ({ nfcCardId, studentDocId = null }) => {
     return;
   }
 
-  const [studentWithCard, studentWithMatchingId] = await Promise.all([
+  const [studentWithCard, studentWithMatchingId, studentWithPreviousId] = await Promise.all([
     findStudentRecordByNfcCardId(normalizedNfcCardId),
     findStudentRecord(normalizedNfcCardId),
+    findStudentRecordByPreviousStudentId(normalizedNfcCardId),
   ]);
-  const conflictingStudent = [studentWithCard, studentWithMatchingId]
+  const conflictingStudent = [
+    studentWithCard,
+    studentWithMatchingId,
+    studentWithPreviousId,
+  ]
     .find((student) => student && student.id !== studentDocId);
 
   if (conflictingStudent) {
@@ -107,12 +113,13 @@ const assertNfcCardIdAvailable = async ({ nfcCardId, studentDocId = null }) => {
 
 export const generateAvailableStudentId = () => generateUniqueStudentId({
   isAvailable: async (candidateId) => {
-    const [studentWithId, studentWithCardId] = await Promise.all([
+    const [studentWithId, studentWithCardId, studentWithPreviousId] = await Promise.all([
       findStudentRecord(candidateId),
       findStudentRecordByNfcCardId(candidateId),
+      findStudentRecordByPreviousStudentId(candidateId),
     ]);
 
-    return !studentWithId && !studentWithCardId;
+    return !studentWithId && !studentWithCardId && !studentWithPreviousId;
   },
 });
 
@@ -137,8 +144,11 @@ export const createStudent = async ({
     throw new Error('Student password is required.');
   }
 
-  if (password.length < 6) {
-    throw new Error('Student passwords must be at least 6 characters.');
+  if (password.length < studentAuthConfig.minPasswordLength) {
+    throw new Error(getMinimumLengthMessage(
+      'Student passwords',
+      studentAuthConfig.minPasswordLength,
+    ));
   }
 
   const existingStudent = await findStudentRecord(normalizedStudentId);
@@ -153,11 +163,19 @@ export const createStudent = async ({
     throw new Error('That student ID is already assigned as another student\'s NFC card ID.');
   }
 
+  const studentWithPreviousId = await findStudentRecordByPreviousStudentId(normalizedStudentId);
+
+  if (studentWithPreviousId) {
+    throw new Error('That student ID is in another student\'s previous ID history.');
+  }
+
   await assertNfcCardIdAvailable({ nfcCardId });
 
   let studentAuthUser = null;
 
   try {
+    // Create the login first, then its Firestore profile. The catch block
+    // removes the login if profile creation fails, avoiding an unusable account.
     studentAuthUser = await createStudentAuthAccount({
       studentId: normalizedStudentId,
       password,
@@ -223,6 +241,8 @@ export const updateStudent = async ({
   }
 
   if (credentialsChanged) {
+    // Authentication emails require Admin SDK access. The callable Function
+    // also appends the old ID to previousStudentId on the student profile.
     await updateStudentCredentials({
       password,
       studentDocId,
@@ -230,6 +250,8 @@ export const updateStudent = async ({
     });
   }
 
+  // The callable function already changed the student ID. Only ordinary
+  // profile fields, such as name or roster status, remain for this client write.
   delete normalizedUpdates[studentAuthConfig.idField];
   await updateDocument(studentAuthConfig.collectionName, studentDocId, normalizedUpdates);
 

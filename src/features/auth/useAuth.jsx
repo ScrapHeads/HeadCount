@@ -15,6 +15,9 @@ import { useStudentSession } from '../../hooks/useStudentSession';
 
 const AuthContext = createContext(null);
 
+// AuthProvider combines Firebase's current user with the selected student
+// profile. This is necessary because kiosk students share one Firebase account
+// while password students each use their own account.
 export const AuthProvider = ({ children }) => {
   const [coachUser, setCoachUser] = useState(null);
   const [kioskUser, setKioskUser] = useState(null);
@@ -23,6 +26,8 @@ export const AuthProvider = ({ children }) => {
   const { studentSession, setStudentSession } = useStudentSession();
 
   useEffect(() => {
+    // Firebase can have only one current user per app instance. Classify that
+    // user whenever Firebase restores or changes the browser login.
     const unsubscribe = watchCoachAuth((user) => {
       setCoachUser(user && !isStudentAuthEmail(user.email) && !isKioskAuthEmail(user.email) ? user : null);
       setKioskUser(user && isKioskAuthEmail(user.email) ? user : null);
@@ -61,6 +66,8 @@ export const AuthProvider = ({ children }) => {
       });
     }
 
+    // The student profile contains Firestore session fields that are not part
+    // of the Firebase Authentication user object.
     setStudentSession(student);
     return student;
   };
@@ -74,6 +81,7 @@ export const AuthProvider = ({ children }) => {
       await logoutStudent();
       setStudentUser(null);
     }
+    // In kiosk mode the kiosk Firebase user intentionally remains signed in.
   };
 
   const updateStudentSession = async (updates) => {

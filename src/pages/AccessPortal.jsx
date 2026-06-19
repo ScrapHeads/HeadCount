@@ -4,6 +4,7 @@ import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
 import { kioskAuthConfig } from '../config/appConfig';
 import { branding } from '../config/branding';
+import { ROUTES } from '../config/routesConfig';
 import { useAuth } from '../features/auth/useAuth.jsx';
 
 const AccessPortal = () => {
@@ -27,7 +28,7 @@ const AccessPortal = () => {
 
   useEffect(() => {
     if (!isLoadingCoachAuth && kioskUser) {
-      navigate('/kiosk', { replace: true });
+      navigate(ROUTES.kiosk, { replace: true });
     }
   }, [isLoadingCoachAuth, kioskUser, navigate]);
 
@@ -43,7 +44,7 @@ const AccessPortal = () => {
 
     try {
       await signInCoach({ email: coachEmail, password: coachPassword });
-      navigate('/coach/dashboard', { replace: true });
+      navigate(ROUTES.coachDashboard, { replace: true });
     } catch (loginError) {
       setError(loginError.message || 'Coach login failed.');
     } finally {
@@ -63,7 +64,7 @@ const AccessPortal = () => {
 
     try {
       await signInKiosk({ email: kioskEmail, password: kioskPassword });
-      navigate('/kiosk', { replace: true });
+      navigate(ROUTES.kiosk, { replace: true });
     } catch (loginError) {
       setError(loginError.message || 'Kiosk login failed.');
     } finally {
@@ -87,7 +88,7 @@ const AccessPortal = () => {
         password: studentPassword,
         requirePassword: true,
       });
-      navigate('/student/dashboard', { replace: true });
+      navigate(ROUTES.studentDashboard, { replace: true });
     } catch (loginError) {
       setError(loginError.message || 'Student login failed.');
     } finally {
