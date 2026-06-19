@@ -77,30 +77,52 @@ enabled.
 
 ## Copy This Repository
 
-Before local setup, copy the project into a repository owned by your team.
-Create an empty GitHub repository first; do not initialize it with a README,
-license, or `.gitignore`.
+Before local setup, copy this project into a repository owned by your team. Create an empty GitHub repository first. Do **not** initialize it with a README, license, or `.gitignore`, because those files already exist in this project.
+
+### Recommended: Keep This Project as Upstream
+
+This method lets your team pull future updates from the original ScrapHeads Time Tracker project while using your own repository for deployment and team changes.
 
 Clone this project:
 
-```powershell
+```bash
 git clone https://github.com/tebbe21485/robotics-team-hours-tracker.git my-team-hours-tracker
 cd my-team-hours-tracker
 ```
 
-Keep this project available as `upstream` for future updates, then connect your
-team's repository as `origin`:
+Rename the original project remote to `upstream`:
 
-```powershell
+```bash
 git remote rename origin upstream
+```
+
+Connect your team’s GitHub repository as `origin`:
+
+```bash
 git remote add origin https://github.com/YOUR-ACCOUNT/YOUR-REPO.git
+```
+
+Push the project to your team’s repository:
+
+```bash
 git push -u origin main
 ```
 
 After the push, use your new GitHub repository for Vercel and Firebase setup.
-If you do not want to keep a connection to the original project, use
-`git remote set-url origin https://github.com/YOUR-ACCOUNT/YOUR-REPO.git`
-instead of renaming `origin` to `upstream`.
+
+### Alternative: Use Your Team Repository Only
+
+If you do not want to keep a connection to the original project, clone this project and then replace the remote URL:
+
+```bash
+git clone https://github.com/tebbe21485/robotics-team-hours-tracker.git my-team-hours-tracker
+cd my-team-hours-tracker
+git remote set-url origin https://github.com/YOUR-ACCOUNT/YOUR-REPO.git
+git push -u origin main
+```
+
+With this method, your repository will not keep an `upstream` remote for pulling future updates from the original project.
+
 
 ## Local Setup
 
