@@ -85,12 +85,31 @@ and it links users into the coach, kiosk, or student flow.
 | Command | Purpose |
 | --- | --- |
 | `npm.cmd run dev` | Start the Vite development server |
+| `npm.cmd run dev:demo` | Start the app with browser-local demo data and no Firebase setup |
 | `npm.cmd run build` | Create a production frontend build |
+| `npm.cmd run build:demo` | Create a production build with demo-mode Firebase mocks |
 | `npm.cmd run preview` | Preview the production build locally |
 | `npm.cmd --prefix functions run check` | Check optional Cloud Function JavaScript syntax |
 
 There is currently no automated test suite. Run the production build and
 Functions syntax check before deploying changes.
+
+## Firebase-Free Demo Mode
+
+This branch can run a walkthrough build without Firebase by using demo mode:
+
+```powershell
+npm.cmd run dev:demo
+```
+
+Demo mode also activates when `VITE_DEMO_MODE=true`. It replaces the Firebase
+browser SDK imports with local mocks, seeds realistic team data into
+`localStorage`, and shows demo entry buttons on the access portal. Demo data is
+stored only in the visitor's browser. Use **Reset demo data** on the access
+portal to reseed a clean walkthrough.
+
+Normal Firebase mode remains the default. Use `npm.cmd run dev` or
+`npm.cmd run build` with real `VITE_FIREBASE_*` values to run against Firebase.
 
 ## Configuration
 

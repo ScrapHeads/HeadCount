@@ -4,6 +4,7 @@ import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
 import { kioskAuthConfig } from '../config/appConfig';
 import { branding } from '../config/branding';
+import { DEMO_CREDENTIALS, isDemoMode, resetDemoState } from '../config/demoMode';
 import { ROUTES } from '../config/routesConfig';
 import { useAuth } from '../features/auth/useAuth.jsx';
 
@@ -96,6 +97,63 @@ const AccessPortal = () => {
     }
   };
 
+  const handleDemoCoachLogin = async () => {
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      await signInCoach({
+        email: DEMO_CREDENTIALS.coachEmail,
+        password: DEMO_CREDENTIALS.password,
+      });
+      navigate(ROUTES.coachDashboard, { replace: true });
+    } catch (loginError) {
+      setError(loginError.message || 'Demo coach login failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDemoKioskLogin = async () => {
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      await signInKiosk({
+        email: kioskAuthConfig.email || DEMO_CREDENTIALS.kioskEmail,
+        password: DEMO_CREDENTIALS.password,
+      });
+      navigate(ROUTES.kiosk, { replace: true });
+    } catch (loginError) {
+      setError(loginError.message || 'Demo kiosk login failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDemoStudentLogin = async () => {
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      await signInStudent({
+        studentId: DEMO_CREDENTIALS.studentId,
+        password: DEMO_CREDENTIALS.password,
+        requirePassword: true,
+      });
+      navigate(ROUTES.studentDashboard, { replace: true });
+    } catch (loginError) {
+      setError(loginError.message || 'Demo student login failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDemoReset = () => {
+    resetDemoState();
+    window.location.assign(ROUTES.accessPortal);
+  };
+
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_color-mix(in_oklab,_var(--app-primary)_18%,_transparent)_0%,_transparent_45%)]" />
@@ -119,6 +177,44 @@ const AccessPortal = () => {
               </p>
             </div>
           </div>
+
+          {isDemoMode && (
+              <div className="mt-6 mb-6 rounded-2xl border border-accent/30 bg-accent/12 p-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <button
+                    className="rounded-xl border border-border bg-secondary px-3 py-2 text-sm font-semibold text-on-secondary transition hover:bg-accent/10"
+                    disabled={isSubmitting}
+                    onClick={handleDemoStudentLogin}
+                    type="button"
+                  >
+                    Demo Student
+                  </button>
+                  <button
+                    className="rounded-xl border border-border bg-secondary px-3 py-2 text-sm font-semibold text-on-secondary transition hover:bg-accent/10"
+                    disabled={isSubmitting}
+                    onClick={handleDemoKioskLogin}
+                    type="button"
+                  >
+                    Demo Kiosk
+                  </button>
+                  <button
+                    className="rounded-xl border border-border bg-secondary px-3 py-2 text-sm font-semibold text-on-secondary transition hover:bg-accent/10"
+                    disabled={isSubmitting}
+                    onClick={handleDemoCoachLogin}
+                    type="button"
+                  >
+                    Demo Coach
+                  </button>
+                </div>
+                <button
+                  className="mt-3 text-sm font-semibold text-on-secondary underline-offset-4 hover:underline"
+                  onClick={handleDemoReset}
+                  type="button"
+                >
+                  Reset demo data
+                </button>
+              </div>
+            )}
 
           <div className="mt-10 rounded-2xl border border-on-primary/15 bg-on-primary/10 p-5 backdrop-blur-sm">
             <p className="text-sm font-semibold">Access portal</p>

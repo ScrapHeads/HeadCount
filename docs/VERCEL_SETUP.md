@@ -31,6 +31,7 @@ Open the Vercel project settings and add every frontend variable from
 `.env.example`:
 
 ```dotenv
+VITE_DEMO_MODE=false
 VITE_FIREBASE_API_KEY=
 VITE_FIREBASE_AUTH_DOMAIN=
 VITE_FIREBASE_PROJECT_ID=
@@ -45,6 +46,9 @@ Use the same values that work in the local `.env` file. Add them for
 **Production** and any **Preview** environments that should connect to Firebase.
 You can import your local `.env` file into Vercel instead of creating the
 variables one at a time.
+
+For a Firebase-free walkthrough deployment, set `VITE_DEMO_MODE=true` and leave
+the Firebase values empty. Do not use that setting for a real team deployment.
 
 Only add Firebase-connected values to Preview environments if the team plans to
 test preview deployments. Each preview domain that uses Firebase Authentication

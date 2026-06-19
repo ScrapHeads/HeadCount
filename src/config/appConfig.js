@@ -1,4 +1,5 @@
 import sharedConfig from '../../functions/sharedConfig.json';
+import { DEMO_CREDENTIALS, isDemoMode } from './demoMode';
 
 // This file gives the frontend readable names for Firestore collections and
 // fields. Values shared with Cloud Functions live in sharedConfig.json so both
@@ -30,7 +31,10 @@ export const studentAuthConfig = {
 };
 
 export const kioskAuthConfig = {
-  email: import.meta.env.VITE_KIOSK_AUTH_EMAIL ?? '',
+  email: (
+    import.meta.env.VITE_KIOSK_AUTH_EMAIL
+    || (isDemoMode ? DEMO_CREDENTIALS.kioskEmail : '')
+  ),
 };
 
 export const taskConfig = {

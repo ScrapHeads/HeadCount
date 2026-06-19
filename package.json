@@ -5,7 +5,9 @@
   "main": "src/main.jsx",
   "scripts": {
     "dev": "vite --host",
+    "dev:demo": "vite --mode demo --host",
     "build": "vite build",
+    "build:demo": "vite build --mode demo",
     "preview": "vite preview"
   },
   "keywords": [],

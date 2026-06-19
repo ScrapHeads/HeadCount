@@ -2,6 +2,7 @@ import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
+import { isDemoMode } from '../config/demoMode';
 
 // Vite exposes browser environment variables through import.meta.env. These
 // values identify the Firebase project; authorization is still enforced by
@@ -19,7 +20,7 @@ const missingConfig = Object.entries(firebaseConfig)
   .filter(([, value]) => !value)
   .map(([key]) => key);
 
-if (missingConfig.length > 0) {
+if (!isDemoMode && missingConfig.length > 0) {
   throw new Error(`Missing Firebase environment variables: ${missingConfig.join(', ')}`);
 }
 

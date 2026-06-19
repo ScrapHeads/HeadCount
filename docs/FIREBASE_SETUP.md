@@ -44,6 +44,7 @@ Copy-Item .env.example .env
 Fill in the values from the Firebase web app:
 
 ```dotenv
+VITE_DEMO_MODE=false
 VITE_FIREBASE_API_KEY=your-api-key
 VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your-project-id
@@ -54,8 +55,9 @@ VITE_KIOSK_AUTH_EMAIL="kiosk@myapp.internal"
 VITE_STUDENT_AUTH_EMAIL_DOMAIN="myapp.internal"
 ```
 
-Vite only exposes variables beginning with `VITE_` to browser code. Firebase
-web configuration identifies the project but is not a secret. Security still
+Vite only exposes variables beginning with `VITE_` to browser code. Keep
+`VITE_DEMO_MODE=false` for a Firebase-connected app. Firebase web
+configuration identifies the project but is not a secret. Security still
 depends on Authentication and Firestore Security Rules.
 
 Do not commit `.env`.
