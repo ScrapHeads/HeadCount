@@ -4,6 +4,14 @@ A React and Firebase application for recording robotics team hours. Students can
 check in through a kiosk or their own login, while coaches manage the roster,
 schedules, time logs, extra-time requests, and attendance analytics.
 
+## License
+
+ScrapHeads Time Tracker is free for nonprofit robotics teams, school robotics programs, and educational use.
+
+Commercial use is not allowed without written permission. Companies, vendors, consultants, or other commercial entities may not sell, host, rebrand, bundle, or commercially distribute this app without contacting ScrapHeads Robotics for a separate license.
+
+See [LICENSE](./LICENSE) for details.
+
 ## Hosting Note
 
 This project is intended to be hosted on Vercel for the frontend, with Firebase
