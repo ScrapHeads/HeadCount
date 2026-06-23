@@ -14,11 +14,15 @@ See [LICENSE](./LICENSE) for details.
 
 ## Hosting Note
 
-This project is intended to be hosted on Vercel for the frontend, with Firebase
+Cloudflare Pages is the preferred frontend host for this project, with Firebase
 handling Authentication, Firestore, Security Rules, and optional Cloud
 Functions. Start with the Firebase guide
-[docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md), then follow
-[docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md) to publish the site.
+[docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md), then follow the preferred
+[Cloudflare Pages setup guide](docs/CLOUDFLARE_SETUP.md) to publish the site.
+
+Vercel remains supported as an alternative through
+[docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md). If the Vercel project is hosted in
+an organization, the organization must use a Vercel Pro account.
 
 ## Live Demo
 
@@ -55,7 +59,8 @@ portal to restore the seeded walkthrough data.
 - Firebase Authentication
 - Cloud Firestore
 - Cloud Functions for Firebase (optional)
-- Vercel hosting
+- Cloudflare Pages hosting (preferred)
+- Vercel hosting (alternative)
 
 ## Before You Start
 
@@ -67,7 +72,8 @@ Install these tools:
 Create these accounts and projects:
 
 - A Firebase project
-- A Vercel account for hosting the frontend
+- A Cloudflare account for the preferred frontend hosting option
+- alternative, a Vercel account if the team chooses Vercel instead
 
 Cloud Functions in this repository use Node.js 20, but deploying them is
 optional. The main application works without Functions; coaches must then
@@ -108,7 +114,8 @@ Push the project to your team’s repository:
 git push -u origin main
 ```
 
-After the push, use your new GitHub repository for Vercel and Firebase setup.
+After the push, use your new GitHub repository for frontend hosting and Firebase
+setup.
 
 ### Alternative: Use Your Team Repository Only
 
@@ -157,8 +164,8 @@ and `public/favicon_io/site.webmanifest`.
 
 ### Required Environment Setup
 
-These files connect the copied project to the team's own Firebase and Vercel
-setup:
+These files connect the copied project to the team's own Firebase and frontend
+hosting setup:
 
 | File | Purpose |
 | --- | --- |
@@ -181,7 +188,8 @@ looks:
 | `src/config/routesConfig.js` | Browser route paths |
 
 Route changes are low-risk when all links continue to use `ROUTES`, but confirm
-that Vercel still uses `vercel.json` so direct page reloads keep working.
+that Cloudflare Pages still publishes `public/_redirects`, or that Vercel still
+uses `vercel.json`, so direct page reloads keep working on the selected host.
 
 ### Advanced Data And Security Settings
 
@@ -194,6 +202,7 @@ student logins, or browser permissions:
 | `src/config/appConfig.js` | Frontend-only Firestore field names, task settings, and status labels |
 | `firestore.rules` | Browser permissions for Firestore data |
 | `firebase.json` | Firebase deploy targets for Functions, rules, and indexes |
+| `public/_redirects` | Cloudflare Pages fallback for client-side React routes |
 | `vercel.json` | Vercel rewrite for client-side React routes |
 | `vite.config.js` | Vite plugins for React and Tailwind CSS |
 
@@ -269,22 +278,29 @@ functions/
   index.js              Optional trusted student credential management
   sharedConfig.json     Frontend/backend shared defaults
 docs/
+  CLOUDFLARE_SETUP.md    Preferred frontend hosting guide for Cloudflare Pages
   FIREBASE_SETUP.md     Complete Firebase setup and deployment guide
-  VERCEL_SETUP.md       Frontend hosting guide for Vercel
+  VERCEL_SETUP.md       Alternative frontend hosting guide for Vercel
 firebase.json           Firebase deploy targets for Functions, rules, and indexes
 firestore.rules         Browser permissions for Firestore data
 firestore.indexes.json  Firestore index definitions
+public/_redirects       Cloudflare Pages fallback for client-side React routes
 vercel.json             Vercel rewrite for client-side React routes
 vite.config.js          Vite, React, and Tailwind build configuration
 ```
 
 ## Deployment
 
-The frontend is hosted through Vercel. Follow
-[docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md) to connect the repository, add the
-`VITE_*` environment variables, authorize the Vercel domain in Firebase, and
-deploy the site. `vercel.json` includes the rewrite needed for client-side
-routes.
+Cloudflare Pages is the preferred frontend host. Follow
+[docs/CLOUDFLARE_SETUP.md](docs/CLOUDFLARE_SETUP.md) to connect the repository,
+add the `VITE_*` environment variables, authorize the Cloudflare domain in
+Firebase, and deploy the site. `public/_redirects` provides the fallback needed
+for client-side routes.
+
+Vercel remains available as an alternative. Follow
+[docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md); its existing `vercel.json` route
+rewrite remains in place. Vercel deployments owned by an organization require
+the organization to have a Pro account.
 
 Deploy the database rules and indexes:
 

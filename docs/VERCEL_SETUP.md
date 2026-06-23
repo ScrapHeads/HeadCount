@@ -7,6 +7,9 @@ Firestore Security Rules, and the optional Cloud Functions.
 Set up Firebase first with [FIREBASE_SETUP.md](FIREBASE_SETUP.md), then use this
 guide for the website deployment.
 
+> **Organization hosting:** If this Vercel project is owned by an organization,
+> the organization must use a Vercel Pro account.
+
 ## 1. Connect The Repository
 
 1. Open the [Vercel dashboard](https://vercel.com/dashboard).
