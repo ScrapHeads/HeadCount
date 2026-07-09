@@ -1,7 +1,7 @@
 {
-  "name": "robotics-team-hours-tracker",
+  "name": "headcount",
   "version": "1.0.0",
-  "description": "Robotics team hours tracker project",
+  "description": "HeadCount team hours tracker project",
   "main": "src/main.jsx",
   "scripts": {
     "dev": "vite --host",

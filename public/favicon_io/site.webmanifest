@@ -1,6 +1,6 @@
 {
-  "name": "Robotics Team Hours Tracker",
-  "short_name": "Hours Tracker",
+  "name": "HeadCount",
+  "short_name": "HeadCount",
   "icons": [
     {
       "src": "/favicon_io/android-chrome-192x192.png",

@@ -1,7 +1,7 @@
 # Firebase Setup
 
 This guide configures Firebase Authentication, Cloud Firestore, Cloud
-Functions, and Firestore Security Rules for the Robotics Team Hours Tracker.
+Functions, and Firestore Security Rules for HeadCount.
 It is written for a new Firebase project.
 
 ## Services Used

@@ -1,8 +1,8 @@
-# ScrapHeads Time Tracker Community License
+# HeadCount Community License
 
 Copyright (c) 2026 SCRAPHEADS ROBOTICS
 
-This license applies to the ScrapHeads Time Tracker software, including source code, documentation, templates, configuration files, and related project materials.
+This license applies to the HeadCount software, including source code, documentation, templates, configuration files, and related project materials.
 
 ## 1. Free Community Use
 
@@ -37,9 +37,9 @@ Copies or modified versions of this software must retain reasonable attribution 
 
 Attribution should include:
 
-ScrapHeads Time Tracker
+HeadCount
 Originally developed by ScrapHeads Robotics
-Used under the ScrapHeads Time Tracker Community License
+Used under the HeadCount Community License
 
 Attribution may be placed in the README, documentation, about page, footer, or another reasonable location.
 

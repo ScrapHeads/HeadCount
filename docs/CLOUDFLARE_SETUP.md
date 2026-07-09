@@ -1,6 +1,6 @@
 # Cloudflare Pages Setup
 
-Cloudflare Pages is the preferred host for the Robotics Team Hours Tracker
+Cloudflare Pages is the preferred host for HeadCount
 frontend. It hosts the built React site only. Firebase still provides
 Authentication, Firestore, Firestore Security Rules, and the optional Cloud
 Functions.

@@ -2,7 +2,7 @@
 // this object turns these values into site-wide colors and fonts.
 export const branding = {
   // Shows in the app header and other visible page headings.
-  appName: 'Robotics Team Hours Tracker',
+  appName: 'HeadCount',
   // Short sentence used on the public access page to explain the app.
   tagline: 'Track team hours with a setup that is easy to copy, reuse, and rebrand.',
   // Small label for the team or organization using this copy of the app.

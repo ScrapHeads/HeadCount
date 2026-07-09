@@ -1,6 +1,6 @@
-# Robotics Team Hours Tracker
+# HeadCount
 
-A React and Firebase application for recording robotics team hours. Students can
+HeadCount is a React and Firebase application for recording team hours. Students can
 check in through a kiosk or their own login, while coaches manage the roster,
 schedules, time logs, extra-time requests, and attendance analytics.
 
@@ -26,7 +26,7 @@ an organization, the organization must use a Vercel Pro account.
 
 ## Live Demo
 
-Try the Firebase-free demo here:
+Try the Firebase-free HeadCount demo here:
 [robotics-team-hours-tracker-jn171dci6-tebbe21485s-projects.vercel.app](https://robotics-team-hours-tracker-jn171dci6-tebbe21485s-projects.vercel.app)
 
 The live demo is meant for exploring the app without setting up Firebase. It
@@ -92,8 +92,8 @@ This method lets your team pull future updates from the original ScrapHeads Time
 Clone this project:
 
 ```bash
-git clone https://github.com/tebbe21485/robotics-team-hours-tracker.git my-team-hours-tracker
-cd my-team-hours-tracker
+git clone https://github.com/ScrapHeads/HeadCount.git HeadCount
+cd HeadCount
 ```
 
 Rename the original project remote to `upstream`:
@@ -122,8 +122,8 @@ setup.
 If you do not want to keep a connection to the original project, clone this project and then replace the remote URL:
 
 ```bash
-git clone https://github.com/tebbe21485/robotics-team-hours-tracker.git my-team-hours-tracker
-cd my-team-hours-tracker
+git clone https://github.com/ScrapHeads/HeadCount.git HeadCount
+cd HeadCount
 git remote set-url origin https://github.com/YOUR-ACCOUNT/YOUR-REPO.git
 git push -u origin main
 ```
