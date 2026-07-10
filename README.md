@@ -27,7 +27,7 @@ an organization, the organization must use a Vercel Pro account.
 ## Live Demo
 
 Try the Firebase-free HeadCount demo here:
-[robotics-team-hours-tracker-jn171dci6-tebbe21485s-projects.vercel.app](https://robotics-team-hours-tracker-jn171dci6-tebbe21485s-projects.vercel.app)
+[headcount-01c.pages.dev](https://headcount-01c.pages.dev)
 
 The live demo is meant for exploring the app without setting up Firebase. It
 uses the same React screens and workflows as the main project, but Firebase
