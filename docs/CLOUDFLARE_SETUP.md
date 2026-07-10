@@ -94,7 +94,7 @@ these GitHub repository settings:
 | GitHub setting | Name | Value |
 | --- | --- | --- |
 | Secret | `CLOUDFLARE_API_TOKEN` | Cloudflare API token with Account > Cloudflare Pages > Edit permission |
-| Secret | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
+| Variable | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
 | Variable | `CLOUDFLARE_PAGES_PROJECT_NAME` | Cloudflare Pages project name, such as `headcount-demo` |
 
 After those values exist, pushing to `demo` runs tests, builds the demo, and

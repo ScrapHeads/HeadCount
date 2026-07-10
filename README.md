@@ -28,9 +28,9 @@ an organization, the organization must use a Vercel Pro account.
 
 The Firebase-free HeadCount demo is intended to run on Cloudflare Pages from
 the `demo` branch. Build it with `npm.cmd run build:demo`, or let the
-Cloudflare demo workflow deploy it after `CLOUDFLARE_API_TOKEN`,
-`CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_PAGES_PROJECT_NAME` are configured in
-GitHub.
+Cloudflare demo workflow deploy it after the `CLOUDFLARE_API_TOKEN` GitHub
+secret and the `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_PAGES_PROJECT_NAME`
+GitHub variables are configured.
 
 The live demo is meant for exploring the app without setting up Firebase. It
 uses the same React screens and workflows as the main project, but Firebase
