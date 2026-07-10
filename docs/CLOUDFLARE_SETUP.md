@@ -84,21 +84,7 @@ branches and pull requests can create preview deployments when previews are
 enabled for the project.
 
 For the `demo` branch, future pushes should create the public demo deployment
-with `npm run build:demo`. This branch also includes
-`.github/workflows/cloudflare-pages-demo.yml` for teams that prefer GitHub
-Actions direct upload instead of Cloudflare's Git integration.
-
-To use the GitHub Actions workflow, create a Cloudflare Pages project, then add
-these GitHub repository settings:
-
-| GitHub setting | Name | Value |
-| --- | --- | --- |
-| Secret | `CLOUDFLARE_API_TOKEN` | Cloudflare API token with Account > Cloudflare Pages > Edit permission |
-| Variable | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
-| Variable | `CLOUDFLARE_PAGES_PROJECT_NAME` | Cloudflare Pages project name, such as `headcount-demo` |
-
-After those values exist, pushing to `demo` runs tests, builds the demo, and
-uploads `dist` to Cloudflare Pages.
+with `npm run build:demo`.
 
 ## 4. Authorize The Cloudflare Domain In Firebase
 

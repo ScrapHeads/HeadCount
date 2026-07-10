@@ -27,10 +27,8 @@ an organization, the organization must use a Vercel Pro account.
 ## Live Demo
 
 The Firebase-free HeadCount demo is intended to run on Cloudflare Pages from
-the `demo` branch. Build it with `npm.cmd run build:demo`, or let the
-Cloudflare demo workflow deploy it after the `CLOUDFLARE_API_TOKEN` GitHub
-secret and the `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_PAGES_PROJECT_NAME`
-GitHub variables are configured.
+the `demo` branch. Configure the Cloudflare Pages project to build that branch
+with `npm.cmd run build:demo`.
 
 The live demo is meant for exploring the app without setting up Firebase. It
 uses the same React screens and workflows as the main project, but Firebase
@@ -320,8 +318,6 @@ firestore.rules         Browser permissions for Firestore data
 firestore.indexes.json  Firestore index definitions
 public/_redirects       Cloudflare Pages fallback for client-side React routes
 vercel.json             Vercel rewrite for client-side React routes
-.github/workflows/cloudflare-pages-demo.yml
-                         Demo branch direct upload workflow for Cloudflare Pages
 vite.config.js          Vite, React, and Tailwind build configuration
 ```
 
@@ -334,10 +330,7 @@ Firebase, and deploy the site. `public/_redirects` provides the fallback needed
 for client-side routes.
 
 For the public demo, deploy the `demo` branch to Cloudflare Pages with
-`npm.cmd run build:demo`. The included
-`.github/workflows/cloudflare-pages-demo.yml` workflow can direct-upload the
-demo build to Cloudflare Pages after the required Cloudflare GitHub secret and
-repository variables are configured.
+`npm.cmd run build:demo`.
 
 Vercel remains available as an alternative. Follow
 [docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md); its existing `vercel.json` route

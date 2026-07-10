@@ -164,7 +164,6 @@ Important auth files:
 | --- | --- |
 | Frontend build | `package.json`, `package-lock.json`, `vite.config.js` |
 | Automated checks | `.github/workflows/ci.yml`, `tests/` |
-| Cloudflare demo deploy | `.github/workflows/cloudflare-pages-demo.yml`, `public/_redirects`, `docs/CLOUDFLARE_SETUP.md` |
 | Firebase backend | `firebase.json`, `firestore.rules`, `firestore.indexes.json`, `functions/` |
 | Cloudflare Pages | `public/_redirects`, `docs/CLOUDFLARE_SETUP.md` |
 | Vercel | `vercel.json`, `docs/VERCEL_SETUP.md` |
