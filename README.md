@@ -26,8 +26,11 @@ an organization, the organization must use a Vercel Pro account.
 
 ## Live Demo
 
-Try the Firebase-free HeadCount demo here:
-[robotics-team-hours-tracker-jn171dci6-tebbe21485s-projects.vercel.app](https://robotics-team-hours-tracker-jn171dci6-tebbe21485s-projects.vercel.app)
+The Firebase-free HeadCount demo is intended to run on Cloudflare Pages from
+the `demo` branch. Build it with `npm.cmd run build:demo`, or let the
+Cloudflare demo workflow deploy it after `CLOUDFLARE_API_TOKEN`,
+`CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_PAGES_PROJECT_NAME` are configured in
+GitHub.
 
 The live demo is meant for exploring the app without setting up Firebase. It
 uses the same React screens and workflows as the main project, but Firebase
@@ -73,7 +76,7 @@ Create these accounts and projects:
 
 - A Firebase project
 - A Cloudflare account for the preferred frontend hosting option
-- alternative, a Vercel account if the team chooses Vercel instead
+- A Vercel account only if the team chooses the alternative Vercel hosting path
 
 Cloud Functions in this repository use Node.js 20, but deploying them is
 optional. The main application works without Functions; coaches must then
@@ -212,8 +215,9 @@ looks:
 | `src/config/routesConfig.js` | Browser route paths |
 
 Route changes are low-risk when all links continue to use `ROUTES`, but confirm
-that Cloudflare Pages still publishes `public/_redirects`, or that Vercel still
-uses `vercel.json`, so direct page reloads keep working on the selected host.
+that Cloudflare Pages still publishes `public/_redirects`, so direct page
+reloads keep working. If using the alternative Vercel path, also keep
+`vercel.json` aligned with the routes.
 
 ### Advanced Data And Security Settings
 
@@ -316,6 +320,8 @@ firestore.rules         Browser permissions for Firestore data
 firestore.indexes.json  Firestore index definitions
 public/_redirects       Cloudflare Pages fallback for client-side React routes
 vercel.json             Vercel rewrite for client-side React routes
+.github/workflows/cloudflare-pages-demo.yml
+                         Demo branch direct upload workflow for Cloudflare Pages
 vite.config.js          Vite, React, and Tailwind build configuration
 ```
 
@@ -326,6 +332,12 @@ Cloudflare Pages is the preferred frontend host. Follow
 add the `VITE_*` environment variables, authorize the Cloudflare domain in
 Firebase, and deploy the site. `public/_redirects` provides the fallback needed
 for client-side routes.
+
+For the public demo, deploy the `demo` branch to Cloudflare Pages with
+`npm.cmd run build:demo`. The included
+`.github/workflows/cloudflare-pages-demo.yml` workflow can direct-upload the
+demo build to Cloudflare Pages after the required Cloudflare GitHub secret and
+repository variables are configured.
 
 Vercel remains available as an alternative. Follow
 [docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md); its existing `vercel.json` route

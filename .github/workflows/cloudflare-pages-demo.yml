@@ -1,0 +1,52 @@
+name: Deploy Demo to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - demo
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: cloudflare-pages-demo-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and deploy demo
+    if: github.ref_name == 'demo'
+    runs-on: ubuntu-latest
+    environment:
+      name: cloudflare-pages-demo
+      url: ${{ steps.deploy.outputs.deployment-url }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Build demo frontend
+        run: npm run build:demo
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }} --branch=demo
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
