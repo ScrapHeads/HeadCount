@@ -1,6 +1,6 @@
-# Robotics Team Hours Tracker
+# HeadCount
 
-A React and Firebase application for recording robotics team hours. Students can
+HeadCount is a React and Firebase application for recording team hours. Students can
 check in through a kiosk or their own login, while coaches manage the roster,
 schedules, time logs, extra-time requests, and attendance analytics.
 
@@ -14,15 +14,19 @@ See [LICENSE](./LICENSE) for details.
 
 ## Hosting Note
 
-This project is intended to be hosted on Vercel for the frontend, with Firebase
+Cloudflare Pages is the preferred frontend host for this project, with Firebase
 handling Authentication, Firestore, Security Rules, and optional Cloud
 Functions. Start with the Firebase guide
-[docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md), then follow
-[docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md) to publish the site.
+[docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md), then follow the preferred
+[Cloudflare Pages setup guide](docs/CLOUDFLARE_SETUP.md) to publish the site.
+
+Vercel remains supported as an alternative through
+[docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md). If the Vercel project is hosted in
+an organization, the organization must use a Vercel Pro account.
 
 ## Live Demo
 
-Try the Firebase-free demo here:
+Try the Firebase-free HeadCount demo here:
 [robotics-team-hours-tracker-jn171dci6-tebbe21485s-projects.vercel.app](https://robotics-team-hours-tracker-jn171dci6-tebbe21485s-projects.vercel.app)
 
 The live demo is meant for exploring the app without setting up Firebase. It
@@ -55,7 +59,8 @@ portal to restore the seeded walkthrough data.
 - Firebase Authentication
 - Cloud Firestore
 - Cloud Functions for Firebase (optional)
-- Vercel hosting
+- Cloudflare Pages hosting (preferred)
+- Vercel hosting (alternative)
 
 ## Before You Start
 
@@ -67,7 +72,8 @@ Install these tools:
 Create these accounts and projects:
 
 - A Firebase project
-- A Vercel account for hosting the frontend
+- A Cloudflare account for the preferred frontend hosting option
+- alternative, a Vercel account if the team chooses Vercel instead
 
 Cloud Functions in this repository use Node.js 20, but deploying them is
 optional. The main application works without Functions; coaches must then
@@ -86,8 +92,10 @@ This method lets your team pull future updates from the original ScrapHeads Time
 Clone this project:
 
 ```bash
-git clone https://github.com/tebbe21485/robotics-team-hours-tracker.git my-team-hours-tracker
-cd my-team-hours-tracker
+```md
+git clone https://github.com/ScrapHeads/HeadCount.git HeadCount
+cd HeadCount
+```
 ```
 
 Rename the original project remote to `upstream`:
@@ -108,49 +116,21 @@ Push the project to your team’s repository:
 git push -u origin main
 ```
 
-After the push, use your new GitHub repository for Vercel and Firebase setup.
+After the push, use your new GitHub repository for frontend hosting and Firebase
+setup.
 
 ### Alternative: Use Your Team Repository Only
 
 If you do not want to keep a connection to the original project, clone this project and then replace the remote URL:
 
 ```bash
-git clone https://github.com/tebbe21485/robotics-team-hours-tracker.git my-team-hours-tracker
-cd my-team-hours-tracker
+git clone https://github.com/ScrapHeads/HeadCount.git HeadCount
+cd HeadCount
 git remote set-url origin https://github.com/YOUR-ACCOUNT/YOUR-REPO.git
 git push -u origin main
 ```
 
 With this method, your repository will not keep an `upstream` remote for pulling future updates from the original project.
-
-
-## Local Setup
-
-1. Install the frontend dependencies:
-
-   ```powershell
-   npm.cmd install
-   ```
-
-2. Create the frontend environment file:
-
-   ```powershell
-   Copy-Item .env.example .env
-   ```
-
-3. Complete the Authentication, Firestore, rules, and optional Functions setup in
-   [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md).
-
-4. Add your Firebase web app values to `.env`.
-
-5. Start the development server:
-
-   ```powershell
-   npm.cmd run dev
-   ```
-
-Vite prints the local URL in the terminal. The access portal is the root page,
-and it links users into the coach, kiosk, or student flow.
 
 ## Commands
 
@@ -161,10 +141,12 @@ and it links users into the coach, kiosk, or student flow.
 | `npm.cmd run build` | Create a production frontend build |
 | `npm.cmd run build:demo` | Create a production build with demo-mode Firebase mocks |
 | `npm.cmd run preview` | Preview the production build locally |
+| `npm.cmd test` | Run the automated unit tests |
 | `npm.cmd --prefix functions run check` | Check optional Cloud Function JavaScript syntax |
 
-There is currently no automated test suite. Run the production build and
-Functions syntax check before deploying changes.
+Run the automated tests, production build, and Functions syntax check before
+deploying changes. The same checks run in GitHub Actions through
+`.github/workflows/ci.yml`.
 
 ## Firebase-Free Demo Mode
 
@@ -205,13 +187,14 @@ and `public/favicon_io/site.webmanifest`.
 
 ### Required Environment Setup
 
-These files connect the copied project to the team's own Firebase and Vercel
-setup:
+These files connect the copied project to the team's own Firebase and frontend
+hosting setup:
 
 | File | Purpose |
 | --- | --- |
 | `.env` | Frontend Firebase and kiosk settings |
 | `functions/.env` | Optional Function coach allowlist and student login domain |
+| `firestore.rules` | Browser access allowlists for coach and kiosk emails |
 | `.firebaserc` | Default Firebase project alias used by Firebase CLI commands |
 
 Do not commit `.env` or `functions/.env`. Always confirm the Firebase project
@@ -229,7 +212,8 @@ looks:
 | `src/config/routesConfig.js` | Browser route paths |
 
 Route changes are low-risk when all links continue to use `ROUTES`, but confirm
-that Vercel still uses `vercel.json` so direct page reloads keep working.
+that Cloudflare Pages still publishes `public/_redirects`, or that Vercel still
+uses `vercel.json`, so direct page reloads keep working on the selected host.
 
 ### Advanced Data And Security Settings
 
@@ -242,6 +226,7 @@ student logins, or browser permissions:
 | `src/config/appConfig.js` | Frontend-only Firestore field names, task settings, and status labels |
 | `firestore.rules` | Browser permissions for Firestore data |
 | `firebase.json` | Firebase deploy targets for Functions, rules, and indexes |
+| `public/_redirects` | Cloudflare Pages fallback for client-side React routes |
 | `vercel.json` | Vercel rewrite for client-side React routes |
 | `vite.config.js` | Vite plugins for React and Tailwind CSS |
 
@@ -250,8 +235,10 @@ domain, or password requirements should begin in
 `functions/sharedConfig.json`. Review `src/config/appConfig.js` and
 `firestore.rules` at the same time because rules cannot import the JSON file.
 
-Changes to the kiosk email or student login domain must also be reflected in
-`.env`, `functions/.env` if Functions are enabled, and `firestore.rules`.
+Changes to coach emails, the kiosk email, or the student login domain must also
+be reflected in `.env`, `functions/.env` if Functions are enabled, and
+`firestore.rules`. In `firestore.rules`, update both `coachEmails()` and
+`kioskEmail()` before deploying rules for a team.
 
 ## Branding And Styling
 
@@ -278,7 +265,8 @@ update the matching links in `index.html` and `public/favicon_io/site.webmanifes
 
 ## Authentication And Sessions
 
-- Coaches use normal Firebase email and password accounts.
+- Coaches use normal Firebase email and password accounts. Browser coach access
+  is limited to the addresses listed in `coachEmails()` in `firestore.rules`.
 - A kiosk uses one dedicated Firebase account and selects students by ID or NFC
   card. The kiosk Firebase user remains signed in between students.
 - Direct student logins turn a student ID into an internal email such as
@@ -299,6 +287,9 @@ using the stable student document ID or that ID history.
 
 ## Project Structure
 
+For a deeper contributor-oriented map of routes, features, data boundaries, and
+common change points, see [docs/REPOSITORY_MAP.md](docs/REPOSITORY_MAP.md).
+
 ```text
 src/
   app/                  App providers and route definitions
@@ -317,22 +308,29 @@ functions/
   index.js              Optional trusted student credential management
   sharedConfig.json     Frontend/backend shared defaults
 docs/
+  CLOUDFLARE_SETUP.md    Preferred frontend hosting guide for Cloudflare Pages
   FIREBASE_SETUP.md     Complete Firebase setup and deployment guide
-  VERCEL_SETUP.md       Frontend hosting guide for Vercel
+  VERCEL_SETUP.md       Alternative frontend hosting guide for Vercel
 firebase.json           Firebase deploy targets for Functions, rules, and indexes
 firestore.rules         Browser permissions for Firestore data
 firestore.indexes.json  Firestore index definitions
+public/_redirects       Cloudflare Pages fallback for client-side React routes
 vercel.json             Vercel rewrite for client-side React routes
 vite.config.js          Vite, React, and Tailwind build configuration
 ```
 
 ## Deployment
 
-The frontend is hosted through Vercel. Follow
-[docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md) to connect the repository, add the
-`VITE_*` environment variables, authorize the Vercel domain in Firebase, and
-deploy the site. `vercel.json` includes the rewrite needed for client-side
-routes.
+Cloudflare Pages is the preferred frontend host. Follow
+[docs/CLOUDFLARE_SETUP.md](docs/CLOUDFLARE_SETUP.md) to connect the repository,
+add the `VITE_*` environment variables, authorize the Cloudflare domain in
+Firebase, and deploy the site. `public/_redirects` provides the fallback needed
+for client-side routes.
+
+Vercel remains available as an alternative. Follow
+[docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md); its existing `vercel.json` route
+rewrite remains in place. Vercel deployments owned by an organization require
+the organization to have a Pro account.
 
 Deploy the database rules and indexes:
 
@@ -352,13 +350,14 @@ team's production deployment.
 
 ## Security Notes
 
-The included Firestore rules recognize students and the kiosk by email pattern.
-Any other signed-in Firebase user is currently treated as a coach for browser
-Firestore access. Limit who can create Authentication users, and consider a
-`coach: true` custom claim check before using the app with sensitive data.
+The included Firestore rules recognize students and the kiosk by email pattern,
+and they allow browser coach access only for emails listed in `coachEmails()`
+in `firestore.rules`. Replace the placeholder coach email and keep this list
+aligned with your real Firebase Authentication coach accounts before deploying.
 
 When enabled, the credential-management Function is stricter: it requires
 either the `coach: true` custom claim or an email listed in `COACH_EMAILS`.
+Keep `COACH_EMAILS` aligned with `coachEmails()` when Functions are enabled.
 
 See [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md) for the exact values that
 must stay synchronized and a deployment verification checklist.

@@ -1,7 +1,7 @@
 # Firebase Setup
 
 This guide configures Firebase Authentication, Cloud Firestore, Cloud
-Functions, and Firestore Security Rules for the Robotics Team Hours Tracker.
+Functions, and Firestore Security Rules for HeadCount.
 It is written for a new Firebase project.
 
 ## Services Used
@@ -116,6 +116,7 @@ The following values must agree:
 | Student email pattern | `isStudentAuth()` in `firestore.rules` |
 | Kiosk email | `VITE_KIOSK_AUTH_EMAIL` in `.env` |
 | Kiosk rules email | `kioskEmail()` in `firestore.rules` |
+| Coach rules emails | `coachEmails()` in `firestore.rules` |
 
 The internal student domain does not need working email or DNS. Use a consistent
 domain-like value with no spaces.
@@ -133,6 +134,10 @@ In **Authentication > Users**, create:
 
 1. At least one coach email/password user.
 2. One kiosk email/password user matching `VITE_KIOSK_AUTH_EMAIL` exactly.
+
+Add each coach Authentication email to `coachEmails()` in `firestore.rules`.
+If Functions are enabled, also add the same coach emails to `COACH_EMAILS` in
+`functions/.env`.
 
 Do not manually create student accounts during normal use. The coach dashboard
 creates each student's Authentication account and Firestore profile together.
@@ -209,7 +214,7 @@ STUDENT_AUTH_EMAIL_DOMAIN=myapp.internal
 ```
 
 - `COACH_EMAILS` is a comma-separated allowlist for student ID changes and
-  password resets.
+  password resets. Keep it aligned with `coachEmails()` in `firestore.rules`.
 - `STUDENT_AUTH_EMAIL_DOMAIN` must match the frontend and rules settings.
 - A coach with a Firebase custom claim named `coach` set to `true` is also
   accepted by the callable function.
@@ -460,14 +465,14 @@ The provided rules assume:
 
 - The kiosk is the exact account returned by `kioskEmail()`.
 - Student accounts end with the configured internal student domain.
-- Any other signed-in account is a coach.
+- Coach accounts are explicitly listed in `coachEmails()`.
 - Students can update only their live session fields.
 - Student time-log and request queries use the stable student document ID and
   confirm that its current ID matches the Authentication email.
 - Only coaches can edit historical records or review extra-time requests.
 
-For production use, consider changing `isCoach()` in `firestore.rules` to
-require a `coach: true` custom claim. The callable credential function already
+For larger deployments, teams can replace the email allowlist in `isCoach()`
+with a `coach: true` custom claim. The callable credential function already
 uses a custom claim or `COACH_EMAILS` allowlist.
 
 When enabled, Cloud Functions use the Admin SDK and bypass Firestore Security
@@ -519,12 +524,17 @@ Confirm the kiosk Authentication email exactly matches both
 `VITE_KIOSK_AUTH_EMAIL` and `kioskEmail()` in `firestore.rules`, then redeploy
 the rules.
 
+### Coach can sign in but cannot load dashboard data
+
+Confirm the coach Authentication email is listed in `coachEmails()` in
+`firestore.rules`, then redeploy the rules.
+
 ### Coach can edit a name but cannot reset a password
 
 If the optional Function is enabled, confirm the coach email is in
-`COACH_EMAILS`, redeploy after changing its environment, and verify the runtime
-service account has the Firebase Authentication Admin role. Otherwise, use the
-manual credential process above.
+both `coachEmails()` and `COACH_EMAILS`, redeploy after changing rules or
+Function environment, and verify the runtime service account has the Firebase
+Authentication Admin role. Otherwise, use the manual credential process above.
 
 ### Firestore reports a missing index
 

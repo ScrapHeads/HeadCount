@@ -1,11 +1,14 @@
 # Vercel Setup
 
-This guide deploys the Robotics Team Hours Tracker frontend to Vercel. Vercel
-hosts the React site only. Firebase still provides Authentication, Firestore,
+This guide explains how to deploy HeadCount's frontend to Vercel.
+Vercel hosts the React site only. Firebase still provides Authentication, Firestore,
 Firestore Security Rules, and the optional Cloud Functions.
 
 Set up Firebase first with [FIREBASE_SETUP.md](FIREBASE_SETUP.md), then use this
 guide for the website deployment.
+
+> **Organization hosting:** If this Vercel project is owned by an organization,
+> the organization must use a Vercel Pro account.
 
 ## 1. Connect The Repository
 

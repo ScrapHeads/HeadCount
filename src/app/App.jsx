@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ROUTES } from '../config/routesConfig';
 import { useAuth } from '../features/auth/useAuth.jsx';
-import AccessPortal from '../pages/AccessPortal';
-import KioskStudentLogin from '../pages/KioskStudentLogin';
-import CoachDashboard from '../pages/CoachDashboard';
-import StudentDashboard from '../pages/StudentDashboard';
-import StudentCheckIn from '../pages/StudentCheckIn';
-import StudentCheckOut from '../pages/StudentCheckOut';
-import NotFound from '../pages/NotFound';
+
+const AccessPortal = lazy(() => import('../pages/AccessPortal'));
+const KioskStudentLogin = lazy(() => import('../pages/KioskStudentLogin'));
+const CoachDashboard = lazy(() => import('../pages/CoachDashboard'));
+const StudentDashboard = lazy(() => import('../pages/StudentDashboard'));
+const StudentCheckIn = lazy(() => import('../pages/StudentCheckIn'));
+const StudentCheckOut = lazy(() => import('../pages/StudentCheckOut'));
+const NotFound = lazy(() => import('../pages/NotFound'));
 
 const FullScreenMessage = ({ message }) => (
   <main className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -80,58 +81,60 @@ const StudentRoute = ({ children }) => {
 
 const App = () => (
   <BrowserRouter>
-    <Routes>
-      <Route path={ROUTES.accessPortal} element={<AccessPortal />} />
-      <Route
-        path={ROUTES.legacyAccessPortal}
-        element={<Navigate replace to={ROUTES.accessPortal} />}
-      />
-      <Route
-        path={ROUTES.kiosk}
-        element={(
-          <KioskRoute>
-            <KioskStudentLogin />
-          </KioskRoute>
-        )}
-      />
-      <Route
-        path={ROUTES.coachDashboard}
-        element={(
-          <CoachRoute>
-            <CoachDashboard />
-          </CoachRoute>
-        )}
-      />
-      <Route
-        path={ROUTES.studentDashboard}
-        element={(
-          <StudentRoute>
-            <StudentDashboard />
-          </StudentRoute>
-        )}
-      />
-      <Route
-        path={ROUTES.studentSession}
-        element={(
-          <StudentRoute>
-            <StudentCheckIn />
-          </StudentRoute>
-        )}
-      />
-      <Route
-        path={ROUTES.legacyStudentCheckIn}
-        element={<Navigate replace to={ROUTES.studentSession} />}
-      />
-      <Route
-        path={ROUTES.studentCheckOut}
-        element={(
-          <StudentRoute>
-            <StudentCheckOut />
-          </StudentRoute>
-        )}
-      />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<FullScreenMessage message="Loading page..." />}>
+      <Routes>
+        <Route path={ROUTES.accessPortal} element={<AccessPortal />} />
+        <Route
+          path={ROUTES.legacyAccessPortal}
+          element={<Navigate replace to={ROUTES.accessPortal} />}
+        />
+        <Route
+          path={ROUTES.kiosk}
+          element={(
+            <KioskRoute>
+              <KioskStudentLogin />
+            </KioskRoute>
+          )}
+        />
+        <Route
+          path={ROUTES.coachDashboard}
+          element={(
+            <CoachRoute>
+              <CoachDashboard />
+            </CoachRoute>
+          )}
+        />
+        <Route
+          path={ROUTES.studentDashboard}
+          element={(
+            <StudentRoute>
+              <StudentDashboard />
+            </StudentRoute>
+          )}
+        />
+        <Route
+          path={ROUTES.studentSession}
+          element={(
+            <StudentRoute>
+              <StudentCheckIn />
+            </StudentRoute>
+          )}
+        />
+        <Route
+          path={ROUTES.legacyStudentCheckIn}
+          element={<Navigate replace to={ROUTES.studentSession} />}
+        />
+        <Route
+          path={ROUTES.studentCheckOut}
+          element={(
+            <StudentRoute>
+              <StudentCheckOut />
+            </StudentRoute>
+          )}
+        />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   </BrowserRouter>
 );
 

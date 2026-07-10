@@ -1,5 +1,5 @@
 {
-  "name": "robotics-team-hours-tracker-functions",
+  "name": "headcount-functions",
   "version": "1.0.0",
   "private": true,
   "main": "index.js",

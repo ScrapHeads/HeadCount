@@ -1,14 +1,16 @@
 {
-  "name": "robotics-team-hours-tracker",
+  "name": "headcount",
   "version": "1.0.0",
-  "description": "Robotics team hours tracker project",
+  "description": "HeadCount team hours tracker project",
+  "type": "module",
   "main": "src/main.jsx",
   "scripts": {
     "dev": "vite --host",
     "dev:demo": "vite --mode demo --host",
     "build": "vite build",
     "build:demo": "vite build --mode demo",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test tests/**/*.test.js"
   },
   "keywords": [],
   "author": "",
