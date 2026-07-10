@@ -137,10 +137,12 @@ With this method, your repository will not keep an `upstream` remote for pulling
 | `npm.cmd run dev` | Start the Vite development server |
 | `npm.cmd run build` | Create a production frontend build |
 | `npm.cmd run preview` | Preview the production build locally |
+| `npm.cmd test` | Run the automated unit tests |
 | `npm.cmd --prefix functions run check` | Check optional Cloud Function JavaScript syntax |
 
-There is currently no automated test suite. Run the production build and
-Functions syntax check before deploying changes.
+Run the automated tests, production build, and Functions syntax check before
+deploying changes. The same checks run in GitHub Actions through
+`.github/workflows/ci.yml`.
 
 ## Configuration
 
@@ -171,6 +173,7 @@ hosting setup:
 | --- | --- |
 | `.env` | Frontend Firebase and kiosk settings |
 | `functions/.env` | Optional Function coach allowlist and student login domain |
+| `firestore.rules` | Browser access allowlists for coach and kiosk emails |
 | `.firebaserc` | Default Firebase project alias used by Firebase CLI commands |
 
 Do not commit `.env` or `functions/.env`. Always confirm the Firebase project
@@ -211,8 +214,10 @@ domain, or password requirements should begin in
 `functions/sharedConfig.json`. Review `src/config/appConfig.js` and
 `firestore.rules` at the same time because rules cannot import the JSON file.
 
-Changes to the kiosk email or student login domain must also be reflected in
-`.env`, `functions/.env` if Functions are enabled, and `firestore.rules`.
+Changes to coach emails, the kiosk email, or the student login domain must also
+be reflected in `.env`, `functions/.env` if Functions are enabled, and
+`firestore.rules`. In `firestore.rules`, update both `coachEmails()` and
+`kioskEmail()` before deploying rules for a team.
 
 ## Branding And Styling
 
@@ -239,7 +244,8 @@ update the matching links in `index.html` and `public/favicon_io/site.webmanifes
 
 ## Authentication And Sessions
 
-- Coaches use normal Firebase email and password accounts.
+- Coaches use normal Firebase email and password accounts. Browser coach access
+  is limited to the addresses listed in `coachEmails()` in `firestore.rules`.
 - A kiosk uses one dedicated Firebase account and selects students by ID or NFC
   card. The kiosk Firebase user remains signed in between students.
 - Direct student logins turn a student ID into an internal email such as
@@ -259,6 +265,9 @@ When an ID changes, the old value is added to the student's
 using the stable student document ID or that ID history.
 
 ## Project Structure
+
+For a deeper contributor-oriented map of routes, features, data boundaries, and
+common change points, see [docs/REPOSITORY_MAP.md](docs/REPOSITORY_MAP.md).
 
 ```text
 src/
@@ -320,13 +329,14 @@ team's production deployment.
 
 ## Security Notes
 
-The included Firestore rules recognize students and the kiosk by email pattern.
-Any other signed-in Firebase user is currently treated as a coach for browser
-Firestore access. Limit who can create Authentication users, and consider a
-`coach: true` custom claim check before using the app with sensitive data.
+The included Firestore rules recognize students and the kiosk by email pattern,
+and they allow browser coach access only for emails listed in `coachEmails()`
+in `firestore.rules`. Replace the placeholder coach email and keep this list
+aligned with your real Firebase Authentication coach accounts before deploying.
 
 When enabled, the credential-management Function is stricter: it requires
 either the `coach: true` custom claim or an email listed in `COACH_EMAILS`.
+Keep `COACH_EMAILS` aligned with `coachEmails()` when Functions are enabled.
 
 See [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md) for the exact values that
 must stay synchronized and a deployment verification checklist.

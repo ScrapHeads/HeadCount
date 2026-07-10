@@ -13,6 +13,14 @@ service cloud.firestore {
       return 'kiosk@myapp.internal';
     }
 
+    function coachEmails() {
+      // Replace this list with the Firebase Authentication emails for coaches.
+      // Keep it aligned with functions/.env COACH_EMAILS if Functions are used.
+      return [
+        'coach@example.com'
+      ];
+    }
+
     function isKiosk() {
       return signedIn() && request.auth.token.email == kioskEmail();
     }
@@ -24,10 +32,7 @@ service cloud.firestore {
     }
 
     function isCoach() {
-      // For browser access, any authenticated account that is not recognized
-      // as a kiosk or student is treated as a coach. Restrict who can create
-      // Authentication users, and use COACH_EMAILS for the callable function.
-      return signedIn() && !isKiosk() && !isStudentAuth();
+      return signedIn() && request.auth.token.email in coachEmails();
     }
 
     function studentAuthId() {

@@ -1,4 +1,4 @@
-import { DEFAULT_ANALYTICS_RANGE_DAYS } from './constants';
+import { DEFAULT_ANALYTICS_RANGE_DAYS } from './constants.js';
 
 export const toDate = (value) => {
   if (!value) {
