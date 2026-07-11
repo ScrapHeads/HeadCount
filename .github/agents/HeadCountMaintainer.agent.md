@@ -102,13 +102,14 @@ run the complete local suite:
 
 ```powershell
 npm.cmd test
+npm.cmd run test:rules
 npm.cmd run build
 npm.cmd --prefix functions run check
 ```
 
-For Firestore rule changes, also use Firebase Emulator rule tests when they are
-available. If the repository has no emulator tests or Firebase CLI, state that
-limitation instead of claiming rules were runtime-validated.
+The rules test command starts the local Firestore Emulator and requires Java
+21. Update `tests/firestore/` when changing Firestore permissions so
+the intended coach, kiosk, and student access remains covered.
 
 For documentation-only work, verify local links, anchors, referenced commands,
 route names, environment-variable names, and trailing whitespace. Run the build

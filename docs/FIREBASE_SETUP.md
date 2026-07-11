@@ -19,6 +19,9 @@ repository, and run this command from the repository root:
 npm.cmd install
 ```
 
+Install Java 21 if you plan to run the local Firestore Security Rules
+tests. Java is not required to build or run the frontend.
+
 The Firebase CLI commands below use `npx`, so a separate global CLI install is
 not required. Run every command from the repository root unless a step says
 otherwise.
@@ -549,35 +552,41 @@ After setup:
    allowlist or a kiosk/student domain that differs from `.env`.
 3. In **Firestore > Indexes**, wait for the included `students` composite index
    to show as enabled.
-4. Run the frontend build:
+4. Run the Firestore Security Rules tests against the local emulator:
+
+   ```powershell
+   npm.cmd run test:rules
+   ```
+
+5. Run the frontend build:
 
    ```powershell
    npm.cmd run build
    ```
 
-5. Start the local app:
+6. Start the local app:
 
    ```powershell
    npm.cmd run dev
    ```
 
-6. If Functions are enabled, check the Function code:
+7. If Functions are enabled, check the Function code:
 
    ```powershell
    npm.cmd --prefix functions run check
    ```
 
-7. Sign in as a coach.
-8. Create a student and confirm both an Authentication user and a `students`
+8. Sign in as a coach.
+9. Create a student and confirm both an Authentication user and a `students`
    document were created.
-9. Create at least one task from the coach dashboard.
-10. Sign in through the kiosk using the student ID or NFC card.
-11. Start and end a task, then confirm the student and `timeLogs` records update.
-12. Sign in directly as the student and review the timeline.
-13. Submit and approve an extra-time request.
-14. Change a student password using the enabled Function or the manual process.
-15. Confirm analytics display the completed session and approved extra time.
-16. When publishing the frontend, copy all eight `VITE_*` values to the hosting
+10. Create at least one task from the coach dashboard.
+11. Sign in through the kiosk using the student ID or NFC card.
+12. Start and end a task, then confirm the student and `timeLogs` records update.
+13. Sign in directly as the student and review the timeline.
+14. Submit and approve an extra-time request.
+15. Change a student password using the enabled Function or the manual process.
+16. Confirm analytics display the completed session and approved extra time.
+17. When publishing the frontend, copy all eight `VITE_*` values to the hosting
     provider, authorize its exact domain in Firebase Authentication, deploy,
     and repeat the coach, kiosk, and direct-student sign-in checks there.
 

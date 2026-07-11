@@ -163,7 +163,7 @@ Important auth files:
 | Area | Files |
 | --- | --- |
 | Frontend build | `package.json`, `package-lock.json`, `vite.config.js` |
-| Automated checks | `.github/workflows/ci.yml`, `tests/` |
+| Automated checks | `.github/workflows/ci.yml`, `.github/dependabot.yml`, `tests/` |
 | Firebase backend | `firebase.json`, `firestore.rules`, `firestore.indexes.json`, `functions/` |
 | Cloudflare Pages | `public/_redirects`, `docs/CLOUDFLARE_SETUP.md` |
 | Vercel | `vercel.json`, `docs/VERCEL_SETUP.md` |
@@ -177,6 +177,7 @@ documented in `README.md`:
 
 ```powershell
 npm.cmd test
+npm.cmd run test:rules
 npm.cmd run build
 npm.cmd --prefix functions run check
 ```
