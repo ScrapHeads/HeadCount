@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
@@ -18,7 +18,7 @@ const AccessPortal = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
-    isLoadingCoachAuth,
+    isLoadingAuth,
     kioskUser,
     signInCoach,
     signInKiosk,
@@ -27,10 +27,10 @@ const AccessPortal = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoadingCoachAuth && kioskUser) {
+    if (!isLoadingAuth && kioskUser) {
       navigate(ROUTES.kiosk, { replace: true });
     }
-  }, [isLoadingCoachAuth, kioskUser, navigate]);
+  }, [isLoadingAuth, kioskUser, navigate]);
 
   const handleCoachLogin = async (e) => {
     e.preventDefault();
@@ -103,7 +103,7 @@ const AccessPortal = () => {
       <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-accent/18 blur-3xl" />
 
       <section className="relative grid w-full max-w-5xl overflow-hidden rounded-[2rem] border border-border/70 bg-primary shadow-2xl shadow-primary/10 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="flex flex-col justify-between 
+        <div className="flex flex-col justify-between
           bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_50%,var(--app-accent)_100%)]
           p-8 text-on-primary sm:p-10">
           <div className="space-y-5">
@@ -190,7 +190,7 @@ const AccessPortal = () => {
             {role === 'coach' ? (
               <form className="space-y-4" onSubmit={handleCoachLogin}>
                 <Input
-                className='placeholder:!text-on-secondary'
+                  className="placeholder:!text-on-secondary"
                   label="Email"
                   type="email"
                   value={coachEmail}
@@ -199,7 +199,7 @@ const AccessPortal = () => {
                   required
                 />
                 <Input
-                  className='placeholder:!text-on-secondary'  
+                  className="placeholder:!text-on-secondary"
                   label="Password"
                   type="password"
                   value={coachPassword}
@@ -238,7 +238,7 @@ const AccessPortal = () => {
             ) : (
               <form className="space-y-4" onSubmit={handleStudentLogin}>
                 <Input
-                  className='placeholder:!text-on-secondary'    
+                  className="placeholder:!text-on-secondary"
                   label="Student ID"
                   type="text"
                   value={studentId}

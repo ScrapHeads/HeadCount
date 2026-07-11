@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { timeLogConfig } from '../../config/appConfig';
 import { updateTimeLogByCoach } from '../../features/timeLogs/timeLogService';

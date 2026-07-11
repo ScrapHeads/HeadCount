@@ -1,4 +1,3 @@
-import React from 'react';
 import { FORM_INPUT_CLASS_NAME } from '../../styles/classNames';
 
 const Input = ({ className = '', label, type = 'text', value, onChange, ...props }) => (

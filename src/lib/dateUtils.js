@@ -69,6 +69,20 @@ const signedInFormatter = new Intl.DateTimeFormat('en-US', {
   minute: '2-digit',
 });
 
+const dateTimeFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+});
+
+export const formatDateTime = (value, fallback = '-') => {
+  const parsedDate = toDate(value);
+
+  return parsedDate ? dateTimeFormatter.format(parsedDate) : fallback;
+};
+
 export const formatSignedInAt = (value, fallback = 'Not recorded') => {
   const parsedDate = toDate(value);
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import Input from '../components/shared/Input';
@@ -11,7 +11,7 @@ const KioskStudentLogin = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
-    isLoadingCoachAuth,
+    isLoadingAuth,
     kioskUser,
     signInStudent,
     signOutKiosk,
@@ -97,7 +97,7 @@ const KioskStudentLogin = () => {
               </h2>
             </div>
 
-            {!isLoadingCoachAuth && !kioskUser && (
+            {!isLoadingAuth && !kioskUser && (
               <div className="mb-4 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
                 Sign in this device as the student kiosk before students enter an ID or scan a card.
               </div>
@@ -115,7 +115,7 @@ const KioskStudentLogin = () => {
                 placeholder="Enter student ID or scan card"
                 required
               />
-              <Button className="bg-secondary border-2 border-transparent text-on-secondary hover:border-accent" disabled={isSubmitting || isLoadingCoachAuth || !kioskUser} type="submit">
+              <Button className="bg-secondary border-2 border-transparent text-on-secondary hover:border-accent" disabled={isSubmitting || isLoadingAuth || !kioskUser} type="submit">
                 {isSubmitting ? 'Checking ID...' : 'Continue to Sign In / Out form'}
               </Button>
             </form>

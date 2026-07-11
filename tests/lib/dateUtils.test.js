@@ -2,12 +2,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  formatDateTime,
   getDefaultDateRange,
   isSameCalendarDay,
   isValidMonthDay,
   toDate,
   toDateInputValue,
 } from '../../src/lib/dateUtils.js';
+
+test('formatDateTime formats valid values and returns the requested fallback', () => {
+  assert.match(formatDateTime(new Date(2026, 6, 9, 14, 30)), /Jul 9, 2026.*2:30 PM/);
+  assert.equal(formatDateTime(null), '-');
+  assert.equal(formatDateTime('not-a-date', 'Not scheduled'), 'Not scheduled');
+});
 
 test('toDate handles Date instances, Firestore-like timestamps, strings, and invalid values', () => {
   const date = new Date(2026, 6, 9, 14, 30);

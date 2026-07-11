@@ -1,5 +1,3 @@
-import React from 'react';
-
 const CardMessage = ({ children, tone = 'muted' }) => (
   <div
     className={`mt-5 rounded-2xl border px-4 py-4 text-sm ${

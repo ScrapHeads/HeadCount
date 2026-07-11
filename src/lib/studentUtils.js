@@ -17,7 +17,7 @@ export const getStudentIdHistory = (student) => {
   return [...new Set(identifiers.map(normalizeIdentifier).filter(Boolean))];
 };
 
-export const studentMatchesLog = (student, log) => {
+const studentMatchesLog = (student, log) => {
   const studentDocId = normalizeIdentifier(student?.id);
   const logStudentDocId = normalizeIdentifier(
     log?.[timeLogConfig.studentDocIdField],
@@ -40,6 +40,8 @@ export const isCurrentMember = (student) => (
   // Older records used a field name containing a space. Keep reading it so a
   // database migration is not required just to load the roster.
   ?? student?.['current member']
+  // Some early profiles used `active` for the same roster state.
+  ?? student?.active
   // Records created before roster archiving existed are treated as current.
   ?? true
 ) === true;

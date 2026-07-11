@@ -13,10 +13,8 @@ import {
   signInKioskWithEmail,
   signInStudentWithGeneratedEmail,
   signOutCurrentAuthUser,
-  signOutCoach,
-  signOutKiosk,
   signOutStudentAuth,
-  subscribeToCoachAuth,
+  subscribeToAuthState,
 } from '../../services/auth';
 
 export { isKioskAuthEmail, isStudentAuthEmail };
@@ -50,13 +48,11 @@ export const loginKiosk = async ({ email, password }) => {
   return user;
 };
 
-export const logoutCoach = () => signOutCoach();
-
-export const logoutKiosk = () => signOutKiosk();
+export const logoutCurrentAccount = () => signOutCurrentAuthUser();
 
 export const logoutStudent = () => signOutStudentAuth();
 
-export const watchCoachAuth = (callback) => subscribeToCoachAuth(callback);
+export const watchAuthState = (callback) => subscribeToAuthState(callback);
 
 export const loginStudent = async ({ studentId, password, requirePassword = false }) => {
   let studentAuthUser = null;
@@ -87,7 +83,7 @@ export const loginStudent = async ({ studentId, password, requirePassword = fals
         : 'Student ID or NFC card ID not found.');
     }
 
-    if (studentRecord.active === false || !isCurrentMember(studentRecord)) {
+    if (!isCurrentMember(studentRecord)) {
       throw new Error('This student is archived and cannot sign in.');
     }
   } catch (error) {

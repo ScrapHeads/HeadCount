@@ -1,15 +1,14 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import {
   isKioskAuthEmail,
   isStudentAuthEmail,
   loginCoach,
   loginKiosk,
   loginStudent,
-  logoutCoach,
-  logoutKiosk,
+  logoutCurrentAccount,
   logoutStudent,
   updateStudentSessionState,
-  watchCoachAuth,
+  watchAuthState,
 } from './authServices';
 import { useStudentSession } from '../../hooks/useStudentSession';
 
@@ -22,17 +21,17 @@ export const AuthProvider = ({ children }) => {
   const [coachUser, setCoachUser] = useState(null);
   const [kioskUser, setKioskUser] = useState(null);
   const [studentUser, setStudentUser] = useState(null);
-  const [isLoadingCoachAuth, setIsLoadingCoachAuth] = useState(true);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const { studentSession, setStudentSession } = useStudentSession();
 
   useEffect(() => {
     // Firebase can have only one current user per app instance. Classify that
     // user whenever Firebase restores or changes the browser login.
-    const unsubscribe = watchCoachAuth((user) => {
+    const unsubscribe = watchAuthState((user) => {
       setCoachUser(user && !isStudentAuthEmail(user.email) && !isKioskAuthEmail(user.email) ? user : null);
       setKioskUser(user && isKioskAuthEmail(user.email) ? user : null);
       setStudentUser(user && isStudentAuthEmail(user.email) ? user : null);
-      setIsLoadingCoachAuth(false);
+      setIsLoadingAuth(false);
     });
 
     return unsubscribe;
@@ -104,13 +103,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signOutCurrentCoach = async () => {
-    await logoutCoach();
+    await logoutCurrentAccount();
     setCoachUser(null);
   };
 
   const signOutCurrentKiosk = async () => {
     setStudentSession(null);
-    await logoutKiosk();
+    await logoutCurrentAccount();
     setKioskUser(null);
   };
 
@@ -118,7 +117,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         coachUser,
-        isLoadingCoachAuth,
+        isLoadingAuth,
         kioskUser,
         signInCoach,
         signInKiosk,

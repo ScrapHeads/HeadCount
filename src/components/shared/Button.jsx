@@ -1,5 +1,3 @@
-import React from 'react';
-
 const getButtonColorClassName = (className) => {
   const cleanedClassName = className
     .replace(/\btext-on-primary(?:\/\d+)?\b/g, '')

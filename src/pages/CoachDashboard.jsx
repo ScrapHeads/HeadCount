@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AnalyticsDashboard from '../components/dashboard/AnalyticsDashboard';
 import StudentManagementDashboard from '../components/dashboard/StudentManagementDashboard';
@@ -18,6 +18,7 @@ import {
   endStudentSessionByCoach,
 } from '../features/timeLogs/timeLogService';
 import {
+  formatDateTime,
   formatSignedInAt,
   isValidMonthDay,
   toDate,
@@ -69,19 +70,6 @@ const getSectionFromSlug = (sectionSlug) => (
 const getSectionScrollStorageKey = (sectionId) => (
   `coach-dashboard-scroll:${getSectionSlug(sectionId)}`
 );
-
-const scheduleDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-});
-
-const formatScheduleDateTime = (value) => {
-  const parsedDate = toDate(value);
-  return parsedDate ? scheduleDateTimeFormatter.format(parsedDate) : 'Not scheduled';
-};
 
 const weekdayOptions = [
   { value: '0', label: 'Sunday' },
@@ -674,8 +662,8 @@ const CoachDashboard = () => {
       <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-secondary/17 blur-3xl" />
 
       <div className="relative mx-auto grid min-h-[calc(100vh-3rem)] max-w-7xl overflow-hidden rounded-[2rem] border border-border/70 bg-secondary shadow-2xl shadow-primary/10 lg:grid-cols-[290px_minmax(0,1fr)] lg:overflow-visible">
-        <aside className="relative flex flex-col border-b border-border 
-          bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_50%,var(--app-accent)_100%)] 
+        <aside className="relative flex flex-col border-b border-border
+          bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_oklab,var(--app-primary)_70%,var(--app-accent))_50%,var(--app-accent)_100%)]
           p-6 text-on-primary lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto lg:rounded-l-[2rem] lg:border-b-0 lg:border-r lg:border-r-on-primary/10">
           <div className="relative">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-primary/90">
@@ -940,10 +928,10 @@ const CoachDashboard = () => {
                                     {schedule.displayType}
                                   </td>
                                   <td className="border-y border-border bg-transparent px-4 py-4 text-sm text-on-primary/90">
-                                    {formatScheduleDateTime(schedule.resolvedStartTime)}
+                                    {formatDateTime(schedule.resolvedStartTime, 'Not scheduled')}
                                   </td>
                                   <td className="rounded-r-2xl border-y border-r border-border bg-transparent px-4 py-4 text-sm text-on-primary/90">
-                                    {formatScheduleDateTime(schedule.resolvedEndTime)}
+                                    {formatDateTime(schedule.resolvedEndTime, 'Not scheduled')}
                                   </td>
                                 </tr>
                               );

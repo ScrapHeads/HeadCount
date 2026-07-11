@@ -78,9 +78,9 @@ resets.
 | `kiosk` | `/kiosk` | `KioskRoute` | `src/pages/KioskStudentLogin.jsx` |
 | `coachDashboard` | `/coach/dashboard` | `CoachRoute` | `src/pages/CoachDashboard.jsx` |
 | `studentDashboard` | `/student/dashboard` | `StudentRoute` | `src/pages/StudentDashboard.jsx` |
-| `studentSession` | `/student/session` | `StudentRoute` | `src/pages/StudentCheckIn.jsx` |
+| `studentSession` | `/student/session` | `StudentRoute` | `src/pages/StudentSession.jsx` |
 | `legacyStudentCheckIn` | `/student/checkin` | Redirect | `/student/session` |
-| `studentCheckOut` | `/student/checkout` | `StudentRoute` | `src/pages/StudentCheckOut.jsx` |
+| `legacyStudentCheckOut` | `/student/checkout` | `StudentRoute` | Redirect to `/student/session` |
 | `*` | Any other path | None | `src/pages/NotFound.jsx` |
 
 ## Feature Map
@@ -89,7 +89,7 @@ resets.
 | --- | --- | --- | --- |
 | Authentication | `AccessPortal`, route guards in `App.jsx` | `src/features/auth/useAuth.jsx`, `src/hooks/useStudentSession.js` | `src/features/auth/authServices.js`, `src/services/auth.js`, `src/services/firebase.js` |
 | Student roster | `CoachDashboard`, `StudentManagementDashboard` | `src/features/students/useStudents.js` | `src/features/students/studentService.js`, `src/config/studentIdGenerator.js`, `src/lib/studentUtils.js` |
-| Time logs | `StudentCheckIn`, `StudentCheckOut`, `StudentDashboard`, dashboard panels | `src/features/timeLogs/useStudentTimeLogs.js`, `useCompletedTimeLogs.js`, `useAnalyticsTimeLogs.js` | `src/features/timeLogs/timeLogService.js`, `src/lib/dateUtils.js`, `src/lib/analyticsUtils.js` |
+| Time logs | `StudentSession`, `StudentDashboard`, dashboard panels | `src/features/timeLogs/useStudentTimeLogs.js`, `useCompletedTimeLogs.js`, `useAnalyticsTimeLogs.js` | `src/features/timeLogs/timeLogService.js`, `src/lib/dateUtils.js`, `src/lib/analyticsUtils.js` |
 | Tasks | Coach dashboard task and schedule controls, student check-in task list | `src/features/tasks/useTasks.js` | `src/features/tasks/taskService.js`, `src/features/tasks/taskUtils.js` |
 | Schedules | Coach dashboard schedule controls, sign-in availability checks | `src/features/schedules/useSchedules.js` | `src/features/schedules/scheduleService.js`, `src/features/schedules/validateSchedule.js` |
 | Extra-time requests | `StudentDashboard`, `StudentManagementDashboard` | `src/features/extraTimeRequests/useExtraTimeRequests.js` | `src/features/extraTimeRequests/extraTimeRequestService.js` |
@@ -142,7 +142,7 @@ Important auth files:
 | --- | --- |
 | Access and login | `src/pages/AccessPortal.jsx`, `src/pages/KioskStudentLogin.jsx` |
 | Coach workspace | `src/pages/CoachDashboard.jsx`, `src/components/dashboard/*` |
-| Student workspace | `src/pages/StudentDashboard.jsx`, `StudentCheckIn.jsx`, `StudentCheckOut.jsx` |
+| Student workspace | `src/pages/StudentDashboard.jsx`, `StudentSession.jsx` |
 | Shared controls | `src/components/shared/Button.jsx`, `Dropdown.jsx`, `Input.jsx`, `CardMessage.jsx` |
 | Theme and class helpers | `src/config/branding.js`, `src/styles/globals.css`, `src/styles/classNames.js` |
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import {
@@ -24,9 +24,9 @@ import {
 } from '../lib/analyticsUtils';
 import { MISSING_VALUE_LABEL } from '../lib/constants';
 import {
+  formatDateTime,
   formatSignedInAt,
   getDefaultDateRange,
-  toDate,
 } from '../lib/dateUtils';
 import {
   DASHBOARD_GRADIENT_CLASS_NAME,
@@ -36,20 +36,6 @@ import {
 const inputClassName = 'w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/20';
 const studentCardClassName = `rounded-2xl border border-on-primary/15 ${DASHBOARD_GRADIENT_CLASS_NAME} p-5 text-on-primary shadow-lg shadow-primary/15`;
 const timelineCellClassName = 'border-y border-border bg-transparent px-5 py-3 text-on-secondary text-center';
-const sessionDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-});
-
-const formatSessionDateTime = (value) => {
-  const parsedDate = toDate(value);
-
-  return parsedDate ? sessionDateTimeFormatter.format(parsedDate) : '-';
-};
-
 const StudentAnalyticsCard = ({
   analytics,
   dateRange,
@@ -174,10 +160,10 @@ const StudentSessionTimeline = ({ error, isLoading, logs }) => (
                   </td>
                   <td className={timelineCellClassName}>{isActive ? 'Active' : 'Completed'}</td>
                   <td className={`${timelineCellClassName} whitespace-nowrap`}>
-                    {formatSessionDateTime(log[timeLogConfig.signInAtField])}
+                    {formatDateTime(log[timeLogConfig.signInAtField])}
                   </td>
                   <td className={`${timelineCellClassName} whitespace-nowrap`}>
-                    {formatSessionDateTime(log[timeLogConfig.signOutAtField])}
+                    {formatDateTime(log[timeLogConfig.signOutAtField])}
                   </td>
                   <td className={`${timelineCellClassName} rounded-r-2xl border-r font-semibold`}>
                     {durationMinutes > 0 ? minutesToHours(durationMinutes).toFixed(2) : '-'}

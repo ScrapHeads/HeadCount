@@ -21,12 +21,12 @@ import {
 import { updateStudentCredentials } from '../../services/adminFunctions';
 import { db } from '../../services/firebase';
 import {
-  createDocument,
+  createStudentProfile,
   findStudentRecord,
   findStudentRecordByNfcCardId,
   findStudentRecordByPreviousStudentId,
   normalizeNfcCardId,
-  updateDocument,
+  updateStudentProfile,
 } from '../../services/firestore';
 
 const buildStudentCreatePayload = ({
@@ -187,7 +187,7 @@ export const createStudent = async ({
       nfcCardId,
       studentId: normalizedStudentId,
     });
-    const studentDocId = await createDocument(studentAuthConfig.collectionName, studentData);
+    const studentDocId = await createStudentProfile(studentData);
 
     return {
       id: studentDocId,
@@ -253,7 +253,7 @@ export const updateStudent = async ({
   // The callable function already changed the student ID. Only ordinary
   // profile fields, such as name or roster status, remain for this client write.
   delete normalizedUpdates[studentAuthConfig.idField];
-  await updateDocument(studentAuthConfig.collectionName, studentDocId, normalizedUpdates);
+  await updateStudentProfile(studentDocId, normalizedUpdates);
 
   return {
     id: studentDocId,

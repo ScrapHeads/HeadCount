@@ -515,7 +515,7 @@ export const endStudentSessionByCoach = async ({ student, coachEmail }) => {
   });
 };
 
-export const listTimeLogsBySignInRange = async ({ startDate, endDate }) => {
+export const listAnalyticsTimeLogsByRange = async ({ startDate, endDate }) => {
   const start = toDate(startDate);
   const end = toDate(endDate);
 
