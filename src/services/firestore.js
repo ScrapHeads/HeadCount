@@ -3,7 +3,6 @@ import {
   collection,
   doc,
   getDocs,
-  getDoc,
   limit,
   query,
   serverTimestamp,
@@ -178,10 +177,10 @@ export const updateStudentRecord = async (studentDocId, updates) => {
   await updateDoc(studentDocRef, updates);
 };
 
-export const createDocument = async (collectionName, data) => {
+export const createStudentProfile = async (data) => {
   // Server timestamps use Firebase's clock, which keeps records consistent
   // when users' computers have inaccurate local time settings.
-  const docRef = await addDoc(collection(db, collectionName), {
+  const docRef = await addDoc(collection(db, studentAuthConfig.collectionName), {
     ...data,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -190,29 +189,12 @@ export const createDocument = async (collectionName, data) => {
   return docRef.id;
 };
 
-export const getDocument = async (collectionName, documentId) => {
-  if (!documentId) {
-    throw new Error('Document ID is required.');
+export const updateStudentProfile = async (studentDocId, updates) => {
+  if (!studentDocId) {
+    throw new Error('Student document ID is required for profile updates.');
   }
 
-  const documentSnapshot = await getDoc(doc(db, collectionName, documentId));
-
-  if (!documentSnapshot.exists()) {
-    return null;
-  }
-
-  return {
-    id: documentSnapshot.id,
-    ...documentSnapshot.data(),
-  };
-};
-
-export const updateDocument = async (collectionName, documentId, updates) => {
-  if (!documentId) {
-    throw new Error('Document ID is required for updates.');
-  }
-
-  const documentRef = doc(db, collectionName, documentId);
+  const documentRef = doc(db, studentAuthConfig.collectionName, studentDocId);
   await updateDoc(documentRef, {
     ...updates,
     updatedAt: serverTimestamp(),

@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ROUTES } from '../config/routesConfig';
 import { useAuth } from '../features/auth/useAuth.jsx';
@@ -7,8 +7,7 @@ const AccessPortal = lazy(() => import('../pages/AccessPortal'));
 const KioskStudentLogin = lazy(() => import('../pages/KioskStudentLogin'));
 const CoachDashboard = lazy(() => import('../pages/CoachDashboard'));
 const StudentDashboard = lazy(() => import('../pages/StudentDashboard'));
-const StudentCheckIn = lazy(() => import('../pages/StudentCheckIn'));
-const StudentCheckOut = lazy(() => import('../pages/StudentCheckOut'));
+const StudentSession = lazy(() => import('../pages/StudentSession'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
 const FullScreenMessage = ({ message }) => (
@@ -23,9 +22,9 @@ const FullScreenMessage = ({ message }) => (
 // restoring the signed-in user. Each guard also redirects the wrong account
 // type back to the access portal.
 const CoachRoute = ({ children }) => {
-  const { coachUser, isLoadingCoachAuth } = useAuth();
+  const { coachUser, isLoadingAuth } = useAuth();
 
-  if (isLoadingCoachAuth) {
+  if (isLoadingAuth) {
     return <FullScreenMessage message="Checking coach session..." />;
   }
 
@@ -37,9 +36,9 @@ const CoachRoute = ({ children }) => {
 };
 
 const KioskRoute = ({ children }) => {
-  const { isLoadingCoachAuth, kioskUser } = useAuth();
+  const { isLoadingAuth, kioskUser } = useAuth();
 
-  if (isLoadingCoachAuth) {
+  if (isLoadingAuth) {
     return <FullScreenMessage message="Checking kiosk session..." />;
   }
 
@@ -52,13 +51,13 @@ const KioskRoute = ({ children }) => {
 
 const StudentRoute = ({ children }) => {
   const {
-    isLoadingCoachAuth,
+    isLoadingAuth,
     kioskUser,
     studentSession,
     studentUser,
   } = useAuth();
 
-  if (isLoadingCoachAuth) {
+  if (isLoadingAuth) {
     return <FullScreenMessage message="Checking student session..." />;
   }
 
@@ -116,7 +115,7 @@ const App = () => (
           path={ROUTES.studentSession}
           element={(
             <StudentRoute>
-              <StudentCheckIn />
+              <StudentSession />
             </StudentRoute>
           )}
         />
@@ -125,10 +124,10 @@ const App = () => (
           element={<Navigate replace to={ROUTES.studentSession} />}
         />
         <Route
-          path={ROUTES.studentCheckOut}
+          path={ROUTES.legacyStudentCheckOut}
           element={(
             <StudentRoute>
-              <StudentCheckOut />
+              <Navigate replace to={ROUTES.studentSession} />
             </StudentRoute>
           )}
         />

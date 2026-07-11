@@ -8,5 +8,5 @@ export const ROUTES = Object.freeze({
   studentDashboard: '/student/dashboard',
   studentSession: '/student/session',
   legacyStudentCheckIn: '/student/checkin',
-  studentCheckOut: '/student/checkout',
+  legacyStudentCheckOut: '/student/checkout',
 });

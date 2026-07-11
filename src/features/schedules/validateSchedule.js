@@ -1,7 +1,7 @@
 import { scheduleConfig } from '../../config/appConfig';
 import { isValidMonthDay, toDate } from '../../lib/dateUtils';
 
-export const getScheduleWindowForTime = (schedule, value = new Date()) => {
+const getScheduleWindowForTime = (schedule, value = new Date()) => {
   const now = toDate(value);
   const startTime = toDate(schedule[scheduleConfig.startTimeField]);
   const endTime = toDate(schedule[scheduleConfig.endTimeField]);

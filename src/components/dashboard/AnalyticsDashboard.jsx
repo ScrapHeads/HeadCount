@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { timeLogConfig } from '../../config/appConfig';
 import { useSchedules } from '../../features/schedules/useSchedules';
 import { useStudents } from '../../features/students/useStudents';
@@ -517,7 +517,7 @@ const AttendanceAnalyticsCard = ({
                 const detailId = `attendance-meeting-${meetingDay.date}`;
 
                 return (
-                  <React.Fragment key={meetingDay.date}>
+                  <Fragment key={meetingDay.date}>
                     <tr>
                       <td className={`${tableCellClassName} rounded-l-xl border-l font-semibold`}>
                         {formatDate(meetingDay.dateValue)}
@@ -604,7 +604,7 @@ const AttendanceAnalyticsCard = ({
                         </td>
                       </tr>
                     )}
-                  </React.Fragment>
+                  </Fragment>
                 );
               })}
             </tbody>
@@ -631,7 +631,7 @@ const AttendanceAnalyticsCard = ({
                 const detailId = `student-attendance-${student.studentKey.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
                 return (
-                  <React.Fragment key={student.studentKey}>
+                  <Fragment key={student.studentKey}>
                     <tr>
                       <td className={`${tableCellClassName} rounded-l-xl border-l font-semibold`}>
                         {student.studentName}
@@ -695,7 +695,7 @@ const AttendanceAnalyticsCard = ({
                         </td>
                       </tr>
                     )}
-                  </React.Fragment>
+                  </Fragment>
                 );
               })}
             </tbody>

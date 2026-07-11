@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { listTimeLogsBySignInRange } from './timeLogService';
+import { listAnalyticsTimeLogsByRange } from './timeLogService';
 
 const analyticsLogCaches = new Map();
 
@@ -35,7 +35,7 @@ const loadCachedAnalyticsLogs = async ({
     return cache.promise;
   }
 
-  cache.promise = listTimeLogsBySignInRange({
+  cache.promise = listAnalyticsTimeLogsByRange({
     startDate: new Date(startTime),
     endDate: new Date(endTime),
   })

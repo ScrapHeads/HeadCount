@@ -1,4 +1,3 @@
-import React from 'react';
 import { AuthProvider } from '../features/auth/useAuth.jsx';
 
 // Keep app-wide providers in one place. New providers, such as localization or

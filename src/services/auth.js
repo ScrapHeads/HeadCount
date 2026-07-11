@@ -27,7 +27,7 @@ const getStudentManagementAuth = () => getAuth(getStudentManagementApp());
 
 export const normalizeStudentAuthId = (studentId) => String(studentId ?? '').trim().toLowerCase();
 
-export const buildStudentAuthEmail = (studentId) => {
+const buildStudentAuthEmail = (studentId) => {
   const normalizedStudentId = normalizeStudentAuthId(studentId);
 
   if (!normalizedStudentId) {
@@ -152,9 +152,6 @@ export const signOutStudentManagementAuth = () => signOut(getStudentManagementAu
 
 export const signOutCurrentAuthUser = () => signOut(auth);
 
-export const signOutCoach = () => signOutCurrentAuthUser();
-export const signOutKiosk = () => signOutCurrentAuthUser();
-
 export const signOutStudentAuth = async () => {
   const currentUser = auth.currentUser;
 
@@ -169,4 +166,4 @@ export const signOutStudentAuth = async () => {
 
 export const getCurrentAuthUser = () => auth.currentUser;
 
-export const subscribeToCoachAuth = (callback) => onAuthStateChanged(auth, callback);
+export const subscribeToAuthState = (callback) => onAuthStateChanged(auth, callback);

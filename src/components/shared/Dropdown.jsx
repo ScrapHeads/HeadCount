@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { FORM_CONTROL_CLASS_NAME } from '../../styles/classNames';
 
 const Dropdown = ({

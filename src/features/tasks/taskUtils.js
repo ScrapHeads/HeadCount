@@ -1,7 +1,7 @@
 import { scheduleConfig, taskConfig } from '../../config/appConfig';
 import { isScheduleActive } from '../schedules/validateSchedule';
 
-export const normalizeTaskRef = (value) => String(value ?? '')
+const normalizeTaskRef = (value) => String(value ?? '')
   .trim()
   .toLowerCase()
   .replace(/[\s_-]+/g, '');

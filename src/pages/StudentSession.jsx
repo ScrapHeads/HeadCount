@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
 import { studentAuthConfig, taskConfig } from '../config/appConfig';
@@ -16,8 +16,9 @@ import {
   startStudentSession,
 } from '../features/timeLogs/timeLogService';
 import { useAuth } from '../features/auth/useAuth.jsx';
+import { useCurrentTime } from '../hooks/useCurrentTime';
 
-const StudentCheckIn = () => {
+const StudentSession = () => {
   const [formMode, setFormMode] = useState('sign-in');
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [notes, setNotes] = useState('');
@@ -27,7 +28,7 @@ const StudentCheckIn = () => {
   const { signOutStudent, studentSession } = useAuth();
   const { tasks, isLoading: isLoadingTasks, error: tasksError } = useTasks();
   const { schedules, isLoading: isLoadingSchedules, error: schedulesError } = useSchedules();
-  const currentTime = new Date();
+  const currentTime = useCurrentTime();
   const navigate = useNavigate();
 
   // Open tasks are always shown; scheduled tasks are shown only during an
@@ -215,10 +216,10 @@ const StudentCheckIn = () => {
         {formMode === 'sign-out' ? (
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border border-accent/25 bg-accent/10 px-4 py-3">
-              <p className="text-sm font-medium text-on-primary" align="left">
+              <p className="text-left text-sm font-medium text-on-primary">
                 Current action:
               </p>
-              <p className="mt-1 text-base font-semibold text-on-primary" align="left ">
+              <p className="mt-1 text-left text-base font-semibold text-on-primary">
                 Sign Out
               </p>
             </div>
@@ -232,10 +233,10 @@ const StudentCheckIn = () => {
           </div>
         ) : (
           <div className="mt-6 rounded-2xl border border-accent/25 bg-accent/10 px-4 py-3">
-            <p className="text-sm font-medium text-on-primary" align="left">
+            <p className="text-left text-sm font-medium text-on-primary">
               Current action:
             </p>
-            <p className="mt-1 text-base font-semibold text-on-primary" align="left ">
+            <p className="mt-1 text-left text-base font-semibold text-on-primary">
               Sign In
             </p>
           </div>
@@ -322,4 +323,4 @@ const StudentCheckIn = () => {
   );
 };
 
-export default StudentCheckIn;
+export default StudentSession;

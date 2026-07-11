@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "HeadCount team hours tracker project",
   "type": "module",
-  "main": "src/main.jsx",
   "scripts": {
     "dev": "vite --host",
     "dev:demo": "vite --mode demo --host",
@@ -12,8 +11,6 @@
     "preview": "vite preview",
     "test": "node --test tests/**/*.test.js"
   },
-  "keywords": [],
-  "author": "",
   "license": "HeadCount Community License",
   "dependencies": {
     "firebase": "^12.12.1",

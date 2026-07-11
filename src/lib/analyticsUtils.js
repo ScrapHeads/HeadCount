@@ -46,7 +46,7 @@ export const formatTaskName = (value, fallback = UNCATEGORIZED_TASK_NAME) => {
     .trim();
 };
 
-export const formatDateKey = (value) => {
+const formatDateKey = (value) => {
   const date = toDate(value);
 
   if (!date) {
