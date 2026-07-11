@@ -17,7 +17,8 @@ service cloud.firestore {
       // Replace this list with the Firebase Authentication emails for coaches.
       // Keep it aligned with functions/.env COACH_EMAILS if Functions are used.
       return [
-        'coach@example.com'
+        'coach@example.com',
+        'coach@test.com'
       ];
     }
 
@@ -33,6 +34,10 @@ service cloud.firestore {
 
     function isCoach() {
       return signedIn() && request.auth.token.email in coachEmails();
+    }
+
+    function isRecognizedUser() {
+      return isCoach() || isKiosk() || isStudentAuth();
     }
 
     function studentAuthId() {
@@ -51,6 +56,11 @@ service cloud.firestore {
       return isStudentAuth()
         && studentDocId is string
         && get(/databases/$(database)/documents/students/$(studentDocId)).data.studentId == studentAuthId();
+    }
+
+    function ownsStudentIdentity(data) {
+      return ownsTimeLogByStudentId(data)
+        && ownsStudentDocument(data.studentDocId);
     }
 
     function ownsTimeLog(data) {
@@ -134,12 +144,12 @@ service cloud.firestore {
     }
 
     match /tasks/{taskId} {
-      allow get, list: if signedIn();
+      allow get, list: if isRecognizedUser();
       allow create, update, delete: if isCoach();
     }
 
     match /schedules/{scheduleId} {
-      allow get, list: if signedIn();
+      allow get, list: if isRecognizedUser();
       allow create, update, delete: if isCoach();
     }
 
@@ -151,7 +161,7 @@ service cloud.firestore {
       // also use previous IDs when each matching log points to that profile.
       allow list: if isCoach() || isKiosk() || ownsTimeLog(resource.data);
       allow create: if isCoach()
-        || ((isKiosk() || ownsTimeLog(request.resource.data)) && validActiveTimeLogCreate());
+        || ((isKiosk() || ownsStudentIdentity(request.resource.data)) && validActiveTimeLogCreate());
       allow update: if isCoach()
         || ((isKiosk() || ownsTimeLog(resource.data)) && validTimeLogCheckoutUpdate());
       allow delete: if isCoach();
@@ -164,10 +174,7 @@ service cloud.firestore {
         || ownsExtraTimeRequest(resource.data);
       allow create: if (
           isKiosk()
-          || (
-            isStudentAuth()
-            && request.resource.data.studentId == studentAuthId()
-          )
+          || ownsStudentIdentity(request.resource.data)
         )
         && request.resource.data.durationMinutes is number
         && request.resource.data.durationMinutes > 0

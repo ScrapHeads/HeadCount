@@ -1,8 +1,9 @@
 # Cloudflare Pages Setup
 
 Cloudflare Pages is the preferred host for the HeadCount frontend. It hosts the
-built React site only. Firebase still provides Authentication, Firestore,
-Firestore Security Rules, and the optional Cloud Functions.
+built React site only. Firebase still provides
+Authentication, Firestore, Firestore Security Rules, and the optional Cloud
+Functions.
 
 This repository also supports a Firebase-free demo deployment from the `demo`
 branch. Use `npm run build:demo` for that demo site so Cloudflare publishes the
@@ -38,7 +39,7 @@ slightly as Cloudflare updates the Pages interface.
 
 ## 2. Add Environment Variables For A Firebase Build
 
-Before the first production deployment, copy and paste (as a group should work) every frontend variable from
+Before the first production deployment, copy every frontend variable from
 `.env` to the Cloudflare Pages project's environment variables:
 
 ```dotenv
@@ -52,10 +53,17 @@ VITE_KIOSK_AUTH_EMAIL="kiosk@myapp.internal"
 VITE_STUDENT_AUTH_EMAIL_DOMAIN="myapp.internal"
 ```
 
-Add them to the **Production** environment and to **Preview** 
-only if preview deployments should connect to Firebase. 
+Add them to the **Production** environment and to **Preview** only if preview
+deployments should connect to Firebase.
 Depending on the Cloudflare dashboard version, these may
 appear under **Settings > Environment variables** or **Variables and Secrets**.
+
+Also set this build-only variable so older Pages build images do not select a
+Node.js release that is too old for Vite 8:
+
+```dotenv
+NODE_VERSION=22.16.0
+```
 
 Only add `VITE_*` variables to Cloudflare Pages. The optional `functions/.env`
 values are part of the Firebase Cloud Functions setup in
@@ -76,8 +84,8 @@ local demo backend and keeps all demo data in the visitor's browser.
 3. Open the generated `.pages.dev` URL.
 
 The repository includes `public/_redirects`. Vite copies it into `dist`, and
-Cloudflare Pages uses it to send browser routes such as `/coach`, `/kiosk`, and
-`/student` back to `index.html` for React Router.
+Cloudflare Pages uses it to send browser routes such as `/coach/dashboard`,
+`/kiosk`, and `/student/dashboard` back to `index.html` for React Router.
 
 Future pushes to `main` create production deployments automatically. Other
 branches and pull requests can create preview deployments when previews are
@@ -123,6 +131,7 @@ Use this quick checklist after each production deployment:
 - The Cloudflare Pages deployment finished without build errors.
 - Firebase-connected deployments have all required `VITE_*` environment
   variables.
+- The build uses Node.js 20.19 or newer, or Node.js 22.12 or newer.
 - Firebase-connected `.pages.dev` or custom domains are listed in Firebase
   Authentication's authorized domains.
 - Directly opening `/coach`, `/kiosk`, and `/student` does not return a 404.

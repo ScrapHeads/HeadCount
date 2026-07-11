@@ -4,6 +4,25 @@ This guide configures Firebase Authentication, Cloud Firestore, Cloud
 Functions, and Firestore Security Rules for HeadCount.
 It is written for a new Firebase project.
 
+Complete sections 1-8 and 10 for the core application. Section 9 is required
+only when coaches need to change student IDs or passwords from the dashboard.
+After Firebase is configured, follow the
+[Cloudflare Pages](CLOUDFLARE_SETUP.md) or [Vercel](VERCEL_SETUP.md) guide to
+publish the frontend and add the same `VITE_*` values to that host.
+
+## Before You Begin
+
+Install Node.js 20.19 or newer (or Node.js 22.12 or newer), clone the
+repository, and run this command from the repository root:
+
+```powershell
+npm.cmd install
+```
+
+The Firebase CLI commands below use `npx`, so a separate global CLI install is
+not required. Run every command from the repository root unless a step says
+otherwise.
+
 ## Services Used
 
 The application uses:
@@ -27,7 +46,9 @@ Official Firebase references:
 1. Open the [Firebase console](https://console.firebase.google.com/).
 2. Create a project or select an existing project.
 3. Open **Project settings**.
-4. Under **Your apps**, register a web app. Do **not** host in firebase.
+4. Under **Your apps**, register a web app. Firebase Hosting is not required;
+   do not enable it unless the team has intentionally chosen it instead of the
+   documented Cloudflare Pages or Vercel options.
 5. Keep the displayed Firebase configuration available for the next step.
 
 The main application does not require Cloud Functions. Functions are used only
@@ -71,6 +92,29 @@ In the Firebase console:
 3. Open **Sign-in method**.
 4. Enable **Email/Password**.
 
+The coach dashboard creates student Authentication accounts with Firebase's
+Web SDK. In **Authentication > Settings > User actions**, leave end-user account
+creation and deletion enabled. Creation is required for **Create Student**;
+deletion lets the app remove a newly created Authentication account if its
+matching Firestore profile cannot be saved. Disabling either action can produce
+`auth/admin-restricted-operation` or leave an unmatched account after a failed
+student creation.
+
+### Authorize Application Domains
+
+In **Authentication > Settings > Authorized domains**:
+
+1. Add `localhost` if the application will be run locally. Firebase projects
+   created after April 28, 2025 do not include it automatically.
+2. After choosing a frontend host, add each exact production domain that will
+   serve the app.
+3. Add a preview domain only if that preview deployment contains real Firebase
+   environment variables and is intended to access this project.
+
+Do not include `https://`, a path, or a trailing slash. The Cloudflare and
+Vercel setup guides contain host-specific examples. Restart the local Vite
+server after changing `.env` values.
+
 The default application password requirement is six characters, matching
 `functions/sharedConfig.json`. If the Firebase project's password policy is
 stricter, update the shared minimum so the UI gives users the correct message.
@@ -81,9 +125,12 @@ In the Firebase console:
 
 1. Open **Databases & Storage > Firestore**.
 2. Select **Create database**.
-3. Choose the Standard rules option.
-4. Select a database region appropriate for the team.
-5. Start in production mode later you will push the security rules from this project.
+3. Choose **Standard edition** and use the database ID `(default)`. The Web SDK
+   and included Firebase configuration connect to the default database.
+4. Select a database region appropriate for the team. This location cannot be
+   changed after creation.
+5. Start in **Production mode**. Its initial deny-all rules are temporary; you
+   will deploy this repository's rules before using the app.
 
 The application creates collection documents as they are needed. You do not
 need to create empty collections manually.
@@ -117,6 +164,11 @@ The following values must agree:
 | Kiosk email | `VITE_KIOSK_AUTH_EMAIL` in `.env` |
 | Kiosk rules email | `kioskEmail()` in `firestore.rules` |
 | Coach rules emails | `coachEmails()` in `firestore.rules` |
+
+Before deploying, replace the example kiosk address, student-domain regular
+expression, and coach allowlist in `firestore.rules` with the values selected
+for this Firebase project. Leaving the example coach addresses unchanged will
+let a coach authenticate but the dashboard's Firestore requests will be denied.
 
 The internal student domain does not need working email or DNS. Use a consistent
 domain-like value with no spaces.
@@ -176,8 +228,10 @@ The site works with either method:
 1. **Optional Cloud Function:** Coaches can change student IDs and passwords
    from the dashboard. Continue to the next section.
 2. **Manual management:** Keep the project on the no-cost Spark plan and make
-   credential changes in the Firebase console. Skip to
-   [Manual Student Credential Changes Without Functions](#manual-student-credential-changes-without-functions).
+   credential changes in the Firebase console. Skip section 9, deploy the rules
+   and indexes in section 10, and use
+   [Manual Student Credential Changes Without Functions](#manual-student-credential-changes-without-functions)
+   whenever an existing student's ID or password must change.
 
 Without the Function, coaches can still use the dashboard to create students,
 change names, assign NFC cards, archive roster members, manage sessions, and
@@ -246,9 +300,13 @@ If you completed the optional Functions setup, deploy all three resources:
 npx.cmd firebase-tools deploy --only "functions,firestore:rules,firestore:indexes"
 ```
 
-The included `firestore.indexes.json` does not currently define custom indexes.
-If Firestore reports that a new query needs an index, follow the link in the
-error, create the index, and export or add it to that file.
+The included `firestore.indexes.json` defines the composite `students` index
+used by the live signed-in roster (`signedIn` plus `signedInAt`). Deploying the
+indexes is required before that query can work reliably. Index creation can
+take several minutes; wait until the Firebase console reports the index as
+enabled. If Firestore later reports that another query needs an index, follow
+the error link, create it, and export or add it to this file so future setups
+remain reproducible.
 
 ## 11. Optional: Verify Function Permissions
 
@@ -483,27 +541,47 @@ and should not be removed.
 
 After setup:
 
-1. Run the frontend build:
+1. Confirm the CLI is targeting the intended project:
+
+   ```powershell
+   npx.cmd firebase-tools use
+   ```
+
+2. Confirm the deployed Firestore rules no longer contain the example coach
+   allowlist or a kiosk/student domain that differs from `.env`.
+3. In **Firestore > Indexes**, wait for the included `students` composite index
+   to show as enabled.
+4. Run the frontend build:
 
    ```powershell
    npm.cmd run build
    ```
 
-2. If Functions are enabled, check the Function code:
+5. Start the local app:
+
+   ```powershell
+   npm.cmd run dev
+   ```
+
+6. If Functions are enabled, check the Function code:
 
    ```powershell
    npm.cmd --prefix functions run check
    ```
 
-3. Sign in as a coach.
-4. Create a student and confirm both an Authentication user and a `students`
+7. Sign in as a coach.
+8. Create a student and confirm both an Authentication user and a `students`
    document were created.
-5. Sign in through the kiosk using the student ID or NFC card.
-6. Start and end a task, then confirm the student and `timeLogs` records update.
-7. Sign in directly as the student and review the timeline.
-8. Submit and approve an extra-time request.
-9. Change a student password using the enabled Function or the manual process.
-10. Confirm analytics display the completed session and approved extra time.
+9. Create at least one task from the coach dashboard.
+10. Sign in through the kiosk using the student ID or NFC card.
+11. Start and end a task, then confirm the student and `timeLogs` records update.
+12. Sign in directly as the student and review the timeline.
+13. Submit and approve an extra-time request.
+14. Change a student password using the enabled Function or the manual process.
+15. Confirm analytics display the completed session and approved extra time.
+16. When publishing the frontend, copy all eight `VITE_*` values to the hosting
+    provider, authorize its exact domain in Firebase Authentication, deploy,
+    and repeat the coach, kiosk, and direct-student sign-in checks there.
 
 ## Troubleshooting
 
@@ -517,6 +595,13 @@ values, and restart the Vite development server after editing it.
 Confirm Email/Password authentication is enabled and that the student domain is
 identical in `.env`, `functions/.env`, `functions/sharedConfig.json`, and
 `firestore.rules`.
+
+### Creating a student reports `auth/admin-restricted-operation`
+
+Open **Authentication > Settings > User actions** and enable end-user account
+creation and deletion. The coach dashboard uses a secondary Firebase Web SDK
+session to create the student's Authentication account without signing out the
+coach, and deletion provides rollback if its Firestore write fails.
 
 ### Kiosk can sign in but cannot read or write student data
 

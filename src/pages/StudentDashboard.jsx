@@ -399,12 +399,12 @@ const StudentDashboard = () => {
                   <p className="mt-2 text-sm leading-6 text-on-primary/75">
                     {isSignedIn ? currentTask : 'No active hours session is open.'}
                   </p>
-                  <div className="mt-4">
+                  <dl className="mt-4">
                     <dt className="text-sm font-semibold uppercase text-on-primary">Signed In At</dt>
                     <dd className="mt-1 text-base font-semibold">
                       {isSignedIn ? formatSignedInAt(studentSession?.[studentAuthConfig.signedInAtField]) : 'Not signed in'}
                     </dd>
-                  </div>
+                  </dl>
                 </div>
               </div>
             </article>

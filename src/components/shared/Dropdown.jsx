@@ -81,7 +81,7 @@ const Dropdown = ({
           }}
           type="button"
         >
-          <span className={`truncate ${selectedOption ? '' : 'text-on-secondary/70'}`}>
+          <span className={`truncate ${selectedOption ? '' : 'text-on-secondary/90'}`}>
             {selectedOption?.label ?? placeholder}
           </span>
           <svg
