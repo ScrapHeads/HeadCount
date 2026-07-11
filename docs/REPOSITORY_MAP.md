@@ -1,6 +1,6 @@
 # Repository Maps
 
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 
 This document maps the HeadCount repository for contributors who need to find
 the right files quickly. It complements the setup guides in `docs/` and the
@@ -113,7 +113,7 @@ Security and deployment files:
 | File | Role |
 | --- | --- |
 | `firestore.rules` | Browser access rules for coach, kiosk, and student accounts. |
-| `firestore.indexes.json` | Firestore index definitions used by deployed queries. |
+| `firestore.indexes.json` | Firestore indexes, including the signed-in student roster composite index. |
 | `firebase.json` | Connects Firebase CLI deploys to rules, indexes, and Functions. |
 | `functions/sharedConfig.json` | Values shared by frontend config and Cloud Functions. |
 

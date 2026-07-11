@@ -6,11 +6,11 @@ schedules, time logs, extra-time requests, and attendance analytics.
 
 ## License
 
-ScrapHeads Time Tracker is free for nonprofit robotics teams, school robotics programs, and educational use.
+HeadCount is free for nonprofit robotics teams, school robotics programs, and educational use.
 
 Commercial use is not allowed without written permission. Companies, vendors, consultants, or other commercial entities may not sell, host, rebrand, bundle, or commercially distribute this app without contacting ScrapHeads Robotics for a separate license.
 
-See [LICENSE](./LICENSE) for details.
+See [LICENSE.md](LICENSE.md) for the complete terms.
 
 ## Hosting Note
 
@@ -21,23 +21,19 @@ Functions. Start with the Firebase guide
 [Cloudflare Pages setup guide](docs/CLOUDFLARE_SETUP.md) to publish the site.
 
 Vercel remains supported as an alternative through
-[docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md). If the Vercel project is hosted in
-an organization, the organization must use a Vercel Pro account.
+[docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md). Review Vercel's current plan terms
+if multiple team members need to deploy from a private repository.
 
 ## Live Demo
 
-Try the Firebase-free HeadCount demo here:
+Try the hosted HeadCount demo here:
 [headcount-01c.pages.dev](https://headcount-01c.pages.dev)
 
-The live demo is meant for exploring the app without setting up Firebase. It
-uses the same React screens and workflows as the main project, but Firebase
-Authentication, Firestore, and Cloud Functions are replaced with browser-local
-demo data. The access portal includes demo buttons for student, kiosk, and
-coach views, and changes are saved only in that browser's `localStorage`.
-
-Because the demo data is local to each visitor, it is not shared with other
-users and is not a production database. Use **Reset demo data** on the access
-portal to restore the seeded walkthrough data.
+The demo is a separate exploratory deployment and may not match the current
+repository revision exactly. Do not enter real student information. A normal
+deployment of this repository uses Firebase and must follow the setup guides
+below; the demo is not a substitute for configuring Authentication, Firestore,
+rules, indexes, and hosting.
 
 ## Features
 
@@ -66,14 +62,14 @@ portal to restore the seeded walkthrough data.
 
 Install these tools:
 
-- [Node.js](https://nodejs.org/) 20 or newer
+- [Node.js](https://nodejs.org/) 20.19 or newer, or 22.12 or newer
 - npm, which is included with Node.js
 
 Create these accounts and projects:
 
 - A Firebase project
 - A Cloudflare account for the preferred frontend hosting option
-- alternative, a Vercel account if the team chooses Vercel instead
+- Alternatively, a Vercel account if the team chooses Vercel instead
 
 Cloud Functions in this repository use Node.js 20, but deploying them is
 optional. The main application works without Functions; coaches must then
@@ -87,7 +83,7 @@ Before local setup, copy this project into a repository owned by your team. Crea
 
 ### Recommended: Keep This Project as Upstream
 
-This method lets your team pull future updates from the original ScrapHeads Time Tracker project while using your own repository for deployment and team changes.
+This method lets your team pull future updates from the original HeadCount project while using your own repository for deployment and team changes.
 
 Clone this project:
 
@@ -308,8 +304,8 @@ for client-side routes.
 
 Vercel remains available as an alternative. Follow
 [docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md); its existing `vercel.json` route
-rewrite remains in place. Vercel deployments owned by an organization require
-the organization to have a Pro account.
+rewrite remains in place. Teams using private repositories should confirm that
+their Vercel plan supports the required collaborators.
 
 Deploy the database rules and indexes:
 

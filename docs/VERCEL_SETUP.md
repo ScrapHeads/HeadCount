@@ -7,8 +7,10 @@ Firestore Security Rules, and the optional Cloud Functions.
 Set up Firebase first with [FIREBASE_SETUP.md](FIREBASE_SETUP.md), then use this
 guide for the website deployment.
 
-> **Organization hosting:** If this Vercel project is owned by an organization,
-> the organization must use a Vercel Pro account.
+> **Team hosting:** Vercel Hobby is intended for personal, non-commercial use
+> and restricts collaboration on private repositories. Review Vercel's current
+> plan terms; a team that needs multiple members to deploy a private repository
+> may need Pro.
 
 ## 1. Connect The Repository
 
@@ -21,12 +23,15 @@ guide for the website deployment.
 | Setting | Value |
 | --- | --- |
 | Framework Preset | Vite |
-| Install Command | `npm install` |
+| Install Command | `npm ci` |
 | Build Command | `npm run build` |
 | Output Directory | `dist` |
 
 Vercel normally detects Vite automatically. If the settings are already filled
 in with these values, keep the defaults.
+
+Under **Project Settings > Build and Deployment > Node.js Version**, use `22.x`
+or another version supported by Vite 8 (Node.js 20.19+, 22.12+, or newer).
 
 ## 2. Add Environment Variables
 
@@ -66,7 +71,7 @@ not the Vercel project settings.
 
 The repository already includes `vercel.json`, which sends all browser routes
 back to `index.html`. This is required because React Router handles routes such
-as `/coach`, `/kiosk`, and `/student` in the browser.
+as `/coach/dashboard`, `/kiosk`, and `/student/dashboard` in the browser.
 
 ## 4. Authorize The Vercel Domain In Firebase
 
@@ -114,9 +119,12 @@ team's production deployment.
 Use this quick checklist after each production deployment:
 
 - The Vercel deployment finished without build errors.
+- The build uses Node.js 20.19 or newer, or Node.js 22.12 or newer.
 - The Vercel project has all required `VITE_*` environment variables.
 - The Vercel domain is listed in Firebase Authentication authorized domains.
 - Firestore rules and indexes were deployed to the same Firebase project.
+- Directly opening `/coach/dashboard`, `/kiosk`, and `/student/dashboard` does
+  not return a 404.
 - Coach, kiosk, and student sign-in flows were tested on the deployed site.
 - A student can start and end a session, and the coach dashboard shows the log.
 

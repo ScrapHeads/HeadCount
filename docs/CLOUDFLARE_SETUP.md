@@ -1,7 +1,7 @@
 # Cloudflare Pages Setup
 
-Cloudflare Pages is the preferred host for HeadCount
-frontend. It hosts the built React site only. Firebase still provides
+Cloudflare Pages is the preferred host for the HeadCount frontend. It hosts
+the built React site only. Firebase still provides
 Authentication, Firestore, Firestore Security Rules, and the optional Cloud
 Functions.
 
@@ -30,7 +30,7 @@ slightly as Cloudflare updates the Pages interface.
 
 ## 2. Add Environment Variables
 
-Before the first production deployment, copy and paste (as a group should work) every frontend variable from
+Before the first production deployment, copy every frontend variable from
 `.env` to the Cloudflare Pages project's environment variables:
 
 ```dotenv
@@ -44,10 +44,17 @@ VITE_KIOSK_AUTH_EMAIL="kiosk@myapp.internal"
 VITE_STUDENT_AUTH_EMAIL_DOMAIN="myapp.internal"
 ```
 
-Add them to the **Production** environment and to **Preview** 
-only if preview deployments should connect to Firebase. 
+Add them to the **Production** environment and to **Preview** only if preview
+deployments should connect to Firebase.
 Depending on the Cloudflare dashboard version, these may
 appear under **Settings > Environment variables** or **Variables and Secrets**.
+
+Also set this build-only variable so older Pages build images do not select a
+Node.js release that is too old for Vite 8:
+
+```dotenv
+NODE_VERSION=22.16.0
+```
 
 Only add `VITE_*` variables to Cloudflare Pages. The optional `functions/.env`
 values are part of the Firebase Cloud Functions setup in
@@ -64,8 +71,8 @@ value so the new build contains it.
 3. Open the generated `.pages.dev` URL.
 
 The repository includes `public/_redirects`. Vite copies it into `dist`, and
-Cloudflare Pages uses it to send browser routes such as `/coach`, `/kiosk`, and
-`/student` back to `index.html` for React Router.
+Cloudflare Pages uses it to send browser routes such as `/coach/dashboard`,
+`/kiosk`, and `/student/dashboard` back to `index.html` for React Router.
 
 Future pushes to `main` create production deployments automatically. Other
 branches and pull requests can create preview deployments when previews are
@@ -99,14 +106,16 @@ custom domain**, and enter the domain or subdomain. Follow the dashboard prompts
 to create or verify its DNS record. After the domain becomes active, add it to
 Firebase Authentication's authorized domains as described above.
 
-## 7. After Deployment
+## 6. After Deployment
 
 Use this quick checklist after each production deployment:
 
 - The Cloudflare Pages deployment finished without build errors.
 - The Pages project has all required `VITE_*` environment variables.
+- The build uses Node.js 20.19 or newer, or Node.js 22.12 or newer.
 - The `.pages.dev` or custom domain is listed in Firebase Authentication's
   authorized domains.
-- Directly opening `/coach`, `/kiosk`, and `/student` does not return a 404.
+- Directly opening `/coach/dashboard`, `/kiosk`, and `/student/dashboard` does
+  not return a 404.
 - Coach, kiosk, and student sign-in flows were tested on the deployed site.
 - A student can start and end a session, and the coach dashboard shows the log.

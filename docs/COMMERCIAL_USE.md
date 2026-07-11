@@ -1,6 +1,9 @@
 # Commercial Use
 
-ScrapHeads Time Tracker was created to help nonprofit robotics teams manage student hours, attendance, and team participation.
+This page summarizes common examples. [LICENSE.md](../LICENSE.md) contains the
+controlling license terms.
+
+HeadCount was created to help nonprofit robotics teams manage student hours, attendance, and team participation.
 
 Companies may not sell, rebrand, host, or package this app as their own product without written permission.
 

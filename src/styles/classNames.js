@@ -4,7 +4,7 @@ export const DASHBOARD_CARD_CLASS_NAME = `rounded-[1.75rem] border border-on-pri
 
 export const FORM_CONTROL_CLASS_NAME = 'w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15';
 
-export const FORM_INPUT_CLASS_NAME = `${FORM_CONTROL_CLASS_NAME} placeholder:text-text-muted/70`;
+export const FORM_INPUT_CLASS_NAME = `${FORM_CONTROL_CLASS_NAME} placeholder:text-on-secondary/90`;
 
 export const FORM_TEXTAREA_CLASS_NAME = `${FORM_CONTROL_CLASS_NAME} placeholder:text-on-secondary/70`;
 
