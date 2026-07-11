@@ -64,6 +64,7 @@ Install these tools:
 
 - [Node.js](https://nodejs.org/) 20.19 or newer, or 22.12 or newer
 - npm, which is included with Node.js
+- Java 21, only when running the Firestore rules tests locally
 
 Create these accounts and projects:
 
@@ -138,10 +139,11 @@ With this method, your repository will not keep an `upstream` remote for pulling
 | `npm.cmd run build:demo` | Create a production build with demo-mode Firebase mocks |
 | `npm.cmd run preview` | Preview the production build locally |
 | `npm.cmd test` | Run the automated unit tests |
+| `npm.cmd run test:rules` | Run Firestore Security Rules tests in the local emulator |
 | `npm.cmd --prefix functions run check` | Check optional Cloud Function JavaScript syntax |
 
-Run the automated tests, production build, and Functions syntax check before
-deploying changes. The same checks run in GitHub Actions through
+Run the automated tests, Firestore rules tests, production build, and Functions
+syntax check before deploying changes. The same checks run in GitHub Actions through
 `.github/workflows/ci.yml`.
 
 ## Firebase-Free Demo Mode
