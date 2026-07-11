@@ -11,6 +11,11 @@ updates:
       time: "09:00"
       timezone: America/Chicago
     open-pull-requests-limit: 10
+    ignore:
+      # firebase-functions 7.x only accepts firebase-admin through 13.x.
+      - dependency-name: firebase-admin
+        update-types:
+          - version-update:semver-major
     groups:
       npm-minor-and-patch:
         patterns:
