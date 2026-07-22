@@ -105,13 +105,13 @@ those with the Firebase CLI from this repository.
 For the main app:
 
 ```powershell
-npx.cmd firebase-tools deploy --only "firestore:rules,firestore:indexes"
+npx firebase-tools deploy --only "firestore:rules,firestore:indexes"
 ```
 
 If the optional student credential-management Function is enabled:
 
 ```powershell
-npx.cmd firebase-tools deploy --only "functions,firestore:rules,firestore:indexes"
+npx firebase-tools deploy --only "functions,firestore:rules,firestore:indexes"
 ```
 
 Always confirm the selected Firebase project before deploying. The repository's
