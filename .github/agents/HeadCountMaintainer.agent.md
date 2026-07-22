@@ -101,10 +101,10 @@ Run checks in proportion to the change. For normal code or configuration work,
 run the complete local suite:
 
 ```powershell
-npm.cmd test
-npm.cmd run test:rules
-npm.cmd run build
-npm.cmd --prefix functions run check
+npm test
+npm run test:rules
+npm run build
+npm --prefix functions run check
 ```
 
 The rules test command starts the local Firestore Emulator and requires Java

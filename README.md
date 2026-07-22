@@ -131,12 +131,12 @@ With this method, your repository will not keep an `upstream` remote for pulling
 
 | Command | Purpose |
 | --- | --- |
-| `npm.cmd run dev` | Start the Vite development server |
-| `npm.cmd run build` | Create a production frontend build |
-| `npm.cmd run preview` | Preview the production build locally |
-| `npm.cmd test` | Run the automated unit tests |
-| `npm.cmd run test:rules` | Run Firestore Security Rules tests in the local emulator |
-| `npm.cmd --prefix functions run check` | Check optional Cloud Function JavaScript syntax |
+| `npm run dev` | Start the Vite development server |
+| `npm run build` | Create a production frontend build |
+| `npm run preview` | Preview the production build locally |
+| `npm test` | Run the automated unit tests |
+| `npm run test:rules` | Run Firestore Security Rules tests in the local emulator |
+| `npm --prefix functions run check` | Check optional Cloud Function JavaScript syntax |
 
 Run the automated tests, Firestore rules tests, production build, and Functions
 syntax check before deploying changes. The same checks run in GitHub Actions through
@@ -312,13 +312,13 @@ their Vercel plan supports the required collaborators.
 Deploy the database rules and indexes:
 
 ```powershell
-npx.cmd firebase-tools deploy --only "firestore:rules,firestore:indexes"
+npx firebase-tools deploy --only "firestore:rules,firestore:indexes"
 ```
 
 If you enabled the optional credential-management Function, include it:
 
 ```powershell
-npx.cmd firebase-tools deploy --only "functions,firestore:rules,firestore:indexes"
+npx firebase-tools deploy --only "functions,firestore:rules,firestore:indexes"
 ```
 
 Always confirm the selected Firebase project first. This repository's

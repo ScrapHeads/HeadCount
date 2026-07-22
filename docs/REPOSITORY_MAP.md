@@ -176,10 +176,10 @@ Before shipping a code change, run the automated unit tests and checks
 documented in `README.md`:
 
 ```powershell
-npm.cmd test
-npm.cmd run test:rules
-npm.cmd run build
-npm.cmd --prefix functions run check
+npm test
+npm run test:rules
+npm run build
+npm --prefix functions run check
 ```
 
 For documentation-only changes, `git diff --check` is usually enough to catch

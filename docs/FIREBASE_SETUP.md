@@ -12,11 +12,11 @@ publish the frontend and add the same `VITE_*` values to that host.
 
 ## Before You Begin
 
-Install Node.js 20.19 or newer (or Node.js 22.12 or newer), clone the
+Install Node.js 22.12 or newer, clone the
 repository, and run this command from the repository root:
 
 ```powershell
-npm.cmd install
+npm install
 ```
 
 Install Java 21 if you plan to run the local Firestore Security Rules
@@ -203,8 +203,8 @@ team's normal password-management process.
 From the repository root:
 
 ```powershell
-npx.cmd firebase-tools login
-npx.cmd firebase-tools use --add
+npx firebase-tools login
+npx firebase-tools use --add
 ```
 
 Choose the correct Firebase project and assign an alias such as `default`.
@@ -213,13 +213,13 @@ Important: this repository's `.firebaserc` currently references
 `robotics-time-tracker-demo`. Confirm the active project before every deploy:
 
 ```powershell
-npx.cmd firebase-tools use
+npx firebase-tools use
 ```
 
 You can also pass a project explicitly:
 
 ```powershell
-npx.cmd firebase-tools deploy --only firestore:rules --project your-project-id
+npx firebase-tools deploy --only firestore:rules --project your-project-id
 ```
 
 ## 8. Choose A Credential Management Method
@@ -252,7 +252,7 @@ Edit Student form unless the Function has been deployed.
 Install the backend dependencies:
 
 ```powershell
-npm.cmd --prefix functions install
+npm --prefix functions install
 ```
 
 Create the backend environment file:
@@ -286,19 +286,19 @@ not an automatic shutdown mechanism.
 Check the project first:
 
 ```powershell
-npx.cmd firebase-tools use
+npx firebase-tools use
 ```
 
 Always deploy the Firestore rules and indexes:
 
 ```powershell
-npx.cmd firebase-tools deploy --only "firestore:rules,firestore:indexes"
+npx firebase-tools deploy --only "firestore:rules,firestore:indexes"
 ```
 
 If you completed the optional Functions setup, deploy all three resources:
 
 ```powershell
-npx.cmd firebase-tools deploy --only "functions,firestore:rules,firestore:indexes"
+npx firebase-tools deploy --only "functions,firestore:rules,firestore:indexes"
 ```
 
 The included `firestore.indexes.json` defines the composite `students` index
@@ -545,7 +545,7 @@ After setup:
 1. Confirm the CLI is targeting the intended project:
 
    ```powershell
-   npx.cmd firebase-tools use
+   npx firebase-tools use
    ```
 
 2. Confirm the deployed Firestore rules no longer contain the example coach
@@ -555,25 +555,25 @@ After setup:
 4. Run the Firestore Security Rules tests against the local emulator:
 
    ```powershell
-   npm.cmd run test:rules
+   npm run test:rules
    ```
 
 5. Run the frontend build:
 
    ```powershell
-   npm.cmd run build
+   npm run build
    ```
 
 6. Start the local app:
 
    ```powershell
-   npm.cmd run dev
+   npm run dev
    ```
 
 7. If Functions are enabled, check the Function code:
 
    ```powershell
-   npm.cmd --prefix functions run check
+   npm --prefix functions run check
    ```
 
 8. Sign in as a coach.
