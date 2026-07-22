@@ -53,3 +53,30 @@ jobs:
 
       - name: Check Functions syntax
         run: npm --prefix functions run check
+
+  dependabot-auto-merge:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.user.login == 'dependabot[bot]'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Read Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@d7267f607e9d3fb96fc2fbe83e0af444713e90b7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge for development dependency patches
+        if: >-
+          steps.metadata.outputs.package-ecosystem == 'npm' &&
+          steps.metadata.outputs.dependency-type == 'direct:development' &&
+          steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}

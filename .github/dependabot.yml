@@ -17,7 +17,15 @@ updates:
         update-types:
           - version-update:semver-major
     groups:
-      npm-minor-and-patch:
+      npm-development-patches:
+        applies-to: version-updates
+        dependency-type: development
+        patterns:
+          - "*"
+        update-types:
+          - patch
+      npm-reviewed-updates:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
