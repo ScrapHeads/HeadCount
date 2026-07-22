@@ -149,7 +149,7 @@ syntax check before deploying changes. The same checks run in GitHub Actions thr
 This branch can run a walkthrough build without Firebase by using demo mode:
 
 ```powershell
-npm.cmd run dev:demo
+npm run dev:demo
 ```
 
 Demo mode also activates when `VITE_DEMO_MODE=true`. It replaces the Firebase
@@ -158,8 +158,8 @@ browser SDK imports with local mocks, seeds realistic team data into
 stored only in the visitor's browser. Use **Reset demo data** on the access
 portal to reseed a clean walkthrough.
 
-Normal Firebase mode remains the default. Use `npm.cmd run dev` or
-`npm.cmd run build` with real `VITE_FIREBASE_*` values to run against Firebase.
+Normal Firebase mode remains the default. Use `npm run dev` or
+`npm run build` with real `VITE_FIREBASE_*` values to run against Firebase.
 
 ## Configuration
 
@@ -325,7 +325,7 @@ Firebase, and deploy the site. `public/_redirects` provides the fallback needed
 for client-side routes.
 
 For the public demo, deploy the `demo` branch to Cloudflare Pages with
-`npm.cmd run build:demo`.
+`npm run build:demo`.
 
 Vercel remains available as an alternative. Follow
 [docs/VERCEL_SETUP.md](docs/VERCEL_SETUP.md); its existing `vercel.json` route
