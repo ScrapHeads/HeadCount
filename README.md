@@ -40,7 +40,8 @@ rules, indexes, and hosting.
 - Coach, kiosk, and student sign-in flows
 - Student ID, password, and optional NFC card lookup
 - Live check-in and check-out with required session notes
-- One-time, weekly, monthly, and yearly schedules
+- Shared month/week meeting calendar with one-time, weekly, monthly, and yearly schedules
+- Always-available and schedule-controlled task modes
 - Coach roster and student account management
 - Manual extra hours and student extra-time requests
 - Editable time-log history

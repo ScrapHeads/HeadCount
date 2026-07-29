@@ -1,5 +1,17 @@
-import { Timestamp, addDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import {
+  Timestamp,
+  addDoc,
+  arrayUnion,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
 import { scheduleConfig } from '../../config/appConfig';
+import { toDate, toDateInputValue } from '../../lib/dateUtils';
 import { db } from '../../services/firebase';
 import { markTaskAsScheduled } from '../tasks/taskService';
 
@@ -91,5 +103,37 @@ export const createSchedule = async ({
     [scheduleConfig.startTimeField]: Timestamp.fromDate(startTime),
     [scheduleConfig.endTimeField]: Timestamp.fromDate(endTime),
     [scheduleConfig.countsForAttendanceField]: Boolean(countsForAttendance),
+    [scheduleConfig.excludedDatesField]: [],
   });
+};
+
+export const excludeScheduleOccurrence = async ({
+  scheduleId,
+  occurrenceDate,
+}) => {
+  const parsedOccurrenceDate = toDate(occurrenceDate);
+  const occurrenceDateKey = (
+    typeof occurrenceDate === 'string'
+    && /^\d{4}-\d{2}-\d{2}$/.test(occurrenceDate)
+  )
+    ? occurrenceDate
+    : parsedOccurrenceDate
+      ? toDateInputValue(parsedOccurrenceDate)
+      : '';
+
+  if (!scheduleId || !occurrenceDateKey) {
+    throw new Error('A valid scheduled occurrence is required.');
+  }
+
+  await updateDoc(doc(db, scheduleConfig.collectionName, scheduleId), {
+    [scheduleConfig.excludedDatesField]: arrayUnion(occurrenceDateKey),
+  });
+};
+
+export const deleteSchedule = async (scheduleId) => {
+  if (!scheduleId) {
+    throw new Error('A scheduled event is required.');
+  }
+
+  await deleteDoc(doc(db, scheduleConfig.collectionName, scheduleId));
 };

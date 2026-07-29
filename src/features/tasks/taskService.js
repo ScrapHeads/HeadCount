@@ -34,12 +34,16 @@ export const createTask = async ({ name, scheduled = false }) => {
   };
 };
 
-export const markTaskAsScheduled = async (taskId) => {
+export const setTaskScheduled = async (taskId, scheduled) => {
   if (!taskId) {
     throw new Error('A task is required.');
   }
 
   await updateDoc(doc(db, taskConfig.collectionName, taskId), {
-    [taskConfig.scheduledField]: true,
+    [taskConfig.scheduledField]: Boolean(scheduled),
   });
 };
+
+export const markTaskAsScheduled = async (taskId) => (
+  setTaskScheduled(taskId, true)
+);

@@ -1,6 +1,6 @@
 # Repository Maps
 
-Last updated: 2026-07-10
+Last updated: 2026-07-29
 
 This document maps the HeadCount repository for contributors who need to find
 the right files quickly. It complements the setup guides in `docs/` and the
@@ -91,7 +91,7 @@ resets.
 | Student roster | `CoachDashboard`, `StudentManagementDashboard` | `src/features/students/useStudents.js` | `src/features/students/studentService.js`, `src/config/studentIdGenerator.js`, `src/lib/studentUtils.js` |
 | Time logs | `StudentSession`, `StudentDashboard`, dashboard panels | `src/features/timeLogs/useStudentTimeLogs.js`, `useCompletedTimeLogs.js`, `useAnalyticsTimeLogs.js` | `src/features/timeLogs/timeLogService.js`, `src/lib/dateUtils.js`, `src/lib/analyticsUtils.js` |
 | Tasks | Coach dashboard task and schedule controls, student check-in task list | `src/features/tasks/useTasks.js` | `src/features/tasks/taskService.js`, `src/features/tasks/taskUtils.js` |
-| Schedules | Coach dashboard schedule controls, sign-in availability checks | `src/features/schedules/useSchedules.js` | `src/features/schedules/scheduleService.js`, `src/features/schedules/validateSchedule.js` |
+| Schedules | Shared coach/student calendar, coach schedule controls, sign-in availability checks | `src/features/schedules/useSchedules.js` | `src/features/schedules/scheduleService.js`, `src/features/schedules/scheduleUtils.js`, `src/features/schedules/validateSchedule.js` |
 | Extra-time requests | `StudentDashboard`, `StudentManagementDashboard` | `src/features/extraTimeRequests/useExtraTimeRequests.js` | `src/features/extraTimeRequests/extraTimeRequestService.js` |
 | Analytics | `AnalyticsDashboard`, student dashboard summary | `src/features/timeLogs/useAnalyticsTimeLogs.js` | `src/lib/analyticsUtils.js`, `src/features/timeLogs/timeLogService.js` |
 
@@ -143,7 +143,7 @@ Important auth files:
 | Access and login | `src/pages/AccessPortal.jsx`, `src/pages/KioskStudentLogin.jsx` |
 | Coach workspace | `src/pages/CoachDashboard.jsx`, `src/components/dashboard/*` |
 | Student workspace | `src/pages/StudentDashboard.jsx`, `StudentSession.jsx` |
-| Shared controls | `src/components/shared/Button.jsx`, `Dropdown.jsx`, `Input.jsx`, `CardMessage.jsx` |
+| Shared controls | `src/components/shared/Button.jsx`, `Calendar.jsx`, `Dropdown.jsx`, `Input.jsx`, `CardMessage.jsx` |
 | Theme and class helpers | `src/config/branding.js`, `src/styles/globals.css`, `src/styles/classNames.js` |
 
 ## Config And Change Map

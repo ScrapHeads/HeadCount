@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/shared/Button';
+import Calendar from '../components/shared/Calendar';
 import {
   extraTimeRequestConfig,
   studentAuthConfig,
@@ -11,6 +12,8 @@ import { ROUTES } from '../config/routesConfig';
 import { useAuth } from '../features/auth/useAuth.jsx';
 import { createExtraTimeRequest } from '../features/extraTimeRequests/extraTimeRequestService';
 import { useStudentExtraTimeRequests } from '../features/extraTimeRequests/useExtraTimeRequests';
+import { useSchedules } from '../features/schedules/useSchedules';
+import { useTasks } from '../features/tasks/useTasks';
 import { useStudentTimeLogs } from '../features/timeLogs/useStudentTimeLogs';
 import {
   calculateHoursByCategory,
@@ -278,6 +281,16 @@ const StudentDashboard = () => {
   const { signOutStudent, studentSession } = useAuth();
   const [dateRange, setDateRange] = useState(getDefaultDateRange);
   const navigate = useNavigate();
+  const {
+    schedules,
+    isLoading: isLoadingSchedules,
+    error: schedulesError,
+  } = useSchedules();
+  const {
+    tasks,
+    isLoading: isLoadingTasks,
+    error: tasksError,
+  } = useTasks();
   const isSignedIn = Boolean(studentSession?.[studentAuthConfig.signedInField]);
   const studentId = (
     studentSession?.[studentAuthConfig.idField]
@@ -424,6 +437,15 @@ const StudentDashboard = () => {
             </div>
 
           </section>
+
+          <Calendar
+            className={studentCardClassName}
+            error={schedulesError || tasksError}
+            isLoading={isLoadingSchedules || isLoadingTasks}
+            schedules={schedules}
+            tasks={tasks}
+            title="Team meeting calendar"
+          />
 
           <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
             <StudentAnalyticsCard

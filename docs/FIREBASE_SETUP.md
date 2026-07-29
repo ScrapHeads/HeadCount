@@ -445,11 +445,8 @@ Stores work categories available for sessions:
 ```
 
 Unscheduled tasks are always available. Scheduled tasks are available only
-during an active schedule occurrence.
-
-To create an unscheduled task manually, open Firestore and create a `tasks`
-document using the structure above with `scheduled` set to `false`. Students can
-select unscheduled tasks at any time.
+during an active schedule occurrence. Coaches can create either type and switch
+an existing task between these modes from **Schedule > Task availability**.
 
 ### `schedules`
 
@@ -465,12 +462,15 @@ Stores one-time or recurring availability windows:
   "monthOfYear": null,
   "startTime": "Firestore Timestamp",
   "endTime": "Firestore Timestamp",
-  "countsForAttendance": true
+  "countsForAttendance": true,
+  "excludedDates": ["2026-07-29"]
 }
 ```
 
 For recurring schedules, the timestamps provide the time of day and duration.
-The recurrence fields choose the calendar occurrence.
+The recurrence fields choose the calendar occurrence. `excludedDates` contains
+local `YYYY-MM-DD` keys for individual occurrences a coach removed from the
+calendar. Older schedule documents without this field remain valid.
 
 ### `timeLogs`
 

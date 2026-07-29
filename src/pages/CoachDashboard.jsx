@@ -2,14 +2,20 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AnalyticsDashboard from '../components/dashboard/AnalyticsDashboard';
 import StudentManagementDashboard from '../components/dashboard/StudentManagementDashboard';
+import TaskAvailabilityCard from '../components/dashboard/TaskAvailabilityCard';
 import Button from '../components/shared/Button';
+import Calendar from '../components/shared/Calendar';
 import Dropdown from '../components/shared/Dropdown';
 import { branding } from '../config/branding';
 import { scheduleConfig, studentAuthConfig, taskConfig } from '../config/appConfig';
 import { ROUTES } from '../config/routesConfig';
 import { useAuth } from '../features/auth/useAuth.jsx';
 import { useSchedules } from '../features/schedules/useSchedules';
-import { createSchedule } from '../features/schedules/scheduleService';
+import {
+  createSchedule,
+  deleteSchedule,
+  excludeScheduleOccurrence,
+} from '../features/schedules/scheduleService';
 import { useActiveStudents, useStudents } from '../features/students/useStudents';
 import { useTasks } from '../features/tasks/useTasks';
 import { createTask } from '../features/tasks/taskService';
@@ -18,9 +24,7 @@ import {
   endStudentSessionByCoach,
 } from '../features/timeLogs/timeLogService';
 import {
-  formatDateTime,
   formatSignedInAt,
-  isValidMonthDay,
   toDate,
 } from '../lib/dateUtils';
 import { MISSING_VALUE_LABEL } from '../lib/constants';
@@ -164,167 +168,6 @@ const buildRecurringDateTime = (timeValue) => {
   }
 
   return new Date(`2000-01-02T${timeValue}`);
-};
-
-const buildRecurringOccurrenceStart = ({ schedule, fromDate = new Date() }) => {
-  const baseStart = toDate(schedule[scheduleConfig.startTimeField]);
-  const baseEnd = toDate(schedule[scheduleConfig.endTimeField]);
-  const recurrenceType = schedule[scheduleConfig.recurrenceTypeField]
-    ?? scheduleConfig.recurrenceTypes.weekly;
-  const durationMs = baseEnd?.getTime() - baseStart?.getTime();
-
-  if (!baseStart || !baseEnd || Number.isNaN(durationMs)) {
-    return null;
-  }
-
-  if (recurrenceType === scheduleConfig.recurrenceTypes.weekly) {
-    const targetDay = Number(schedule[scheduleConfig.dayOfWeekField]);
-    const currentDay = fromDate.getDay();
-    let daysUntilTarget = targetDay - currentDay;
-
-    if (daysUntilTarget < 0) {
-      daysUntilTarget += 7;
-    }
-
-    const occurrenceStart = new Date(fromDate);
-    occurrenceStart.setHours(
-      baseStart.getHours(),
-      baseStart.getMinutes(),
-      baseStart.getSeconds(),
-      baseStart.getMilliseconds(),
-    );
-    occurrenceStart.setDate(fromDate.getDate() + daysUntilTarget);
-
-    if (daysUntilTarget === 0 && occurrenceStart < fromDate && occurrenceStart.getTime() + durationMs >= fromDate.getTime()) {
-      return occurrenceStart;
-    }
-
-    if (daysUntilTarget === 0 && occurrenceStart < fromDate) {
-      occurrenceStart.setDate(occurrenceStart.getDate() + 7);
-    }
-
-    return occurrenceStart;
-  }
-
-  if (recurrenceType === scheduleConfig.recurrenceTypes.monthly) {
-    const dayOfMonth = Number(schedule[scheduleConfig.dayOfMonthField]);
-
-    for (let monthOffset = 0; monthOffset < 24; monthOffset += 1) {
-      const year = fromDate.getFullYear() + Math.floor((fromDate.getMonth() + monthOffset) / 12);
-      const month = (fromDate.getMonth() + monthOffset) % 12;
-
-      if (!isValidMonthDay(year, month, dayOfMonth)) {
-        continue;
-      }
-
-      const occurrenceStart = new Date(
-        year,
-        month,
-        dayOfMonth,
-        baseStart.getHours(),
-        baseStart.getMinutes(),
-        baseStart.getSeconds(),
-        baseStart.getMilliseconds(),
-      );
-
-      if (occurrenceStart >= fromDate || occurrenceStart.getTime() + durationMs >= fromDate.getTime()) {
-        return occurrenceStart;
-      }
-    }
-
-    return null;
-  }
-
-  if (recurrenceType === scheduleConfig.recurrenceTypes.yearly) {
-    const dayOfMonth = Number(schedule[scheduleConfig.dayOfMonthField]);
-    const monthOfYear = Number(schedule[scheduleConfig.monthOfYearField]);
-
-    for (let yearOffset = 0; yearOffset < 10; yearOffset += 1) {
-      const year = fromDate.getFullYear() + yearOffset;
-
-      if (!isValidMonthDay(year, monthOfYear, dayOfMonth)) {
-        continue;
-      }
-
-      const occurrenceStart = new Date(
-        year,
-        monthOfYear,
-        dayOfMonth,
-        baseStart.getHours(),
-        baseStart.getMinutes(),
-        baseStart.getSeconds(),
-        baseStart.getMilliseconds(),
-      );
-
-      if (occurrenceStart >= fromDate || occurrenceStart.getTime() + durationMs >= fromDate.getTime()) {
-        return occurrenceStart;
-      }
-    }
-  }
-
-  return null;
-};
-
-const buildScheduleDisplayWindow = (schedule, now = new Date()) => {
-  const startTime = toDate(schedule[scheduleConfig.startTimeField]);
-  const endTime = toDate(schedule[scheduleConfig.endTimeField]);
-
-  if (!startTime || !endTime) {
-    return null;
-  }
-
-  if (!schedule[scheduleConfig.isRecurringField]) {
-    if (endTime < now) {
-      return null;
-    }
-
-    return {
-      ...schedule,
-      resolvedStartTime: startTime,
-      resolvedEndTime: endTime,
-      displayType: 'One-time',
-    };
-  }
-
-  const nextOccurrenceStart = buildRecurringOccurrenceStart({ schedule, fromDate: now });
-
-  if (!nextOccurrenceStart) {
-    return null;
-  }
-
-  const durationMs = endTime.getTime() - startTime.getTime();
-  const nextOccurrenceEnd = new Date(nextOccurrenceStart.getTime() + durationMs);
-
-  return {
-    ...schedule,
-    resolvedStartTime: nextOccurrenceStart,
-    resolvedEndTime: nextOccurrenceEnd,
-    displayType: recurrenceLabel(schedule),
-  };
-};
-
-const recurrenceLabel = (schedule) => {
-  const recurrenceType = schedule[scheduleConfig.recurrenceTypeField]
-    ?? (schedule[scheduleConfig.isRecurringField] ? scheduleConfig.recurrenceTypes.weekly : scheduleConfig.recurrenceTypes.oneTime);
-
-  if (recurrenceType === scheduleConfig.recurrenceTypes.oneTime) {
-    return 'One-time';
-  }
-
-  if (recurrenceType === scheduleConfig.recurrenceTypes.weekly) {
-    return `Weekly ${weekdayOptions.find((option) => option.value === String(schedule[scheduleConfig.dayOfWeekField]))?.label ?? ''}`.trim();
-  }
-
-  if (recurrenceType === scheduleConfig.recurrenceTypes.monthly) {
-    return `Monthly day ${schedule[scheduleConfig.dayOfMonthField] ?? ''}`.trim();
-  }
-
-  if (recurrenceType === scheduleConfig.recurrenceTypes.yearly) {
-    const monthLabel = monthOptions.find((option) => option.value === String(schedule[scheduleConfig.monthOfYearField]))?.label ?? '';
-    return `Yearly ${monthLabel} ${schedule[scheduleConfig.dayOfMonthField] ?? ''}`.trim();
-  }
-
-  return 'Recurring';
 };
 
 // This page coordinates the coach sections and their shared Firestore data.
@@ -503,21 +346,6 @@ const CoachDashboard = () => {
     schedules,
   ]);
 
-  const upcomingSchedules = useMemo(() => {
-    const now = new Date();
-
-    return schedules
-      .map((schedule) => buildScheduleDisplayWindow(schedule, now))
-      .filter(Boolean)
-      .sort((left, right) => left.resolvedStartTime - right.resolvedStartTime)
-      .slice(0, 10);
-  }, [schedules]);
-
-  const tasksById = useMemo(
-    () => new Map(tasks.map((task) => [task.id, task])),
-    [tasks],
-  );
-
   const signedOutStudents = useMemo(
     () => students
       .filter((student) => (
@@ -652,6 +480,22 @@ const CoachDashboard = () => {
     } finally {
       setIsSavingSchedule(false);
     }
+  };
+
+  const handleRemoveScheduleOccurrence = async ({
+    occurrenceDate,
+    schedule,
+  }) => {
+    await excludeScheduleOccurrence({
+      occurrenceDate,
+      scheduleId: schedule.id,
+    });
+    reloadSchedules();
+  };
+
+  const handleRemoveSchedule = async (schedule) => {
+    await deleteSchedule(schedule.id);
+    reloadSchedules();
   };
 
   return (
@@ -879,68 +723,24 @@ const CoachDashboard = () => {
                 </>
               ) : activeSection === 'schedule' ? (
                 <>
-                  <article className={DASHBOARD_CARD_CLASS_NAME}>
-                    <div className="border-b border-border pb-5">
-                      <p className="text-lg font-semibold text-on-primary">Scheduled task windows</p>
-                    </div>
+                  <Calendar
+                    canManage
+                    className={DASHBOARD_CARD_CLASS_NAME}
+                    error={schedulesError || tasksError}
+                    isLoading={isLoadingSchedules || isLoadingTasks}
+                    onRemoveOccurrence={handleRemoveScheduleOccurrence}
+                    onRemoveSchedule={handleRemoveSchedule}
+                    schedules={schedules}
+                    tasks={tasks}
+                  />
 
-                    {(schedulesError || tasksError) && (
-                      <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
-                        {schedulesError || tasksError}
-                      </div>
-                    )}
-
-                    <div className="mt-5 overflow-x-auto">
-                      <table className="min-w-full border-separate border-spacing-y-3">
-                        <thead>
-                          <tr>
-                            <th className="px-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-on-primary">Task</th>
-                            <th className="px-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-on-primary">Type</th>
-                            <th className="px-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-on-primary">Start</th>
-                            <th className="px-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-on-primary">End</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(isLoadingSchedules || isLoadingTasks) ? (
-                            <tr>
-                              <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-sm text-on-primary/90" colSpan={4}>
-                                Loading scheduled events...
-                              </td>
-                            </tr>
-                          ) : upcomingSchedules.length === 0 ? (
-                            <tr>
-                              <td className="rounded-2xl border border-border bg-accent/10 px-4 py-6 text-sm text-on-primary/90" colSpan={4}>
-                                No upcoming scheduled events found.
-                              </td>
-                            </tr>
-                          ) : (
-                            upcomingSchedules.map((schedule) => {
-                              const task = tasksById.get(schedule[scheduleConfig.taskIdField]);
-
-                              return (
-                                <tr key={schedule.id}>
-                                  <td className="rounded-l-2xl border-y border-l border-border bg-transparent px-4 py-4 text-sm text-on-primary">
-                                    <span className="font-semibold">
-                                      {task?.[taskConfig.nameField] ?? schedule[scheduleConfig.taskIdField] ?? 'Task'}
-                                    </span>
-                                  </td>
-                                  <td className="border-y border-border bg-transparent px-4 py-4 text-sm text-on-primary/90">
-                                    {schedule.displayType}
-                                  </td>
-                                  <td className="border-y border-border bg-transparent px-4 py-4 text-sm text-on-primary/90">
-                                    {formatDateTime(schedule.resolvedStartTime, 'Not scheduled')}
-                                  </td>
-                                  <td className="rounded-r-2xl border-y border-r border-border bg-transparent px-4 py-4 text-sm text-on-primary/90">
-                                    {formatDateTime(schedule.resolvedEndTime, 'Not scheduled')}
-                                  </td>
-                                </tr>
-                              );
-                            })
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </article>
+                  <TaskAvailabilityCard
+                    cardClassName={DASHBOARD_CARD_CLASS_NAME}
+                    error={tasksError}
+                    isLoading={isLoadingTasks}
+                    onTasksChanged={reloadTasks}
+                    tasks={tasks}
+                  />
 
                   <article className={DASHBOARD_CARD_CLASS_NAME}>
                     <div className="border-b border-border pb-5">

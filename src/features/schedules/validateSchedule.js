@@ -1,5 +1,6 @@
 import { scheduleConfig } from '../../config/appConfig';
 import { isValidMonthDay, toDate } from '../../lib/dateUtils';
+import { isScheduleOccurrenceExcluded } from './scheduleUtils';
 
 const getScheduleWindowForTime = (schedule, value = new Date()) => {
   const now = toDate(value);
@@ -17,6 +18,10 @@ const getScheduleWindowForTime = (schedule, value = new Date()) => {
     return now >= startTime && now <= endTime
       ? { startTime, endTime }
       : null;
+  }
+
+  if (isScheduleOccurrenceExcluded(schedule, now)) {
+    return null;
   }
 
   if (
