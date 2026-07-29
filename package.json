@@ -23,10 +23,10 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
-    "@tailwindcss/vite": "^4.3.2",
-    "@vitejs/plugin-react": "^6.0.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^6.0.4",
     "firebase-tools": "^15.23.0",
     "tailwindcss": "^4.2.4",
-    "vite": "^8.1.4"
+    "vite": "^8.1.5"
   }
 }
