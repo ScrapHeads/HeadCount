@@ -1,4 +1,8 @@
 import { scheduleConfig, studentAuthConfig, timeLogConfig } from '../config/appConfig';
+import {
+  isAttendanceSchedule,
+  isOutreachSchedule,
+} from '../features/schedules/scheduleUtils';
 import { isScheduleActive } from '../features/schedules/validateSchedule';
 import {
   MILLISECONDS_PER_MINUTE,
@@ -391,7 +395,19 @@ export const calculateStudentCategoryBreakdown = (logs, studentKey, students = [
   };
 };
 
-const logMatchesAttendanceSchedule = (log, schedules) => {
+const scheduleMatchesAttendanceType = (schedule, meetingType) => {
+  if (meetingType === 'outreach') {
+    return isOutreachSchedule(schedule);
+  }
+
+  if (meetingType === 'attendance') {
+    return isAttendanceSchedule(schedule);
+  }
+
+  return isAttendanceSchedule(schedule) || isOutreachSchedule(schedule);
+};
+
+const logMatchesAttendanceSchedule = (log, schedules, meetingType) => {
   const taskId = String(log?.[timeLogConfig.taskIdField] ?? '').trim();
   const signInAt = toDate(log?.[timeLogConfig.signInAtField]);
 
@@ -399,16 +415,21 @@ const logMatchesAttendanceSchedule = (log, schedules) => {
     return false;
   }
 
-  // A log counts as attendance only when its task had an active schedule at
-  // sign-in and that schedule was not explicitly excluded from attendance.
+  // Outreach and attendance remain separate schedule categories, but both use
+  // the same participation calculations when selected for this report.
   return schedules.some((schedule) => (
     String(schedule?.[scheduleConfig.taskIdField] ?? '').trim() === taskId
-    && schedule?.[scheduleConfig.countsForAttendanceField] !== false
+    && scheduleMatchesAttendanceType(schedule, meetingType)
     && isScheduleActive(schedule, signInAt)
   ));
 };
 
-export const calculateAttendanceAnalytics = (logs, schedules = [], students = []) => {
+export const calculateAttendanceAnalytics = (
+  logs,
+  schedules = [],
+  students = [],
+  meetingType = 'all',
+) => {
   // Sets prevent multiple logs on the same meeting day from counting one
   // student more than once. Maps retain the details needed by drill-down views.
   const meetingDaysByDate = new Map();
@@ -425,7 +446,7 @@ export const calculateAttendanceAnalytics = (logs, schedules = [], students = []
   }));
 
   logs.forEach((log) => {
-    if (!logMatchesAttendanceSchedule(log, schedules)) {
+    if (!logMatchesAttendanceSchedule(log, schedules, meetingType)) {
       return;
     }
 

@@ -47,6 +47,7 @@ export const createSchedule = async ({
   dayOfMonth = null,
   monthOfYear = null,
   countsForAttendance = true,
+  countsForOutreach = false,
 }) => {
   if (!taskId) {
     throw new Error('A task is required to create a schedule.');
@@ -103,6 +104,7 @@ export const createSchedule = async ({
     [scheduleConfig.startTimeField]: Timestamp.fromDate(startTime),
     [scheduleConfig.endTimeField]: Timestamp.fromDate(endTime),
     [scheduleConfig.countsForAttendanceField]: Boolean(countsForAttendance),
+    [scheduleConfig.countsForOutreachField]: Boolean(countsForOutreach),
     [scheduleConfig.excludedDatesField]: [],
   });
 };

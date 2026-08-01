@@ -141,16 +141,18 @@ const scheduleTypeOptions = [
   },
 ];
 
-const attendanceOptions = [
+const meetingCountingOptions = [
   {
-    value: true,
+    value: 'attendance',
     title: 'Counts for attendance',
-    description: 'Students attending this event are included in attendance records.',
   },
   {
-    value: false,
+    value: 'optional',
     title: 'Does not count',
-    description: 'This event is optional and is excluded from attendance records.',
+  },
+  {
+    value: 'outreach',
+    title: 'Counts for outreach',
   },
 ];
 
@@ -191,7 +193,7 @@ const CoachDashboard = () => {
     recurringDayOfWeek: '1',
     recurringDayOfMonth: '1',
     recurringMonthOfYear: '0',
-    countsForAttendance: true,
+    meetingCountingType: 'attendance',
   });
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
   const [scheduleStatusMessage, setScheduleStatusMessage] = useState('');
@@ -456,7 +458,8 @@ const CoachDashboard = () => {
         monthOfYear: scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.yearly
           ? Number(scheduleForm.recurringMonthOfYear)
           : null,
-        countsForAttendance: scheduleForm.countsForAttendance,
+        countsForAttendance: scheduleForm.meetingCountingType === 'attendance',
+        countsForOutreach: scheduleForm.meetingCountingType === 'outreach',
       });
       reloadTasks();
       reloadSchedules();
@@ -472,7 +475,7 @@ const CoachDashboard = () => {
         recurringDayOfWeek: '1',
         recurringDayOfMonth: '1',
         recurringMonthOfYear: '0',
-        countsForAttendance: true,
+        meetingCountingType: 'attendance',
       });
       setScheduleStatusMessage('Scheduled event created.');
     } catch (scheduleError) {
@@ -828,25 +831,24 @@ const CoachDashboard = () => {
                       </div>
 
                       <div className="md:col-span-2">
-                        <span className="text-sm font-medium text-on-primary">Attendance</span>
-                        <div className="mt-2 grid gap-3 md:grid-cols-2">
-                          {attendanceOptions.map((option) => {
-                            const isActive = scheduleForm.countsForAttendance === option.value;
+                        <span className="text-sm font-medium text-on-primary">Meeting hours type</span>
+                        <div className="mt-2 grid gap-3 md:grid-cols-3">
+                          {meetingCountingOptions.map((option) => {
+                            const isActive = scheduleForm.meetingCountingType === option.value;
 
                             return (
                               <button
-                                key={String(option.value)}
+                                key={option.value}
                                 aria-pressed={isActive}
                                 className={`rounded-[1.5rem] border p-4 text-left transition ${
                                   isActive
                                     ? 'border-accent bg-accent/12 shadow-sm'
                                     : 'border-border bg-secondary hover:bg-accent/10'
                                 }`}
-                                onClick={() => handleScheduleFieldChange('countsForAttendance', option.value)}
+                                onClick={() => handleScheduleFieldChange('meetingCountingType', option.value)}
                                 type="button"
                               >
                                 <p className={`text-base font-semibold ${isActive ? 'text-on-primary' : 'text-on-secondary'}`}>{option.title}</p>
-                                <p className={`mt-2 text-sm leading-6 ${isActive ? 'text-on-primary/90' : 'text-on-secondary/90'}`}>{option.description}</p>
                               </button>
                             );
                           })}

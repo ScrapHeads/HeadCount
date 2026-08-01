@@ -22,6 +22,15 @@ const getRecurrenceType = (schedule) => (
   )
 );
 
+export const isOutreachSchedule = (schedule) => (
+  schedule?.[scheduleConfig.countsForOutreachField] === true
+);
+
+export const isAttendanceSchedule = (schedule) => (
+  !isOutreachSchedule(schedule)
+  && schedule?.[scheduleConfig.countsForAttendanceField] !== false
+);
+
 const getExcludedDateKeys = (schedule) => {
   const excludedDates = schedule?.[scheduleConfig.excludedDatesField];
 

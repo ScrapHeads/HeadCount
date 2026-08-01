@@ -4,6 +4,7 @@ import Button from '../components/shared/Button';
 import Calendar from '../components/shared/Calendar';
 import {
   extraTimeRequestConfig,
+  scheduleConfig,
   studentAuthConfig,
   timeLogConfig,
 } from '../config/appConfig';
@@ -13,6 +14,11 @@ import { useAuth } from '../features/auth/useAuth.jsx';
 import { createExtraTimeRequest } from '../features/extraTimeRequests/extraTimeRequestService';
 import { useStudentExtraTimeRequests } from '../features/extraTimeRequests/useExtraTimeRequests';
 import { useSchedules } from '../features/schedules/useSchedules';
+import {
+  isAttendanceSchedule,
+  isOutreachSchedule,
+} from '../features/schedules/scheduleUtils';
+import { isScheduleActive } from '../features/schedules/validateSchedule';
 import { useTasks } from '../features/tasks/useTasks';
 import { useStudentTimeLogs } from '../features/timeLogs/useStudentTimeLogs';
 import {
@@ -39,6 +45,11 @@ import {
 const inputClassName = 'w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-on-secondary outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/20';
 const studentCardClassName = `rounded-2xl border border-on-primary/15 ${DASHBOARD_GRADIENT_CLASS_NAME} p-5 text-on-primary shadow-lg shadow-primary/15`;
 const timelineCellClassName = 'border-y border-border bg-transparent px-5 py-3 text-on-secondary text-center';
+const timelineMeetingTypeOptions = [
+  { label: 'All meetings', value: 'all' },
+  { label: 'Attendance', value: 'attendance' },
+  { label: 'Outreach', value: 'outreach' },
+];
 const StudentAnalyticsCard = ({
   analytics,
   dateRange,
@@ -116,70 +127,154 @@ const StudentAnalyticsCard = ({
   </article>
 );
 
-const StudentSessionTimeline = ({ error, isLoading, logs }) => (
-  <article className={studentCardClassName}>
-    <div className="border-b border-on-primary/15 pb-5">
-      <p className="font-semibold uppercase tracking-[0.18em] text-on-primary">
-        Session Timeline
-      </p>
-      <p className="mt-2 leading-6 text-on-primary/90">
-        Review your sessions in the selected date range. These records are read-only.
-      </p>
-    </div>
+const StudentSessionTimeline = ({ error, isLoading, logs, schedules = [] }) => {
+  const [meetingType, setMeetingType] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const filteredLogs = useMemo(() => {
+    const normalizedSearchTerm = searchTerm.trim().toLocaleLowerCase();
 
-    {isLoading ? (
-      <p className="mt-5 rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary">
-        Loading your sessions...
-      </p>
-    ) : error ? (
-      <p className="mt-5 rounded-xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
-        {error}
-      </p>
-    ) : logs.length === 0 ? (
-      <p className="mt-5 rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary">
-        No sessions were found for this date range.
-      </p>
-    ) : (
-      <div className="mt-5 overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-y-3">
-          <thead>
-            <tr>
-              <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Task</th>
-              <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Status</th>
-              <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Start</th>
-              <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>End</th>
-              <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} !text-center`}>Hours</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((log) => {
-              const isActive = log[timeLogConfig.statusField] === timeLogConfig.activeStatus;
-              const durationMinutes = getDurationMinutes(log);
+    return logs.filter((log) => {
+      const taskId = String(log?.[timeLogConfig.taskIdField] ?? '').trim();
+      const signInAt = log?.[timeLogConfig.signInAtField];
+      const matchesMeetingType = meetingType === 'all' || schedules.some((schedule) => (
+        String(schedule?.[scheduleConfig.taskIdField] ?? '').trim() === taskId
+        && isScheduleActive(schedule, signInAt)
+        && (
+          (meetingType === 'attendance' && isAttendanceSchedule(schedule))
+          || (meetingType === 'outreach' && isOutreachSchedule(schedule))
+        )
+      ));
 
-              return (
-                <tr key={log.id}>
-                  <td className={`${timelineCellClassName} rounded-l-2xl border-l font-semibold`}>
-                    {formatTaskName(log[timeLogConfig.taskNameField], 'Task')}
-                  </td>
-                  <td className={timelineCellClassName}>{isActive ? 'Active' : 'Completed'}</td>
-                  <td className={`${timelineCellClassName} whitespace-nowrap`}>
-                    {formatDateTime(log[timeLogConfig.signInAtField])}
-                  </td>
-                  <td className={`${timelineCellClassName} whitespace-nowrap`}>
-                    {formatDateTime(log[timeLogConfig.signOutAtField])}
-                  </td>
-                  <td className={`${timelineCellClassName} rounded-r-2xl border-r font-semibold`}>
-                    {durationMinutes > 0 ? minutesToHours(durationMinutes).toFixed(2) : '-'}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      if (!matchesMeetingType) {
+        return false;
+      }
+
+      if (!normalizedSearchTerm) {
+        return true;
+      }
+
+      const isActive = log[timeLogConfig.statusField] === timeLogConfig.activeStatus;
+      const searchableValues = [
+        formatTaskName(log[timeLogConfig.taskNameField], 'Task'),
+        isActive ? 'Active' : 'Completed',
+        formatDateTime(log[timeLogConfig.signInAtField]),
+        formatDateTime(log[timeLogConfig.signOutAtField]),
+      ];
+
+      return searchableValues.some((value) => (
+        String(value).toLocaleLowerCase().includes(normalizedSearchTerm)
+      ));
+    });
+  }, [logs, meetingType, schedules, searchTerm]);
+
+  return (
+    <article className={studentCardClassName}>
+      <div className="flex flex-col gap-4 border-b border-on-primary/15 pb-5 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="font-semibold uppercase tracking-[0.18em] text-on-primary">
+            Session Timeline
+          </p>
+          <p className="mt-2 leading-6 text-on-primary/90">
+            Review your sessions in the selected date range. These records are read-only.
+          </p>
+        </div>
+
+        <div className="grid w-full gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end md:max-w-3xl">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-on-primary">
+              Search sessions
+            </span>
+            <input
+              className={inputClassName}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search by task, status, or date"
+              type="search"
+              value={searchTerm}
+            />
+          </label>
+
+          <div
+            aria-label="Session timeline meeting type"
+            className="inline-flex flex-wrap self-start rounded-xl border border-border bg-primary/40 p-1 sm:self-end"
+            role="group"
+          >
+            {timelineMeetingTypeOptions.map((option) => (
+              <button
+                aria-pressed={meetingType === option.value}
+                className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                  meetingType === option.value
+                    ? 'bg-accent text-on-accent'
+                    : 'text-on-primary hover:bg-on-primary/10'
+                }`}
+                key={option.value}
+                onClick={() => setMeetingType(option.value)}
+                type="button"
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
-    )}
-  </article>
-);
+
+      {isLoading ? (
+        <p className="mt-5 rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary">
+          Loading your sessions...
+        </p>
+      ) : error ? (
+        <p className="mt-5 rounded-xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
+          {error}
+        </p>
+      ) : logs.length === 0 ? (
+        <p className="mt-5 rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary">
+          No sessions were found for this date range.
+        </p>
+      ) : filteredLogs.length === 0 ? (
+        <p className="mt-5 rounded-xl border border-border bg-primary px-4 py-3 text-sm text-on-primary">
+          No sessions match the current search and filter.
+        </p>
+      ) : (
+        <div className="mt-5 overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-y-3">
+            <thead>
+              <tr>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Task</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Status</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Start</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>End</th>
+                <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} !text-center`}>Hours</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredLogs.map((log) => {
+                const isActive = log[timeLogConfig.statusField] === timeLogConfig.activeStatus;
+                const durationMinutes = getDurationMinutes(log);
+
+                return (
+                  <tr key={log.id}>
+                    <td className={`${timelineCellClassName} rounded-l-2xl border-l font-semibold`}>
+                      {formatTaskName(log[timeLogConfig.taskNameField], 'Task')}
+                    </td>
+                    <td className={timelineCellClassName}>{isActive ? 'Active' : 'Completed'}</td>
+                    <td className={`${timelineCellClassName} whitespace-nowrap`}>
+                      {formatDateTime(log[timeLogConfig.signInAtField])}
+                    </td>
+                    <td className={`${timelineCellClassName} whitespace-nowrap`}>
+                      {formatDateTime(log[timeLogConfig.signOutAtField])}
+                    </td>
+                    <td className={`${timelineCellClassName} rounded-r-2xl border-r font-semibold`}>
+                      {durationMinutes > 0 ? minutesToHours(durationMinutes).toFixed(2) : '-'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </article>
+  );
+};
 
 const ExtraTimeRequestCard = ({ student }) => {
   const [hours, setHours] = useState('');
@@ -462,6 +557,7 @@ const StudentDashboard = () => {
             error={analyticsError}
             isLoading={isLoadingTimeLogs}
             logs={logsInDateRange}
+            schedules={schedules}
           />
         </div>
       </section>

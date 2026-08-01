@@ -1,6 +1,6 @@
 # Repository Maps
 
-Last updated: 2026-07-29
+Last updated: 2026-07-31
 
 This document maps the HeadCount repository for contributors who need to find
 the right files quickly. It complements the setup guides in `docs/` and the
@@ -89,11 +89,11 @@ resets.
 | --- | --- | --- | --- |
 | Authentication | `AccessPortal`, route guards in `App.jsx` | `src/features/auth/useAuth.jsx`, `src/hooks/useStudentSession.js` | `src/features/auth/authServices.js`, `src/services/auth.js`, `src/services/firebase.js` |
 | Student roster | `CoachDashboard`, `StudentManagementDashboard` | `src/features/students/useStudents.js` | `src/features/students/studentService.js`, `src/config/studentIdGenerator.js`, `src/lib/studentUtils.js` |
-| Time logs | `StudentSession`, `StudentDashboard`, dashboard panels | `src/features/timeLogs/useStudentTimeLogs.js`, `useCompletedTimeLogs.js`, `useAnalyticsTimeLogs.js` | `src/features/timeLogs/timeLogService.js`, `src/lib/dateUtils.js`, `src/lib/analyticsUtils.js` |
+| Time logs | `StudentSession`, searchable/filterable timeline in `StudentDashboard`, dashboard panels | `src/features/timeLogs/useStudentTimeLogs.js`, `useCompletedTimeLogs.js`, `useAnalyticsTimeLogs.js` | `src/features/timeLogs/timeLogService.js`, `src/lib/dateUtils.js`, `src/lib/analyticsUtils.js` |
 | Tasks | Coach dashboard task and schedule controls, student check-in task list | `src/features/tasks/useTasks.js` | `src/features/tasks/taskService.js`, `src/features/tasks/taskUtils.js` |
-| Schedules | Shared coach/student calendar, coach schedule controls, sign-in availability checks | `src/features/schedules/useSchedules.js` | `src/features/schedules/scheduleService.js`, `src/features/schedules/scheduleUtils.js`, `src/features/schedules/validateSchedule.js` |
+| Schedules | Searchable coach/student calendar, attendance/outreach filters, coach schedule controls, sign-in availability checks | `src/features/schedules/useSchedules.js` | `src/features/schedules/scheduleService.js`, `src/features/schedules/scheduleUtils.js`, `src/features/schedules/validateSchedule.js` |
 | Extra-time requests | `StudentDashboard`, `StudentManagementDashboard` | `src/features/extraTimeRequests/useExtraTimeRequests.js` | `src/features/extraTimeRequests/extraTimeRequestService.js` |
-| Analytics | `AnalyticsDashboard`, student dashboard summary | `src/features/timeLogs/useAnalyticsTimeLogs.js` | `src/lib/analyticsUtils.js`, `src/features/timeLogs/timeLogService.js` |
+| Analytics | `AnalyticsDashboard`, attendance/outreach participation filters, student dashboard summary | `src/features/timeLogs/useAnalyticsTimeLogs.js` | `src/lib/analyticsUtils.js`, `src/features/timeLogs/timeLogService.js` |
 
 ## Firebase Data Map
 
@@ -104,7 +104,7 @@ audit.
 | --- | --- | --- |
 | `students` | `studentAuthConfig` in `src/config/appConfig.js`; shared defaults in `functions/sharedConfig.json` | `studentService.js`, `authServices.js`, `timeLogService.js`, `firestore.js` |
 | `tasks` | `taskConfig` in `src/config/appConfig.js` | `taskService.js`, `taskUtils.js`, schedule and check-in UI |
-| `schedules` | `scheduleConfig` in `src/config/appConfig.js` | `scheduleService.js`, `validateSchedule.js`, `timeLogService.js` stale-session cleanup |
+| `schedules` | `scheduleConfig` in `src/config/appConfig.js`; attendance and outreach are stored in `countsForAttendance` and `countsForOutreach` | `scheduleService.js`, `scheduleUtils.js`, `validateSchedule.js`, `Calendar.jsx`, `analyticsUtils.js`, `StudentDashboard.jsx`, `timeLogService.js` stale-session cleanup |
 | `timeLogs` | `timeLogConfig` in `src/config/appConfig.js`; shared collection name in `functions/sharedConfig.json` | `timeLogService.js`, analytics hooks, student history hooks |
 | `extraTimeRequests` | `extraTimeRequestConfig` in `src/config/appConfig.js`; shared collection name in `functions/sharedConfig.json` | `extraTimeRequestService.js` |
 
@@ -146,6 +146,15 @@ Important auth files:
 | Shared controls | `src/components/shared/Button.jsx`, `Calendar.jsx`, `Dropdown.jsx`, `Input.jsx`, `CardMessage.jsx` |
 | Theme and class helpers | `src/config/branding.js`, `src/styles/globals.css`, `src/styles/classNames.js` |
 
+Schedule and participation UI ownership:
+
+| Behavior | Primary file | Supporting files |
+| --- | --- | --- |
+| Create attendance, outreach, or non-counting events | `src/pages/CoachDashboard.jsx` | `src/features/schedules/scheduleService.js`, `src/config/appConfig.js` |
+| Search/filter coach and student calendars | `src/components/shared/Calendar.jsx` | `src/features/schedules/scheduleUtils.js` |
+| Filter Attendance Analytics by all counted meetings, attendance, or outreach | `src/components/dashboard/AnalyticsDashboard.jsx` | `src/lib/analyticsUtils.js`, `src/features/schedules/scheduleUtils.js` |
+| Search/filter the student Session Timeline | `src/pages/StudentDashboard.jsx` | `src/features/schedules/scheduleUtils.js`, `src/features/schedules/validateSchedule.js` |
+
 ## Config And Change Map
 
 | Change | Start here | Also check |
@@ -156,6 +165,7 @@ Important auth files:
 | Change student ID generation | `src/config/studentIdGenerator.js` | Student creation flow in `studentService.js` |
 | Change coach emails, kiosk email, or student auth domain | `.env`, `functions/.env`, `functions/sharedConfig.json` | `src/config/appConfig.js`, `firestore.rules`, Firebase Auth users |
 | Change dashboard styling | `src/styles/classNames.js`, `src/config/branding.js` | Route-level page classes and shared components |
+| Change attendance/outreach schedule classification | `src/config/appConfig.js`, `src/features/schedules/scheduleUtils.js` | `scheduleService.js`, `CoachDashboard.jsx`, `Calendar.jsx`, `AnalyticsDashboard.jsx`, `analyticsUtils.js`, `StudentDashboard.jsx` |
 | Add a new feature domain | `src/features/<domain>/` | Route/page entry points, Firestore rules, indexes, docs |
 
 ## Deployment And Tooling Map

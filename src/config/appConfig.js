@@ -50,6 +50,7 @@ export const scheduleConfig = {
   startTimeField: 'startTime',
   endTimeField: 'endTime',
   countsForAttendanceField: 'countsForAttendance',
+  countsForOutreachField: 'countsForOutreach',
   // Local YYYY-MM-DD keys let a coach cancel one occurrence without changing
   // the rest of a recurring schedule.
   excludedDatesField: 'excludedDates',
