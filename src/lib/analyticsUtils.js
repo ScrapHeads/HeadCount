@@ -1,5 +1,10 @@
 import { scheduleConfig, studentAuthConfig, timeLogConfig } from '../config/appConfig';
+import {
+  isAttendanceSchedule,
+  isOutreachSchedule,
+} from '../features/schedules/scheduleUtils';
 import { isScheduleActive } from '../features/schedules/validateSchedule';
+import { isReservedTaskName } from '../features/tasks/taskNameValidation';
 import {
   MILLISECONDS_PER_MINUTE,
   MINUTES_PER_HOUR,
@@ -14,20 +19,7 @@ const UNCATEGORIZED_TASK_NAME = 'Uncategorized';
 // Analytics is calculated in the browser from time-log snapshots. These
 // helpers keep the grouping rules identical across cards, tables, and charts.
 const padDatePart = (value) => String(value).padStart(2, '0');
-const normalizeTaskNameKey = (value) => String(value ?? '')
-  .trim()
-  .toLowerCase()
-  .replace(/[\s_-]+/g, '');
-
-export const isExtraHoursTaskName = (value) => {
-  const taskNameKey = normalizeTaskNameKey(value);
-
-  return Boolean(taskNameKey) && (
-    taskNameKey === 'extrahours'
-    || taskNameKey === 'extratime'
-    || taskNameKey === normalizeTaskNameKey(timeLogConfig.extraTimeTaskName)
-  );
-};
+export const isExtraHoursTaskName = isReservedTaskName;
 
 export const formatTaskName = (value, fallback = UNCATEGORIZED_TASK_NAME) => {
   const taskName = String(value ?? '').trim();
@@ -391,7 +383,19 @@ export const calculateStudentCategoryBreakdown = (logs, studentKey, students = [
   };
 };
 
-const logMatchesAttendanceSchedule = (log, schedules) => {
+const scheduleMatchesAttendanceType = (schedule, meetingType) => {
+  if (meetingType === 'outreach') {
+    return isOutreachSchedule(schedule);
+  }
+
+  if (meetingType === 'attendance') {
+    return isAttendanceSchedule(schedule);
+  }
+
+  return isAttendanceSchedule(schedule) || isOutreachSchedule(schedule);
+};
+
+const logMatchesAttendanceSchedule = (log, schedules, meetingType) => {
   const taskId = String(log?.[timeLogConfig.taskIdField] ?? '').trim();
   const signInAt = toDate(log?.[timeLogConfig.signInAtField]);
 
@@ -399,16 +403,21 @@ const logMatchesAttendanceSchedule = (log, schedules) => {
     return false;
   }
 
-  // A log counts as attendance only when its task had an active schedule at
-  // sign-in and that schedule was not explicitly excluded from attendance.
+  // Outreach and attendance remain separate schedule categories, but both use
+  // the same participation calculations when selected for this report.
   return schedules.some((schedule) => (
     String(schedule?.[scheduleConfig.taskIdField] ?? '').trim() === taskId
-    && schedule?.[scheduleConfig.countsForAttendanceField] !== false
+    && scheduleMatchesAttendanceType(schedule, meetingType)
     && isScheduleActive(schedule, signInAt)
   ));
 };
 
-export const calculateAttendanceAnalytics = (logs, schedules = [], students = []) => {
+export const calculateAttendanceAnalytics = (
+  logs,
+  schedules = [],
+  students = [],
+  meetingType = 'all',
+) => {
   // Sets prevent multiple logs on the same meeting day from counting one
   // student more than once. Maps retain the details needed by drill-down views.
   const meetingDaysByDate = new Map();
@@ -425,7 +434,7 @@ export const calculateAttendanceAnalytics = (logs, schedules = [], students = []
   }));
 
   logs.forEach((log) => {
-    if (!logMatchesAttendanceSchedule(log, schedules)) {
+    if (!logMatchesAttendanceSchedule(log, schedules, meetingType)) {
       return;
     }
 

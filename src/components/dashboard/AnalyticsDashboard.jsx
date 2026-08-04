@@ -62,6 +62,12 @@ const formatDuration = (minutes) => {
 
 const formatStudentCount = (count) => `${count} ${count === 1 ? 'student' : 'students'}`;
 
+const attendanceMeetingTypeOptions = [
+  { label: 'All meetings', value: 'all' },
+  { label: 'Attendance', value: 'attendance' },
+  { label: 'Outreach', value: 'outreach' },
+];
+
 const tableCellClassName = 'border-y border-border bg-transparent px-5 py-3 text-on-primary text-center';
 const categoryColors = [
   'var(--app-accent)',
@@ -466,7 +472,9 @@ const AttendanceAnalyticsCard = ({
   cardClassName,
   error,
   isLoading,
+  meetingType,
   onLogSaved,
+  onMeetingTypeChange,
   rangeLabel,
   students,
 }) => {
@@ -482,7 +490,7 @@ const AttendanceAnalyticsCard = ({
 
   return (
     <AnalyticsCard
-      description={`Attendance for scheduled events marked as counting for attendance, grouped by sign-in date for ${rangeLabel}.`}
+      description={`Participation for the selected attendance or outreach meetings, grouped by sign-in date for ${rangeLabel}.`}
       emptyMessage="No students found for attendance analytics."
       error={error}
       isEmpty={analytics.students.length === 0}
@@ -490,11 +498,37 @@ const AttendanceAnalyticsCard = ({
       title="Attendance Analytics"
       cardClassName={cardClassName}
     >
+      <div
+        aria-label="Attendance analytics meeting type"
+        className="mb-5 inline-flex flex-wrap rounded-xl border border-border bg-primary/40 p-1"
+        role="group"
+      >
+        {attendanceMeetingTypeOptions.map((option) => (
+          <button
+            aria-pressed={meetingType === option.value}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              meetingType === option.value
+                ? 'bg-accent text-on-accent'
+                : 'text-on-primary hover:bg-on-primary/10'
+            }`}
+            key={option.value}
+            onClick={() => {
+              setExpandedMeetingDate('');
+              setExpandedStudentKey('');
+              onMeetingTypeChange(option.value);
+            }}
+            type="button"
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <SummaryMetric label="Total Meeting Days" value={analytics.totalMeetingDays} />
         <SummaryMetric label="Average Students / Meeting Day" value={analytics.averageStudentsPerMeetingDay.toFixed(1)} />
-        <SummaryMetric label="Highest Attendance Day" value={highestAttendance} />
-        <SummaryMetric label="Lowest Attendance Day" value={lowestAttendance} />
+        <SummaryMetric label="Highest Participation Day" value={highestAttendance} />
+        <SummaryMetric label="Lowest Participation Day" value={lowestAttendance} />
       </div>
 
       <div className="mt-6">
@@ -504,7 +538,7 @@ const AttendanceAnalyticsCard = ({
             <thead>
               <tr>
                 <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Date</th>
-                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Students Attended</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Students Participating</th>
                 <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Total Completed Hours</th>
                 <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Completed Logs</th>
                 <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Incomplete Logs</th>
@@ -550,7 +584,7 @@ const AttendanceAnalyticsCard = ({
                                 <tr>
                                   <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student</th>
                                   <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student ID</th>
-                                  <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Time Attended</th>
+                                  <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Participation Time</th>
                                   <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Status</th>
                                   <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Action</th>
                                 </tr>
@@ -613,15 +647,15 @@ const AttendanceAnalyticsCard = ({
       </div>
 
       <div className="mt-6">
-        <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">Student Attendance</h4>
+        <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-on-primary">Student Participation</h4>
         <div className="mt-2 overflow-x-auto">
           <table className="min-w-full border-separate border-spacing-y-2">
             <thead>
               <tr>
                 <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student</th>
                 <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student ID</th>
-                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Days Attended</th>
-                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Attendance Rate</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Days Participated</th>
+                <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Participation Rate</th>
                 <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Details</th>
               </tr>
             </thead>
@@ -655,11 +689,11 @@ const AttendanceAnalyticsCard = ({
                       <tr id={detailId}>
                         <td className="rounded-2xl border border-border bg-secondary/40 px-5 py-4" colSpan={5}>
                           <p className="font-semibold text-on-primary">
-                            Meeting attendance for {student.studentName}
+                            Meeting participation for {student.studentName}
                           </p>
                           {student.meetingHistory.length === 0 ? (
                             <p className="mt-3 text-sm text-on-primary/90">
-                              No attendance meetings were found in this date range.
+                              No matching meetings were found in this date range.
                             </p>
                           ) : (
                             <div className="mt-3 overflow-x-auto">
@@ -667,8 +701,8 @@ const AttendanceAnalyticsCard = ({
                                 <thead>
                                   <tr>
                                     <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Meeting Date</th>
-                                    <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Attendance</th>
-                                    <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Time Attended</th>
+                                    <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Participation</th>
+                                    <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Participation Time</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -678,7 +712,7 @@ const AttendanceAnalyticsCard = ({
                                         {formatDate(meeting.dateValue)}
                                       </td>
                                       <td className={tableCellClassName}>
-                                        {meeting.attended ? 'Attended' : 'Missed'}
+                                        {meeting.attended ? 'Participated' : 'Missed'}
                                       </td>
                                       <td className={`${tableCellClassName} rounded-r-xl border-r`}>
                                         {meeting.attended
@@ -729,6 +763,7 @@ const AnalyticsDashboard = ({
   const hasProvidedStudents = Array.isArray(providedStudents);
   const [dateRange, setDateRange] = useState(getDefaultDateRange);
   const [selectedStudentKey, setSelectedStudentKey] = useState('');
+  const [attendanceMeetingType, setAttendanceMeetingType] = useState('all');
 
   const parsedDateRange = useMemo(() => {
     const startDate = getStartOfDay(dateRange.startDate);
@@ -822,8 +857,13 @@ const AnalyticsDashboard = ({
     [logsInDateRange],
   );
   const attendanceAnalytics = useMemo(
-    () => calculateAttendanceAnalytics(logsInDateRange, schedules, currentStudents),
-    [currentStudents, logsInDateRange, schedules],
+    () => calculateAttendanceAnalytics(
+      logsInDateRange,
+      schedules,
+      currentStudents,
+      attendanceMeetingType,
+    ),
+    [attendanceMeetingType, currentStudents, logsInDateRange, schedules],
   );
   const defaultStudentKey = studentHourTotals.students[0]?.studentKey ?? '';
   const effectiveStudentKey = selectedStudentKey || defaultStudentKey;
@@ -909,7 +949,9 @@ const AnalyticsDashboard = ({
         cardClassName={cardClassName}
         error={attendanceError}
         isLoading={isLoading || isLoadingSchedules || isLoadingStudents}
+        meetingType={attendanceMeetingType}
         onLogSaved={reloadLogs}
+        onMeetingTypeChange={setAttendanceMeetingType}
         rangeLabel={parsedDateRange.rangeLabel}
         students={currentStudents}
       />

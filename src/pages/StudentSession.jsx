@@ -6,6 +6,7 @@ import { ROUTES } from '../config/routesConfig';
 import { useSchedules } from '../features/schedules/useSchedules';
 import {
   getAvailableSignInTasks,
+  isTaskNoteRequired,
   taskMatchesReference,
 } from '../features/tasks/taskUtils';
 import { useTasks } from '../features/tasks/useTasks';
@@ -60,6 +61,20 @@ const StudentSession = () => {
     return availableTasks.find((task) => task.id === selectedTaskId) ?? null;
   }, [availableTasks, currentStudentTask, formMode, selectedTaskId]);
   const taskDisplayName = currentlySelectedTask?.[taskConfig.nameField] ?? 'task';
+  const isNoteRequired = useMemo(() => isTaskNoteRequired({
+    currentTime: formMode === 'sign-out'
+      ? studentSession?.[studentAuthConfig.signedInAtField] ?? currentTime
+      : currentTime,
+    mode: formMode,
+    schedules,
+    task: currentlySelectedTask,
+  }), [
+    currentTime,
+    currentlySelectedTask,
+    formMode,
+    schedules,
+    studentSession,
+  ]);
 
   useEffect(() => {
     setFormMode(studentSession?.[studentAuthConfig.signedInField] ? 'sign-out' : 'sign-in');
@@ -290,16 +305,17 @@ const StudentSession = () => {
               {formMode === 'sign-in'
                 ? `Goal for ${taskDisplayName}`
                 : `Completed for ${taskDisplayName}`}
+              {isNoteRequired ? ' (required)' : ' (optional)'}
             </label>
             <textarea
               className={`${FORM_TEXTAREA_CLASS_NAME} min-h-32`}
               id="student-notes"
-              required
+              required={isNoteRequired}
               onChange={(e) => setNotes(e.target.value)}
               placeholder={
                 formMode === 'sign-in'
-                  ? `Required goal for ${taskDisplayName}`
-                  : `Required summary of what you completed for ${taskDisplayName}`
+                  ? `${isNoteRequired ? 'Required' : 'Optional'} goal for ${taskDisplayName}`
+                  : `${isNoteRequired ? 'Required' : 'Optional'} summary of what you completed for ${taskDisplayName}`
               }
               value={notes}
             />

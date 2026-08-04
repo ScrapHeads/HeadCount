@@ -54,11 +54,26 @@ export const scheduleConfig = {
   startTimeField: 'startTime',
   endTimeField: 'endTime',
   countsForAttendanceField: 'countsForAttendance',
+  countsForOutreachField: 'countsForOutreach',
+  noteRequirementField: 'noteRequirement',
+  // Recurring ranges use an inclusive start and exclusive end key so series
+  // splits preserve earlier occurrences without overlapping the replacement.
+  recurrenceStartsOnField: 'recurrenceStartsOn',
+  recurrenceEndsBeforeField: 'recurrenceEndsBefore',
+  // Local YYYY-MM-DD keys let a coach cancel one occurrence without changing
+  // the rest of a recurring schedule.
+  excludedDatesField: 'excludedDates',
   recurrenceTypes: {
     oneTime: 'one-time',
     weekly: 'weekly',
     monthly: 'monthly',
     yearly: 'yearly',
+  },
+  noteRequirements: {
+    both: 'both',
+    signIn: 'sign-in',
+    signOut: 'sign-out',
+    none: 'none',
   },
 };
 

@@ -6,6 +6,7 @@ import {
   getDefaultDateRange,
   isSameCalendarDay,
   isValidMonthDay,
+  shiftDateInputValue,
   toDate,
   toDateInputValue,
 } from '../../src/lib/dateUtils.js';
@@ -53,6 +54,12 @@ test('isValidMonthDay rejects impossible month/day combinations', () => {
 test('toDateInputValue formats local dates for HTML date inputs', () => {
   assert.equal(toDateInputValue(new Date(2026, 0, 5, 23, 30)), '2026-01-05');
   assert.equal(toDateInputValue(new Date(2026, 10, 15, 1, 30)), '2026-11-15');
+});
+
+test('shiftDateInputValue moves local date keys across month and year boundaries', () => {
+  assert.equal(shiftDateInputValue('2026-08-31', 1), '2026-09-01');
+  assert.equal(shiftDateInputValue('2026-01-01', -1), '2025-12-31');
+  assert.equal(shiftDateInputValue('not-a-date', 1), '');
 });
 
 test('getDefaultDateRange returns an inclusive date range', () => {

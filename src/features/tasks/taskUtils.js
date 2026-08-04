@@ -49,3 +49,34 @@ export const getAvailableSignInTasks = (
     );
   });
 };
+
+export const isTaskNoteRequired = ({
+  currentTime = new Date(),
+  mode,
+  schedules = [],
+  task,
+}) => {
+  if (!task) {
+    return true;
+  }
+
+  const matchingSchedules = schedules.filter((schedule) => (
+    isScheduleActive(schedule, currentTime)
+    && taskMatchesReference(task, schedule[scheduleConfig.taskIdField])
+  ));
+
+  // Existing schedules and unscheduled tasks retain the original behavior.
+  if (matchingSchedules.length === 0) {
+    return true;
+  }
+
+  return matchingSchedules.some((schedule) => {
+    const requirement = schedule[scheduleConfig.noteRequirementField]
+      ?? scheduleConfig.noteRequirements.both;
+
+    return (
+      requirement === scheduleConfig.noteRequirements.both
+      || requirement === mode
+    );
+  });
+};
