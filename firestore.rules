@@ -75,6 +75,32 @@ service cloud.firestore {
       ) || ownsStudentDocument(data.studentDocId);
     }
 
+    function validTaskName(name) {
+      return name is string
+        && name.size() > 0
+        && name.size() <= 120
+        && !name.matches('.*[\\x00-\\x1F\\x7F-\\x9F\\x{061C}\\x{200B}-\\x{200F}\\x{202A}-\\x{202E}\\x{2066}-\\x{2069}\\x{FEFF}].*')
+        && !name.matches('(?i)extra[ _-]*(hours|time)');
+    }
+
+    function validTaskCreate() {
+      return request.resource.data.keys().hasOnly(['name', 'scheduled'])
+        && validTaskName(request.resource.data.name)
+        && request.resource.data.scheduled is bool;
+    }
+
+    function validTaskAvailabilityUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['scheduled'])
+        && request.resource.data.scheduled is bool;
+    }
+
+    function validTaskReference(data) {
+      return data.taskId is string
+        && data.taskName is string
+        && exists(/databases/$(database)/documents/tasks/$(data.taskId))
+        && get(/databases/$(database)/documents/tasks/$(data.taskId)).data.name == data.taskName;
+    }
+
     function onlySessionFieldsChanged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'signedIn',
@@ -85,17 +111,37 @@ service cloud.firestore {
       ]);
     }
 
-    function validStudentSessionUpdate() {
+    function validSignedInStudentSession(data, studentDocId) {
+      return data.signedIn == true
+        && data.signedInAt is timestamp
+        && data.currentTask is string
+        && data.currentTaskId is string
+        && data.activeTimeLogId is string
+        && exists(/databases/$(database)/documents/tasks/$(data.currentTaskId))
+        && get(/databases/$(database)/documents/tasks/$(data.currentTaskId)).data.name == data.currentTask
+        && getAfter(/databases/$(database)/documents/timeLogs/$(data.activeTimeLogId)).data.studentDocId == studentDocId
+        && getAfter(/databases/$(database)/documents/timeLogs/$(data.activeTimeLogId)).data.taskId == data.currentTaskId
+        && getAfter(/databases/$(database)/documents/timeLogs/$(data.activeTimeLogId)).data.status == 'active';
+    }
+
+    function validSignedOutStudentSession(data) {
+      return (data.signedIn == false || data.signedIn == null)
+        && data.signedInAt == null
+        && data.currentTask == null
+        && data.currentTaskId == null
+        && data.activeTimeLogId == null;
+    }
+
+    function validStudentSessionUpdate(studentDocId) {
       return onlySessionFieldsChanged()
         && (
-          request.resource.data.signedIn == true
-          || request.resource.data.signedIn == false
-          || request.resource.data.signedIn == null
+          validSignedInStudentSession(request.resource.data, studentDocId)
+          || validSignedOutStudentSession(request.resource.data)
         );
     }
 
     function validActiveTimeLogCreate() {
-      return request.resource.data.keys().hasAll([
+      return request.resource.data.keys().hasOnly([
         'studentDocId',
         'studentId',
         'studentName',
@@ -110,6 +156,7 @@ service cloud.firestore {
         'createdAt',
         'updatedAt'
       ])
+        && validTaskReference(request.resource.data)
         && request.resource.data.status == 'active'
         && request.resource.data.signInAt is timestamp
         && request.resource.data.signOutAt == null
@@ -140,12 +187,14 @@ service cloud.firestore {
       allow get, list: if isCoach() || isKiosk() || ownsStudent(resource.data);
       allow create, delete: if isCoach();
       allow update: if isCoach()
-        || ((isKiosk() || ownsStudent(resource.data)) && validStudentSessionUpdate());
+        || ((isKiosk() || ownsStudent(resource.data)) && validStudentSessionUpdate(studentId));
     }
 
     match /tasks/{taskId} {
       allow get, list: if isRecognizedUser();
-      allow create, update, delete: if isCoach();
+      allow create: if isCoach() && validTaskCreate();
+      allow update: if isCoach() && validTaskAvailabilityUpdate();
+      allow delete: if isCoach();
     }
 
     match /schedules/{scheduleId} {

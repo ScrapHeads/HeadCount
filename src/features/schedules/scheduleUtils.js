@@ -13,7 +13,7 @@ const monthFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'long',
 });
 
-const getRecurrenceType = (schedule) => (
+export const getScheduleRecurrenceType = (schedule) => (
   schedule?.[scheduleConfig.recurrenceTypeField]
   ?? (
     schedule?.[scheduleConfig.isRecurringField]
@@ -21,6 +21,23 @@ const getRecurrenceType = (schedule) => (
       : scheduleConfig.recurrenceTypes.oneTime
   )
 );
+
+export const isScheduleDateWithinBounds = (schedule, date) => {
+  const parsedDate = toDate(date);
+
+  if (!parsedDate) {
+    return false;
+  }
+
+  const dateKey = toDateInputValue(parsedDate);
+  const startsOn = schedule?.[scheduleConfig.recurrenceStartsOnField];
+  const endsBefore = schedule?.[scheduleConfig.recurrenceEndsBeforeField];
+
+  return (
+    (!startsOn || dateKey >= startsOn)
+    && (!endsBefore || dateKey < endsBefore)
+  );
+};
 
 export const isOutreachSchedule = (schedule) => (
   schedule?.[scheduleConfig.countsForOutreachField] === true
@@ -59,7 +76,7 @@ export const isScheduleOccurrenceExcluded = (schedule, date) => {
 };
 
 const recurringScheduleMatchesDate = (schedule, date) => {
-  const recurrenceType = getRecurrenceType(schedule);
+  const recurrenceType = getScheduleRecurrenceType(schedule);
 
   if (recurrenceType === scheduleConfig.recurrenceTypes.weekly) {
     return Number(schedule[scheduleConfig.dayOfWeekField]) === date.getDay();
@@ -126,7 +143,8 @@ export const getScheduleOccurrenceForDate = (schedule, date) => {
   }
 
   if (
-    !recurringScheduleMatchesDate(schedule, occurrenceDate)
+    !isScheduleDateWithinBounds(schedule, occurrenceDate)
+    || !recurringScheduleMatchesDate(schedule, occurrenceDate)
     || isScheduleOccurrenceExcluded(schedule, occurrenceDate)
   ) {
     return null;
@@ -195,7 +213,7 @@ export const getScheduleOccurrencesInRange = (
 };
 
 export const getScheduleRecurrenceLabel = (schedule) => {
-  const recurrenceType = getRecurrenceType(schedule);
+  const recurrenceType = getScheduleRecurrenceType(schedule);
 
   if (recurrenceType === scheduleConfig.recurrenceTypes.oneTime) {
     return 'One-time meeting';

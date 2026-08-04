@@ -47,6 +47,22 @@ export const toDateInputValue = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+export const shiftDateInputValue = (dateValue, days) => {
+  if (typeof dateValue !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return '';
+  }
+
+  const [year, month, day] = dateValue.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+
+  if (!isValidMonthDay(year, month - 1, day) || !Number.isInteger(days)) {
+    return '';
+  }
+
+  date.setDate(date.getDate() + days);
+  return toDateInputValue(date);
+};
+
 export const getDefaultDateRange = ({
   days = DEFAULT_ANALYTICS_RANGE_DAYS,
   endDate = new Date(),

@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  writeBatch,
 } from 'firebase/firestore';
 
 const projectId = 'demo-headcount-rules';
@@ -81,7 +82,7 @@ const seedData = async () => {
   });
 };
 
-const activeTimeLog = ({ studentDocId, studentId }) => ({
+const activeTimeLog = ({ studentDocId, studentId, ...overrides }) => ({
   createdAt: serverTimestamp(),
   durationMinutes: null,
   signInAt: serverTimestamp(),
@@ -95,6 +96,7 @@ const activeTimeLog = ({ studentDocId, studentId }) => ({
   taskId: 'build',
   taskName: 'Build',
   updatedAt: serverTimestamp(),
+  ...overrides,
 });
 
 const extraTimeRequest = ({ studentDocId, studentId }) => ({
@@ -158,9 +160,27 @@ test('direct students can read and update session fields only on their own profi
 
   await assertSucceeds(getDoc(doc(aliceDb, 'students', 'alice-profile')));
   await assertFails(getDoc(doc(aliceDb, 'students', 'bob-profile')));
-  await assertSucceeds(updateDoc(doc(aliceDb, 'students', 'alice-profile'), {
+  await assertFails(updateDoc(doc(aliceDb, 'students', 'alice-profile'), {
     signedIn: true,
     signedInAt: serverTimestamp(),
+  }));
+
+  const sessionBatch = writeBatch(aliceDb);
+  sessionBatch.set(
+    doc(aliceDb, 'timeLogs', 'session-log'),
+    activeTimeLog({ studentDocId: 'alice-profile', studentId: 'alice' }),
+  );
+  sessionBatch.update(doc(aliceDb, 'students', 'alice-profile'), {
+    activeTimeLogId: 'session-log',
+    currentTask: 'Build',
+    currentTaskId: 'build',
+    signedIn: true,
+    signedInAt: serverTimestamp(),
+  });
+  await assertSucceeds(sessionBatch.commit());
+
+  await assertFails(updateDoc(doc(aliceDb, 'students', 'alice-profile'), {
+    currentTask: 'Forged task name',
   }));
   await assertFails(updateDoc(doc(aliceDb, 'students', 'alice-profile'), {
     name: 'Changed by student',
@@ -184,6 +204,63 @@ test('direct-student time logs require matching studentId and studentDocId owner
     doc(aliceDb, 'timeLogs', 'mismatched-id'),
     activeTimeLog({ studentDocId: 'alice-profile', studentId: 'bob' }),
   ));
+  await assertFails(setDoc(
+    doc(aliceDb, 'timeLogs', 'missing-task'),
+    activeTimeLog({
+      studentDocId: 'alice-profile',
+      studentId: 'alice',
+      taskId: 'missing',
+    }),
+  ));
+  await assertFails(setDoc(
+    doc(aliceDb, 'timeLogs', 'forged-task-name'),
+    activeTimeLog({
+      studentDocId: 'alice-profile',
+      studentId: 'alice',
+      taskName: 'Extra Hours',
+    }),
+  ));
+});
+
+test('task writes enforce coach ownership, schema, and safe names', async () => {
+  const aliceDb = testEnv
+    .authenticatedContext('alice-user', authToken(studentEmail('alice')))
+    .firestore();
+  const coachDb = testEnv
+    .authenticatedContext('coach-user', authToken(coachEmail))
+    .firestore();
+
+  await assertSucceeds(setDoc(doc(coachDb, 'tasks', 'valid-task'), {
+    name: 'CAD / Build & Test (A)',
+    scheduled: false,
+  }));
+  await assertFails(setDoc(doc(aliceDb, 'tasks', 'student-task'), {
+    name: 'Student-created task',
+    scheduled: false,
+  }));
+  await assertFails(setDoc(doc(coachDb, 'tasks', 'reserved-task'), {
+    name: 'extra_time',
+    scheduled: false,
+  }));
+  await assertFails(setDoc(doc(coachDb, 'tasks', 'oversized-task'), {
+    name: 'A'.repeat(121),
+    scheduled: false,
+  }));
+  await assertFails(setDoc(doc(coachDb, 'tasks', 'formatted-task'), {
+    name: 'Build\u202ETest',
+    scheduled: false,
+  }));
+  await assertFails(setDoc(doc(coachDb, 'tasks', 'extra-field-task'), {
+    name: 'Build test',
+    scheduled: false,
+    system: true,
+  }));
+  await assertSucceeds(updateDoc(doc(coachDb, 'tasks', 'build'), {
+    scheduled: true,
+  }));
+  await assertFails(updateDoc(doc(coachDb, 'tasks', 'build'), {
+    name: 'Renamed task',
+  }));
 });
 
 test('direct-student extra-time requests require matching identifiers', async () => {

@@ -4,6 +4,7 @@ import {
   isOutreachSchedule,
 } from '../features/schedules/scheduleUtils';
 import { isScheduleActive } from '../features/schedules/validateSchedule';
+import { isReservedTaskName } from '../features/tasks/taskNameValidation';
 import {
   MILLISECONDS_PER_MINUTE,
   MINUTES_PER_HOUR,
@@ -18,20 +19,7 @@ const UNCATEGORIZED_TASK_NAME = 'Uncategorized';
 // Analytics is calculated in the browser from time-log snapshots. These
 // helpers keep the grouping rules identical across cards, tables, and charts.
 const padDatePart = (value) => String(value).padStart(2, '0');
-const normalizeTaskNameKey = (value) => String(value ?? '')
-  .trim()
-  .toLowerCase()
-  .replace(/[\s_-]+/g, '');
-
-export const isExtraHoursTaskName = (value) => {
-  const taskNameKey = normalizeTaskNameKey(value);
-
-  return Boolean(taskNameKey) && (
-    taskNameKey === 'extrahours'
-    || taskNameKey === 'extratime'
-    || taskNameKey === normalizeTaskNameKey(timeLogConfig.extraTimeTaskName)
-  );
-};
+export const isExtraHoursTaskName = isReservedTaskName;
 
 export const formatTaskName = (value, fallback = UNCATEGORIZED_TASK_NAME) => {
   const taskName = String(value ?? '').trim();

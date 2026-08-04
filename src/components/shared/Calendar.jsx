@@ -101,6 +101,7 @@ const Calendar = ({
   className = '',
   error = '',
   isLoading = false,
+  onModifyOccurrence,
   onRemoveOccurrence,
   onRemoveSchedule,
   schedules = [],
@@ -501,6 +502,14 @@ const Calendar = ({
 
             {canManage && (
               <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  className="rounded-xl border border-border bg-secondary px-4 py-2.5 text-sm font-semibold text-on-secondary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={Boolean(pendingAction)}
+                  onClick={() => onModifyOccurrence?.(selectedOccurrence)}
+                  type="button"
+                >
+                  Modify event
+                </button>
                 {selectedOccurrence.isRecurring && (
                   <button
                     className="rounded-xl border border-border bg-secondary px-4 py-2.5 text-sm font-semibold text-on-secondary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"

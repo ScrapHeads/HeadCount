@@ -4,6 +4,7 @@ import {
   createTask,
   setTaskScheduled,
 } from '../../features/tasks/taskService';
+import { MAX_TASK_NAME_LENGTH } from '../../features/tasks/taskNameValidation';
 import { FORM_INPUT_CLASS_NAME } from '../../styles/classNames';
 import Button from '../shared/Button';
 
@@ -92,6 +93,7 @@ const TaskAvailabilityCard = ({
           <span className="text-sm font-medium text-on-primary">Task name</span>
           <input
             className={FORM_INPUT_CLASS_NAME}
+            maxLength={MAX_TASK_NAME_LENGTH}
             onChange={(event) => {
               setTaskName(event.target.value);
               setStatusMessage('');

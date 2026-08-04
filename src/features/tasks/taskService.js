@@ -1,6 +1,7 @@
 import { addDoc, collection, doc, getDocs, orderBy, query, updateDoc } from 'firebase/firestore';
 import { taskConfig } from '../../config/appConfig';
 import { db } from '../../services/firebase';
+import { validateTaskName } from './taskNameValidation';
 
 export const listTasks = async () => {
   const taskQuery = query(
@@ -16,21 +17,18 @@ export const listTasks = async () => {
 };
 
 export const createTask = async ({ name, scheduled = false }) => {
-  const trimmedName = String(name ?? '').trim();
-
-  if (!trimmedName) {
-    throw new Error('A task name is required.');
-  }
+  const validatedName = validateTaskName(name);
+  const isScheduled = Boolean(scheduled);
 
   const taskDocRef = await addDoc(collection(db, taskConfig.collectionName), {
-    [taskConfig.nameField]: trimmedName,
-    [taskConfig.scheduledField]: scheduled,
+    [taskConfig.nameField]: validatedName,
+    [taskConfig.scheduledField]: isScheduled,
   });
 
   return {
     id: taskDocRef.id,
-    [taskConfig.nameField]: trimmedName,
-    [taskConfig.scheduledField]: scheduled,
+    [taskConfig.nameField]: validatedName,
+    [taskConfig.scheduledField]: isScheduled,
   };
 };
 

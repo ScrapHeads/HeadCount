@@ -9,9 +9,14 @@ import {
   query,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 import { scheduleConfig } from '../../config/appConfig';
-import { toDate, toDateInputValue } from '../../lib/dateUtils';
+import {
+  shiftDateInputValue,
+  toDate,
+  toDateInputValue,
+} from '../../lib/dateUtils';
 import { db } from '../../services/firebase';
 import { markTaskAsScheduled } from '../tasks/taskService';
 
@@ -37,7 +42,7 @@ export const listSchedulesForTask = async (taskId) => {
   }));
 };
 
-export const createSchedule = async ({
+const buildScheduleData = ({
   taskId,
   startTime,
   endTime,
@@ -48,6 +53,9 @@ export const createSchedule = async ({
   monthOfYear = null,
   countsForAttendance = true,
   countsForOutreach = false,
+  noteRequirement = scheduleConfig.noteRequirements.both,
+  recurrenceStartsOn = null,
+  recurrenceEndsOn = null,
 }) => {
   if (!taskId) {
     throw new Error('A task is required to create a schedule.');
@@ -85,13 +93,22 @@ export const createSchedule = async ({
     throw new Error('A valid month is required for a yearly recurring event.');
   }
 
-  // The task-level flag lets the sign-in page distinguish tasks that are
-  // always available from tasks controlled by a schedule.
-  await markTaskAsScheduled(taskId);
+  const recurrenceStartsOnKey = isRecurring
+    ? getDateKey(recurrenceStartsOn)
+    : null;
+  const recurrenceEndsOnKey = isRecurring
+    ? getDateKey(recurrenceEndsOn)
+    : null;
 
-  // For recurring schedules the dates act as templates: recurrence fields
-  // choose the calendar day and these timestamps provide the time and length.
-  return addDoc(collection(db, scheduleConfig.collectionName), {
+  if (isRecurring && (!recurrenceStartsOnKey || !recurrenceEndsOnKey)) {
+    throw new Error('A start and end date are required for a recurring event.');
+  }
+
+  if (isRecurring && recurrenceEndsOnKey < recurrenceStartsOnKey) {
+    throw new Error('The recurring end date cannot be before the start date.');
+  }
+
+  return {
     [scheduleConfig.taskIdField]: taskId,
     [scheduleConfig.isRecurringField]: Boolean(isRecurring),
     [scheduleConfig.recurrenceTypeField]: isRecurring ? recurrenceType : scheduleConfig.recurrenceTypes.oneTime,
@@ -105,23 +122,123 @@ export const createSchedule = async ({
     [scheduleConfig.endTimeField]: Timestamp.fromDate(endTime),
     [scheduleConfig.countsForAttendanceField]: Boolean(countsForAttendance),
     [scheduleConfig.countsForOutreachField]: Boolean(countsForOutreach),
+    [scheduleConfig.noteRequirementField]: noteRequirement,
+    [scheduleConfig.recurrenceStartsOnField]: recurrenceStartsOnKey,
+    [scheduleConfig.recurrenceEndsBeforeField]: isRecurring
+      ? shiftDateInputValue(recurrenceEndsOnKey, 1)
+      : null,
+  };
+};
+
+const getDateKey = (value) => {
+  const parsedDate = toDate(value);
+
+  if (
+    typeof value === 'string'
+    && /^\d{4}-\d{2}-\d{2}$/.test(value)
+  ) {
+    return shiftDateInputValue(value, 0);
+  }
+
+  return parsedDate ? toDateInputValue(parsedDate) : '';
+};
+
+export const createSchedule = async (scheduleDetails) => {
+  const scheduleData = buildScheduleData(scheduleDetails);
+
+  // The task-level flag lets the sign-in page distinguish tasks that are
+  // always available from tasks controlled by a schedule.
+  await markTaskAsScheduled(scheduleData[scheduleConfig.taskIdField]);
+
+  // For recurring schedules the dates act as templates: recurrence fields
+  // choose the calendar day and these timestamps provide the time and length.
+  return addDoc(collection(db, scheduleConfig.collectionName), {
+    ...scheduleData,
     [scheduleConfig.excludedDatesField]: [],
   });
+};
+
+export const updateSchedule = async ({
+  occurrenceDate,
+  schedule,
+  updateScope = 'future',
+  ...scheduleDetails
+}) => {
+  if (!schedule?.id) {
+    throw new Error('A scheduled event is required.');
+  }
+
+  const scheduleData = buildScheduleData(scheduleDetails);
+  const scheduleRef = doc(db, scheduleConfig.collectionName, schedule.id);
+  const wasRecurring = Boolean(schedule[scheduleConfig.isRecurringField]);
+  const occurrenceDateKey = getDateKey(occurrenceDate);
+
+  if (!wasRecurring) {
+    await markTaskAsScheduled(scheduleData[scheduleConfig.taskIdField]);
+    return updateDoc(scheduleRef, {
+      ...scheduleData,
+      [scheduleConfig.excludedDatesField]: [],
+    });
+  }
+
+  if (!occurrenceDateKey || !['occurrence', 'future'].includes(updateScope)) {
+    throw new Error('Choose a valid recurring event and update option.');
+  }
+
+  if (updateScope === 'occurrence' && scheduleData[scheduleConfig.isRecurringField]) {
+    throw new Error('A single occurrence must be saved as a one-time event.');
+  }
+
+  if (
+    updateScope === 'future'
+    && (
+      (
+        scheduleData[scheduleConfig.isRecurringField]
+        && scheduleData[scheduleConfig.recurrenceStartsOnField] < occurrenceDateKey
+      )
+      || (
+        !scheduleData[scheduleConfig.isRecurringField]
+        && toDateInputValue(scheduleDetails.startTime) < occurrenceDateKey
+      )
+    )
+  ) {
+    throw new Error('A future update cannot start before the selected date.');
+  }
+
+  await markTaskAsScheduled(scheduleData[scheduleConfig.taskIdField]);
+
+  const existingStartsOn = schedule[scheduleConfig.recurrenceStartsOnField] ?? null;
+  if (updateScope === 'future' && existingStartsOn === occurrenceDateKey) {
+    return updateDoc(scheduleRef, {
+      ...scheduleData,
+      [scheduleConfig.excludedDatesField]: schedule[scheduleConfig.excludedDatesField] ?? [],
+    });
+  }
+
+  const batch = writeBatch(db);
+  const replacementRef = doc(collection(db, scheduleConfig.collectionName));
+
+  // A one-date change excludes the original occurrence. A future change ends
+  // the old segment at the selected date and starts its replacement there.
+  batch.update(scheduleRef, updateScope === 'occurrence'
+    ? { [scheduleConfig.excludedDatesField]: arrayUnion(occurrenceDateKey) }
+    : { [scheduleConfig.recurrenceEndsBeforeField]: occurrenceDateKey });
+  batch.set(replacementRef, {
+    ...scheduleData,
+    [scheduleConfig.excludedDatesField]: updateScope === 'future'
+      ? schedule[scheduleConfig.excludedDatesField] ?? []
+      : [],
+  });
+
+  await batch.commit();
+  return replacementRef;
 };
 
 export const excludeScheduleOccurrence = async ({
   scheduleId,
   occurrenceDate,
 }) => {
-  const parsedOccurrenceDate = toDate(occurrenceDate);
-  const occurrenceDateKey = (
-    typeof occurrenceDate === 'string'
-    && /^\d{4}-\d{2}-\d{2}$/.test(occurrenceDate)
-  )
-    ? occurrenceDate
-    : parsedOccurrenceDate
-      ? toDateInputValue(parsedOccurrenceDate)
-      : '';
+  const occurrenceDateKey = getDateKey(occurrenceDate);
 
   if (!scheduleId || !occurrenceDateKey) {
     throw new Error('A valid scheduled occurrence is required.');

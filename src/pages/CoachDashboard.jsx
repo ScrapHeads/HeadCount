@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AnalyticsDashboard from '../components/dashboard/AnalyticsDashboard';
+import ScheduleEventForm from '../components/dashboard/ScheduleEventForm';
 import StudentManagementDashboard from '../components/dashboard/StudentManagementDashboard';
 import TaskAvailabilityCard from '../components/dashboard/TaskAvailabilityCard';
 import Button from '../components/shared/Button';
 import Calendar from '../components/shared/Calendar';
-import Dropdown from '../components/shared/Dropdown';
 import { branding } from '../config/branding';
 import { scheduleConfig, studentAuthConfig, taskConfig } from '../config/appConfig';
 import { ROUTES } from '../config/routesConfig';
@@ -15,24 +15,26 @@ import {
   createSchedule,
   deleteSchedule,
   excludeScheduleOccurrence,
+  updateSchedule,
 } from '../features/schedules/scheduleService';
+import { getScheduleRecurrenceType } from '../features/schedules/scheduleUtils';
 import { useActiveStudents, useStudents } from '../features/students/useStudents';
 import { useTasks } from '../features/tasks/useTasks';
 import { createTask } from '../features/tasks/taskService';
+import { taskMatchesReference } from '../features/tasks/taskUtils';
 import {
   endStaleStudentSession,
   endStudentSessionByCoach,
 } from '../features/timeLogs/timeLogService';
 import {
   formatSignedInAt,
+  shiftDateInputValue,
   toDate,
+  toDateInputValue,
 } from '../lib/dateUtils';
 import { MISSING_VALUE_LABEL } from '../lib/constants';
 import { isCurrentMember } from '../lib/studentUtils';
-import {
-  DASHBOARD_CARD_CLASS_NAME,
-  FORM_INPUT_CLASS_NAME,
-} from '../styles/classNames';
+import { DASHBOARD_CARD_CLASS_NAME } from '../styles/classNames';
 
 const navItems = [
   {
@@ -75,87 +77,6 @@ const getSectionScrollStorageKey = (sectionId) => (
   `coach-dashboard-scroll:${getSectionSlug(sectionId)}`
 );
 
-const weekdayOptions = [
-  { value: '0', label: 'Sunday' },
-  { value: '1', label: 'Monday' },
-  { value: '2', label: 'Tuesday' },
-  { value: '3', label: 'Wednesday' },
-  { value: '4', label: 'Thursday' },
-  { value: '5', label: 'Friday' },
-  { value: '6', label: 'Saturday' },
-];
-
-const monthOptions = [
-  { value: '0', label: 'January' },
-  { value: '1', label: 'February' },
-  { value: '2', label: 'March' },
-  { value: '3', label: 'April' },
-  { value: '4', label: 'May' },
-  { value: '5', label: 'June' },
-  { value: '6', label: 'July' },
-  { value: '7', label: 'August' },
-  { value: '8', label: 'September' },
-  { value: '9', label: 'October' },
-  { value: '10', label: 'November' },
-  { value: '11', label: 'December' },
-];
-
-const dayOfMonthOptions = Array.from({ length: 31 }, (_, index) => ({
-  value: String(index + 1),
-  label: String(index + 1),
-}));
-
-const taskSourceOptions = [
-  {
-    value: 'existing',
-    title: 'Use Existing',
-    description: 'Attach the event to a task that already exists in the system.',
-  },
-  {
-    value: 'new',
-    title: 'Create New',
-    description: 'Make a new scheduled task first, then attach the event to it.',
-  },
-];
-
-const scheduleTypeOptions = [
-  {
-    value: scheduleConfig.recurrenceTypes.oneTime,
-    title: 'One-Time',
-    description: 'A single event with explicit start and end dates.',
-  },
-  {
-    value: scheduleConfig.recurrenceTypes.weekly,
-    title: 'Weekly',
-    description: 'Repeats every week on the selected weekday.',
-  },
-  {
-    value: scheduleConfig.recurrenceTypes.monthly,
-    title: 'Monthly',
-    description: 'Repeats each month on the selected day of month.',
-  },
-  {
-    value: scheduleConfig.recurrenceTypes.yearly,
-    title: 'Yearly',
-    description: 'Repeats once a year on the selected month and day.',
-  },
-];
-
-const meetingCountingOptions = [
-  {
-    value: 'attendance',
-    title: 'Counts for attendance',
-  },
-  {
-    value: 'optional',
-    title: 'Does not count',
-  },
-  {
-    value: 'outreach',
-    title: 'Counts for outreach',
-  },
-];
-
 const buildDateTimeFromForm = (dateValue, timeValue) => {
   if (!dateValue || !timeValue) {
     return null;
@@ -172,6 +93,101 @@ const buildRecurringDateTime = (timeValue) => {
   return new Date(`2000-01-02T${timeValue}`);
 };
 
+const getEmptyScheduleForm = () => ({
+  taskMode: 'existing',
+  taskId: '',
+  newTaskName: '',
+  scheduleMode: scheduleConfig.recurrenceTypes.oneTime,
+  startDate: '',
+  startTime: '',
+  endDate: '',
+  endTime: '',
+  recurringStartDate: '',
+  recurringEndDate: '',
+  recurringDayOfWeek: '1',
+  recurringDayOfMonth: '1',
+  recurringMonthOfYear: '0',
+  meetingCountingType: 'attendance',
+  noteRequirement: scheduleConfig.noteRequirements.both,
+});
+
+const toTimeInputValue = (date) => (
+  `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+);
+
+const getScheduleFormForOccurrence = (occurrence, tasks, useSeriesRecurrence = false) => {
+  const { schedule } = occurrence;
+  const scheduleTaskReference = schedule[scheduleConfig.taskIdField] ?? '';
+  const matchingTask = tasks.find((task) => taskMatchesReference(task, scheduleTaskReference));
+  const meetingCountingType = schedule[scheduleConfig.countsForOutreachField]
+    ? 'outreach'
+    : schedule[scheduleConfig.countsForAttendanceField] === false
+      ? 'optional'
+      : 'attendance';
+
+  return {
+    ...getEmptyScheduleForm(),
+    taskId: matchingTask?.id ?? scheduleTaskReference,
+    scheduleMode: useSeriesRecurrence
+      ? getScheduleRecurrenceType(schedule)
+      : scheduleConfig.recurrenceTypes.oneTime,
+    startDate: toDateInputValue(occurrence.startTime),
+    startTime: toTimeInputValue(occurrence.startTime),
+    endDate: toDateInputValue(occurrence.endTime),
+    endTime: toTimeInputValue(occurrence.endTime),
+    recurringStartDate: occurrence.dateKey,
+    recurringEndDate: schedule[scheduleConfig.recurrenceEndsBeforeField]
+      ? shiftDateInputValue(schedule[scheduleConfig.recurrenceEndsBeforeField], -1)
+      : '',
+    recurringDayOfWeek: String(schedule[scheduleConfig.dayOfWeekField] ?? occurrence.startTime.getDay()),
+    recurringDayOfMonth: String(schedule[scheduleConfig.dayOfMonthField] ?? occurrence.startTime.getDate()),
+    recurringMonthOfYear: String(schedule[scheduleConfig.monthOfYearField] ?? occurrence.startTime.getMonth()),
+    meetingCountingType,
+    noteRequirement: schedule[scheduleConfig.noteRequirementField]
+      ?? scheduleConfig.noteRequirements.both,
+  };
+};
+
+const getScheduleInput = (form, taskId) => {
+  const isRecurring = form.scheduleMode !== scheduleConfig.recurrenceTypes.oneTime;
+
+  return {
+    taskId,
+    startTime: isRecurring
+      ? buildRecurringDateTime(form.startTime)
+      : buildDateTimeFromForm(form.startDate, form.startTime),
+    endTime: isRecurring
+      ? buildRecurringDateTime(form.endTime)
+      : buildDateTimeFromForm(form.endDate, form.endTime),
+    isRecurring,
+    recurrenceStartsOn: isRecurring ? form.recurringStartDate : null,
+    recurrenceEndsOn: isRecurring ? form.recurringEndDate : null,
+    recurrenceType: form.scheduleMode,
+    dayOfWeek: form.scheduleMode === scheduleConfig.recurrenceTypes.weekly
+      ? Number(form.recurringDayOfWeek)
+      : null,
+    dayOfMonth: (
+      form.scheduleMode === scheduleConfig.recurrenceTypes.monthly
+      || form.scheduleMode === scheduleConfig.recurrenceTypes.yearly
+    ) ? Number(form.recurringDayOfMonth) : null,
+    monthOfYear: form.scheduleMode === scheduleConfig.recurrenceTypes.yearly
+      ? Number(form.recurringMonthOfYear)
+      : null,
+    countsForAttendance: form.meetingCountingType === 'attendance',
+    countsForOutreach: form.meetingCountingType === 'outreach',
+    noteRequirement: form.noteRequirement,
+  };
+};
+
+const hasIncompleteScheduleInput = (scheduleInput) => (
+  !scheduleInput.startTime
+  || !scheduleInput.endTime
+  || (
+    scheduleInput.isRecurring
+    && (!scheduleInput.recurrenceStartsOn || !scheduleInput.recurrenceEndsOn)
+  )
+);
+
 // This page coordinates the coach sections and their shared Firestore data.
 // Larger student-management and analytics sections live in separate components
 // so this file can focus on navigation, live sessions, and scheduling.
@@ -181,22 +197,14 @@ const CoachDashboard = () => {
   const [visitedSections, setVisitedSections] = useState(() => new Set([activeSection]));
   const [endingStudentId, setEndingStudentId] = useState('');
   const [homeStatusMessage, setHomeStatusMessage] = useState('');
-  const [scheduleForm, setScheduleForm] = useState({
-    taskMode: 'existing',
-    taskId: '',
-    newTaskName: '',
-    scheduleMode: 'one-time',
-    startDate: '',
-    startTime: '',
-    endDate: '',
-    endTime: '',
-    recurringDayOfWeek: '1',
-    recurringDayOfMonth: '1',
-    recurringMonthOfYear: '0',
-    meetingCountingType: 'attendance',
-  });
+  const [scheduleForm, setScheduleForm] = useState(getEmptyScheduleForm);
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
   const [scheduleStatusMessage, setScheduleStatusMessage] = useState('');
+  const [editingOccurrence, setEditingOccurrence] = useState(null);
+  const [editScheduleForm, setEditScheduleForm] = useState(getEmptyScheduleForm);
+  const [editScope, setEditScope] = useState('occurrence');
+  const [editStatusMessage, setEditStatusMessage] = useState('');
+  const [isSavingScheduleEdit, setIsSavingScheduleEdit] = useState(false);
   const [autoCheckoutTick, setAutoCheckoutTick] = useState(0);
   const autoCheckoutStudentIdsRef = useRef(new Set());
   const { coachUser, signOutCoach } = useAuth();
@@ -412,19 +420,15 @@ const CoachDashboard = () => {
   const handleScheduleSubmit = async (e) => {
     e.preventDefault();
 
-    const isRecurring = scheduleForm.scheduleMode !== scheduleConfig.recurrenceTypes.oneTime;
-    // Recurring schedules need only a time-of-day template. One-time schedules
-    // use the exact dates entered by the coach.
-    const startDateTime = isRecurring
-      ? buildRecurringDateTime(scheduleForm.startTime)
-      : buildDateTimeFromForm(scheduleForm.startDate, scheduleForm.startTime);
-    const endDateTime = isRecurring
-      ? buildRecurringDateTime(scheduleForm.endTime)
-      : buildDateTimeFromForm(scheduleForm.endDate, scheduleForm.endTime);
+    const scheduleInput = getScheduleInput(scheduleForm, scheduleForm.taskId);
     const useNewTask = scheduleForm.taskMode === 'new';
 
-    if ((!useNewTask && !scheduleForm.taskId) || (useNewTask && !scheduleForm.newTaskName.trim()) || !startDateTime || !endDateTime) {
-      setScheduleStatusMessage('Task details plus start and end time information are required.');
+    if (
+      (!useNewTask && !scheduleForm.taskId)
+      || (useNewTask && !scheduleForm.newTaskName.trim())
+      || hasIncompleteScheduleInput(scheduleInput)
+    ) {
+      setScheduleStatusMessage('Task details, dates, and times are required.');
       return;
     }
 
@@ -442,46 +446,86 @@ const CoachDashboard = () => {
         taskId = createdTask.id;
       }
 
-      await createSchedule({
-        taskId,
-        startTime: startDateTime,
-        endTime: endDateTime,
-        isRecurring,
-        recurrenceType: scheduleForm.scheduleMode,
-        dayOfWeek: scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.weekly
-          ? Number(scheduleForm.recurringDayOfWeek)
-          : null,
-        dayOfMonth: (
-          scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.monthly
-          || scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.yearly
-        ) ? Number(scheduleForm.recurringDayOfMonth) : null,
-        monthOfYear: scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.yearly
-          ? Number(scheduleForm.recurringMonthOfYear)
-          : null,
-        countsForAttendance: scheduleForm.meetingCountingType === 'attendance',
-        countsForOutreach: scheduleForm.meetingCountingType === 'outreach',
-      });
+      await createSchedule(getScheduleInput(scheduleForm, taskId));
       reloadTasks();
       reloadSchedules();
-      setScheduleForm({
-        taskMode: 'existing',
-        taskId: '',
-        newTaskName: '',
-        scheduleMode: 'one-time',
-        startDate: '',
-        startTime: '',
-        endDate: '',
-        endTime: '',
-        recurringDayOfWeek: '1',
-        recurringDayOfMonth: '1',
-        recurringMonthOfYear: '0',
-        meetingCountingType: 'attendance',
-      });
+      setScheduleForm(getEmptyScheduleForm());
       setScheduleStatusMessage('Scheduled event created.');
     } catch (scheduleError) {
       setScheduleStatusMessage(scheduleError.message || 'Failed to create the schedule.');
     } finally {
       setIsSavingSchedule(false);
+    }
+  };
+
+  const handleOpenScheduleEdit = (occurrence) => {
+    setEditingOccurrence(occurrence);
+    setEditScope(occurrence.isRecurring ? 'occurrence' : 'event');
+    setEditScheduleForm(getScheduleFormForOccurrence(occurrence, tasks));
+    setEditStatusMessage('');
+  };
+
+  const handleEditScheduleFieldChange = (field, value) => {
+    setEditScheduleForm((currentValue) => ({
+      ...currentValue,
+      [field]: value,
+    }));
+    setEditStatusMessage('');
+  };
+
+  const handleEditScopeChange = (nextScope) => {
+    setEditScope(nextScope);
+    setEditScheduleForm((currentValue) => ({
+      ...currentValue,
+      scheduleMode: nextScope === 'occurrence'
+        ? scheduleConfig.recurrenceTypes.oneTime
+        : getScheduleRecurrenceType(editingOccurrence.schedule),
+    }));
+    setEditStatusMessage('');
+  };
+
+  const handleScheduleEditSubmit = async (event) => {
+    event.preventDefault();
+
+    const scheduleInput = getScheduleInput(editScheduleForm, editScheduleForm.taskId);
+    const useNewTask = editScheduleForm.taskMode === 'new';
+
+    if (
+      (!useNewTask && !editScheduleForm.taskId)
+      || (useNewTask && !editScheduleForm.newTaskName.trim())
+      || hasIncompleteScheduleInput(scheduleInput)
+    ) {
+      setEditStatusMessage('Task details, dates, and times are required.');
+      return;
+    }
+
+    setIsSavingScheduleEdit(true);
+    setEditStatusMessage('');
+
+    try {
+      let taskId = editScheduleForm.taskId;
+
+      if (useNewTask) {
+        const createdTask = await createTask({
+          name: editScheduleForm.newTaskName,
+          scheduled: true,
+        });
+        taskId = createdTask.id;
+      }
+
+      await updateSchedule({
+        ...getScheduleInput(editScheduleForm, taskId),
+        occurrenceDate: editingOccurrence.dateKey,
+        schedule: editingOccurrence.schedule,
+        updateScope: editScope,
+      });
+      reloadTasks();
+      reloadSchedules();
+      setEditingOccurrence(null);
+    } catch (scheduleError) {
+      setEditStatusMessage(scheduleError.message || 'Failed to update the scheduled event.');
+    } finally {
+      setIsSavingScheduleEdit(false);
     }
   };
 
@@ -731,6 +775,7 @@ const CoachDashboard = () => {
                     className={DASHBOARD_CARD_CLASS_NAME}
                     error={schedulesError || tasksError}
                     isLoading={isLoadingSchedules || isLoadingTasks}
+                    onModifyOccurrence={handleOpenScheduleEdit}
                     onRemoveOccurrence={handleRemoveScheduleOccurrence}
                     onRemoveSchedule={handleRemoveSchedule}
                     schedules={schedules}
@@ -753,224 +798,15 @@ const CoachDashboard = () => {
                       </p>
                     </div>
 
-                    <form className="mt-5 grid gap-4 md:grid-cols-2" onSubmit={handleScheduleSubmit}>
-                      <div className="md:col-span-2">
-                        <span className="text-sm font-medium text-on-primary">Task source</span>
-                        <div className="mt-2 grid gap-3 md:grid-cols-2">
-                          {taskSourceOptions.map((option) => {
-                            const isActive = scheduleForm.taskMode === option.value;
-
-                            return (
-                              <button
-                                key={option.value}
-                                className={`rounded-[1.5rem] border p-4 text-left transition ${
-                                  isActive
-                                    ? 'border-accent bg-accent/12 shadow-sm text-on-primary'
-                                    : 'border-border bg-secondary hover:bg-accent/10'
-                                }`}
-                                onClick={() => handleScheduleFieldChange('taskMode', option.value)}
-                                type="button"
-                              >
-                                <p className={`text-base font-semibold ${isActive ? 'text-on-primary' : 'text-on-secondary'}`}>{option.title}</p>
-                                <p className={`mt-2 text-sm leading-6 ${isActive ? 'text-on-primary/90' : 'text-on-secondary/90'}`}>{option.description}</p>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {scheduleForm.taskMode === 'existing' ? (
-                        <Dropdown
-                          className="md:col-span-2 text-on-secondary"
-                          label="Task"
-                          onChange={(value) => handleScheduleFieldChange('taskId', value)}
-                          options={tasks.map((task) => ({
-                            label: task[taskConfig.nameField],
-                            value: task.id,
-                          }))}
-                          placeholder="Select a task"
-                          value={scheduleForm.taskId}
-                        />
-                      ) : (
-                        <label className="flex flex-col gap-1.5 md:col-span-2">
-                          <span className="text-sm font-medium text-on-primary">New task name</span>
-                          <input
-                            className={FORM_INPUT_CLASS_NAME}
-                            onChange={(e) => handleScheduleFieldChange('newTaskName', e.target.value)}
-                            placeholder="Example: CAD Workshop"
-                            required
-                            type="text"
-                            value={scheduleForm.newTaskName}
-                          />
-                        </label>
-                      )}
-
-                      <div className="md:col-span-2">
-                        <span className="text-sm font-medium text-on-primary">Schedule type</span>
-                        <div className="mt-2 grid gap-3 md:grid-cols-2">
-                          {scheduleTypeOptions.map((option) => {
-                            const isActive = scheduleForm.scheduleMode === option.value;
-
-                            return (
-                              <button
-                                key={option.value}
-                                className={`rounded-[1.5rem] border p-4 text-left transition ${
-                                  isActive
-                                    ? 'border-accent bg-accent/12 shadow-sm'
-                                    : 'border-border bg-secondary hover:bg-accent/10'
-                                }`}
-                                onClick={() => handleScheduleFieldChange('scheduleMode', option.value)}
-                                type="button"
-                              >
-                                <p className={`text-base font-semibold ${isActive ? 'text-on-primary' : 'text-on-secondary'}`}>{option.title}</p>
-                                <p className={`mt-2 text-sm leading-6 ${isActive ? 'text-on-primary/90' : 'text-on-secondary/90'}`}>{option.description}</p>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <span className="text-sm font-medium text-on-primary">Meeting hours type</span>
-                        <div className="mt-2 grid gap-3 md:grid-cols-3">
-                          {meetingCountingOptions.map((option) => {
-                            const isActive = scheduleForm.meetingCountingType === option.value;
-
-                            return (
-                              <button
-                                key={option.value}
-                                aria-pressed={isActive}
-                                className={`rounded-[1.5rem] border p-4 text-left transition ${
-                                  isActive
-                                    ? 'border-accent bg-accent/12 shadow-sm'
-                                    : 'border-border bg-secondary hover:bg-accent/10'
-                                }`}
-                                onClick={() => handleScheduleFieldChange('meetingCountingType', option.value)}
-                                type="button"
-                              >
-                                <p className={`text-base font-semibold ${isActive ? 'text-on-primary' : 'text-on-secondary'}`}>{option.title}</p>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.weekly && (
-                        <Dropdown
-                          className="md:col-span-2"
-                          label="Recurring day"
-                          onChange={(value) => handleScheduleFieldChange('recurringDayOfWeek', value)}
-                          options={weekdayOptions}
-                          value={scheduleForm.recurringDayOfWeek}
-                        />
-                      )}
-
-                      {scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.monthly && (
-                        <Dropdown
-                          className="md:col-span-2"
-                          label="Recurring day of month"
-                          onChange={(value) => handleScheduleFieldChange('recurringDayOfMonth', value)}
-                          options={dayOfMonthOptions}
-                          value={scheduleForm.recurringDayOfMonth}
-                        />
-                      )}
-
-                      {scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.yearly && (
-                        <>
-                          <Dropdown
-                            label="Recurring month"
-                            onChange={(value) => handleScheduleFieldChange('recurringMonthOfYear', value)}
-                            options={monthOptions}
-                            value={scheduleForm.recurringMonthOfYear}
-                          />
-
-                          <Dropdown
-                            label="Recurring day of month"
-                            onChange={(value) => handleScheduleFieldChange('recurringDayOfMonth', value)}
-                            options={dayOfMonthOptions}
-                            value={scheduleForm.recurringDayOfMonth}
-                          />
-                        </>
-                      )}
-
-                      {scheduleForm.scheduleMode === scheduleConfig.recurrenceTypes.oneTime ? (
-                        <>
-                          <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-on-primary">Start date</span>
-                            <input
-                              className={FORM_INPUT_CLASS_NAME}
-                              onChange={(e) => handleScheduleFieldChange('startDate', e.target.value)}
-                              required
-                              type="date"
-                              value={scheduleForm.startDate}
-                            />
-                          </label>
-
-                          <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-on-primary">Start time</span>
-                            <input
-                              className={FORM_INPUT_CLASS_NAME}
-                              onChange={(e) => handleScheduleFieldChange('startTime', e.target.value)}
-                              required
-                              type="time"
-                              value={scheduleForm.startTime}
-                            />
-                          </label>
-
-                          <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-on-primary">End date</span>
-                            <input
-                              className={FORM_INPUT_CLASS_NAME}
-                              onChange={(e) => handleScheduleFieldChange('endDate', e.target.value)}
-                              required
-                              type="date"
-                              value={scheduleForm.endDate}
-                            />
-                          </label>
-
-                          <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-on-primary">End time</span>
-                            <input
-                              className={FORM_INPUT_CLASS_NAME}
-                              onChange={(e) => handleScheduleFieldChange('endTime', e.target.value)}
-                              required
-                              type="time"
-                              value={scheduleForm.endTime}
-                            />
-                          </label>
-                        </>
-                      ) : (
-                        <>
-                          <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-on-primary">Start time</span>
-                            <input
-                              className={FORM_INPUT_CLASS_NAME}
-                              onChange={(e) => handleScheduleFieldChange('startTime', e.target.value)}
-                              required
-                              type="time"
-                              value={scheduleForm.startTime}
-                            />
-                          </label>
-
-                          <label className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-on-primary">End time</span>
-                            <input
-                              className={FORM_INPUT_CLASS_NAME}
-                              onChange={(e) => handleScheduleFieldChange('endTime', e.target.value)}
-                              required
-                              type="time"
-                              value={scheduleForm.endTime}
-                            />
-                          </label>
-                        </>
-                      )}
-
-                      <div className="md:col-span-2">
-                        <Button className="md:w-auto" disabled={isSavingSchedule || isLoadingTasks} type="submit">
-                          {isSavingSchedule ? 'Saving event...' : 'Add Event'}
-                        </Button>
-                      </div>
-                    </form>
+                    <ScheduleEventForm
+                      form={scheduleForm}
+                      isLoadingTasks={isLoadingTasks}
+                      isSaving={isSavingSchedule}
+                      onFieldChange={handleScheduleFieldChange}
+                      onSubmit={handleScheduleSubmit}
+                      submitLabel="Add Event"
+                      tasks={tasks}
+                    />
 
                     {scheduleStatusMessage && (
                       <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
@@ -1016,6 +852,91 @@ const CoachDashboard = () => {
           </div>
         </section>
       </div>
+
+      {editingOccurrence && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/75 px-4 py-8 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isSavingScheduleEdit) {
+              setEditingOccurrence(null);
+            }
+          }}
+        >
+          <section
+            aria-labelledby="modify-schedule-title"
+            aria-modal="true"
+            className="w-full max-w-4xl rounded-[2rem] border border-border bg-primary p-6 shadow-2xl sm:p-8"
+            role="dialog"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-border pb-5">
+              <div>
+                <h2 className="text-2xl font-semibold text-on-primary" id="modify-schedule-title">
+                  Modify scheduled event
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-on-primary/85">
+                  Update the event using the same schedule settings as the add-event form.
+                </p>
+              </div>
+              <button
+                aria-label="Close event editor"
+                className="rounded-xl border border-border bg-secondary px-3 py-2 text-sm font-semibold text-on-secondary transition hover:opacity-90 disabled:opacity-60"
+                disabled={isSavingScheduleEdit}
+                onClick={() => setEditingOccurrence(null)}
+                type="button"
+              >
+                Close
+              </button>
+            </div>
+
+            {editingOccurrence.isRecurring && (
+              <div className="mt-5">
+                <p className="text-sm font-medium text-on-primary">Apply changes to</p>
+                <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                  {[
+                    { value: 'occurrence', label: 'Just this event' },
+                    { value: 'future', label: 'This and all future events' },
+                  ].map((option) => {
+                    const isActive = editScope === option.value;
+
+                    return (
+                      <button
+                        aria-pressed={isActive}
+                        className={`rounded-2xl border p-4 text-left text-sm font-semibold transition ${
+                          isActive
+                            ? 'border-accent bg-accent/12 text-on-primary'
+                            : 'border-border bg-secondary text-on-secondary hover:bg-accent/10'
+                        }`}
+                        key={option.value}
+                        onClick={() => handleEditScopeChange(option.value)}
+                        type="button"
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <ScheduleEventForm
+              form={editScheduleForm}
+              isLoadingTasks={isLoadingTasks}
+              isSaving={isSavingScheduleEdit}
+              lockScheduleType={editingOccurrence.isRecurring && editScope === 'occurrence'}
+              onFieldChange={handleEditScheduleFieldChange}
+              onSubmit={handleScheduleEditSubmit}
+              submitLabel="Save Changes"
+              tasks={tasks}
+            />
+
+            {editStatusMessage && (
+              <div className="mt-5 rounded-2xl border border-accent/30 bg-accent/12 px-4 py-3 text-sm text-on-primary">
+                {editStatusMessage}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
     </main>
   );
 };
