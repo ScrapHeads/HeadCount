@@ -3,6 +3,8 @@ import {
   addDemoDoc,
   collectionRef,
   createDemoBatch,
+  deleteDemoDoc,
+  demoArrayUnion,
   demoServerTimestamp,
   documentRef,
   getDemoDoc,
@@ -39,7 +41,11 @@ export const getDoc = (ref) => getDemoDoc(ref);
 
 export const addDoc = (collectionReference, data) => addDemoDoc(collectionReference, data);
 
+export const arrayUnion = (...elements) => demoArrayUnion(...elements);
+
 export const updateDoc = (documentReference, data) => updateDemoDoc(documentReference, data);
+
+export const deleteDoc = (documentReference) => deleteDemoDoc(documentReference);
 
 export const onSnapshot = (target, onData, onError) => onDemoSnapshot(target, onData, onError);
 

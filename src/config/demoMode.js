@@ -1,6 +1,6 @@
 import { STUDENT_SESSION_STORAGE_KEY } from '../lib/constants';
 
-export const DEMO_STATE_STORAGE_KEY = 'robotics-hours-demo-state:v1';
+export const DEMO_STATE_STORAGE_KEY = 'robotics-hours-demo-state:v2';
 
 export const DEMO_CREDENTIALS = Object.freeze({
   coachEmail: 'demo.coach@team.local',

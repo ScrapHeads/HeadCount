@@ -10,7 +10,9 @@ import { DEMO_CREDENTIALS, DEMO_STATE_STORAGE_KEY } from '../../config/demoMode'
 import { MINUTES_PER_HOUR } from '../../lib/constants';
 
 const DEFAULT_APP_NAME = '[DEFAULT]';
+const DEMO_STATE_VERSION = 2;
 const SERVER_TIMESTAMP_SENTINEL = Object.freeze({ __demoServerTimestamp: true });
+const ARRAY_UNION_SENTINEL = Symbol('demoArrayUnion');
 
 let stateCache = null;
 let memoryState = null;
@@ -145,16 +147,41 @@ const addDays = (date, days) => {
 
 const addMinutes = (date, minutes) => new Date(date.getTime() + minutes * 60_000);
 
-const createInitialState = () => {
-  const now = new Date();
+const toLocalDateKey = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
+const getDemoFixtureDates = (now = new Date()) => {
   const today = startOfDay(now);
-  const activeStartedAt = addMinutes(now, -48);
-  const activeScheduleStart = addMinutes(now, -60);
-  const activeScheduleEnd = addMinutes(now, 120);
+
+  return {
+    activeScheduleEnd: addMinutes(now, 120),
+    activeScheduleStart: addMinutes(now, -60),
+    activeStartedAt: addMinutes(now, -48),
+    lastWeek: addDays(today, -7),
+    seedDate: toLocalDateKey(today),
+    threeWeeksAgo: addDays(today, -21),
+    today,
+    twoWeeksAgo: addDays(today, -14),
+  };
+};
+
+const createInitialState = () => {
+  const {
+    activeScheduleEnd,
+    activeScheduleStart,
+    activeStartedAt,
+    lastWeek,
+    seedDate,
+    threeWeeksAgo,
+    today,
+    twoWeeksAgo,
+  } = getDemoFixtureDates();
   const kioskEmail = kioskAuthConfig.email || DEMO_CREDENTIALS.kioskEmail;
-  const lastWeek = addDays(today, -7);
-  const twoWeeksAgo = addDays(today, -14);
-  const threeWeeksAgo = addDays(today, -21);
   const demoStudents = [
     { docId: 'student-ada', id: '1001', name: 'Ada Lovelace', nfcCardId: 'nfc-ada' },
     { docId: 'student-grace', id: '1002', name: 'Grace Hopper', nfcCardId: 'nfc-grace' },
@@ -163,7 +190,8 @@ const createInitialState = () => {
   ];
 
   return {
-    version: 1,
+    version: DEMO_STATE_VERSION,
+    seedDate,
     auth: {
       currentUsersByApp: {},
       users: {
@@ -393,6 +421,97 @@ const createInitialState = () => {
   };
 };
 
+const refreshDemoFixtureDates = (state) => {
+  const dates = getDemoFixtureDates();
+
+  if (state.seedDate === dates.seedDate) {
+    return false;
+  }
+
+  state.seedDate = dates.seedDate;
+  const collections = state.collections ?? {};
+  const students = collections[studentAuthConfig.collectionName] ?? {};
+  const schedules = collections[scheduleConfig.collectionName] ?? {};
+  const timeLogs = collections[timeLogConfig.collectionName] ?? {};
+  const extraTimeRequests = collections[extraTimeRequestConfig.collectionName] ?? {};
+  const activeStudent = students['student-grace'];
+  const activeLog = timeLogs['time-log-active-grace'];
+
+  if (
+    activeStudent?.[studentAuthConfig.signedInField]
+    && activeStudent[studentAuthConfig.activeTimeLogIdField] === 'time-log-active-grace'
+    && activeLog?.[timeLogConfig.statusField] === timeLogConfig.activeStatus
+  ) {
+    activeStudent[studentAuthConfig.signedInAtField] = makeTimestamp(dates.activeStartedAt);
+    activeLog[timeLogConfig.createdAtField] = makeTimestamp(dates.activeStartedAt);
+    activeLog[timeLogConfig.signInAtField] = makeTimestamp(dates.activeStartedAt);
+    activeLog[timeLogConfig.updatedAtField] = makeTimestamp(dates.activeStartedAt);
+  }
+
+  const activeSchedule = schedules['schedule-drive-now'];
+  if (activeSchedule) {
+    activeSchedule[scheduleConfig.startTimeField] = makeTimestamp(dates.activeScheduleStart);
+    activeSchedule[scheduleConfig.endTimeField] = makeTimestamp(dates.activeScheduleEnd);
+  }
+
+  const completedLogDates = [
+    {
+      end: addMinutes(dates.lastWeek, 19 * 60 + 58),
+      id: 'time-log-ada-cad',
+      start: addMinutes(dates.lastWeek, 18 * 60),
+    },
+    {
+      end: addMinutes(dates.twoWeeksAgo, 19 * 60 + 5),
+      id: 'time-log-grace-programming',
+      start: addMinutes(dates.twoWeeksAgo, 17 * 60 + 30),
+    },
+    {
+      end: addMinutes(dates.threeWeeksAgo, 20 * 60 + 2),
+      id: 'time-log-katherine-build',
+      start: addMinutes(dates.threeWeeksAgo, 18 * 60),
+    },
+  ];
+
+  completedLogDates.forEach(({ end, id, start }) => {
+    const timeLog = timeLogs[id];
+
+    if (!timeLog) {
+      return;
+    }
+
+    timeLog[timeLogConfig.createdAtField] = makeTimestamp(start);
+    timeLog[timeLogConfig.signInAtField] = makeTimestamp(start);
+    timeLog[timeLogConfig.signOutAtField] = makeTimestamp(end);
+    timeLog[timeLogConfig.updatedAtField] = makeTimestamp(end);
+  });
+
+  const extraHoursLog = timeLogs['time-log-ada-extra'];
+  if (extraHoursLog) {
+    const extraHoursDate = addDays(dates.today, -3);
+    extraHoursLog[timeLogConfig.createdAtField] = makeTimestamp(extraHoursDate);
+    extraHoursLog[timeLogConfig.updatedAtField] = makeTimestamp(extraHoursDate);
+  }
+
+  const pendingRequest = extraTimeRequests['request-ada-pending'];
+  if (pendingRequest) {
+    pendingRequest[extraTimeRequestConfig.requestedAtField] = makeTimestamp(
+      addDays(dates.today, -1),
+    );
+  }
+
+  const approvedRequest = extraTimeRequests['request-grace-approved'];
+  if (approvedRequest) {
+    approvedRequest[extraTimeRequestConfig.requestedAtField] = makeTimestamp(
+      addDays(dates.today, -9),
+    );
+    approvedRequest[extraTimeRequestConfig.reviewedAtField] = makeTimestamp(
+      addDays(dates.today, -8),
+    );
+  }
+
+  return true;
+};
+
 const readStoredState = () => {
   if (typeof window === 'undefined') {
     memoryState ??= createInitialState();
@@ -409,7 +528,7 @@ const readStoredState = () => {
 
   try {
     const storedState = deserializeValue(JSON.parse(rawState));
-    if (storedState?.version === 1) {
+    if (storedState?.version === DEMO_STATE_VERSION) {
       return storedState;
     }
 
@@ -425,6 +544,18 @@ const readStoredState = () => {
 
 const getState = () => {
   stateCache ??= readStoredState();
+
+  if (refreshDemoFixtureDates(stateCache)) {
+    if (typeof window === 'undefined') {
+      memoryState = stateCache;
+    } else {
+      window.localStorage.setItem(
+        DEMO_STATE_STORAGE_KEY,
+        JSON.stringify(serializeValue(stateCache)),
+      );
+    }
+  }
+
   return stateCache;
 };
 
@@ -450,9 +581,52 @@ const nextDocumentId = (state, collectionName) => {
   return `${collectionName}-${nextValue}`;
 };
 
-const resolveWriteValue = (value) => {
+const writeValuesEqual = (left, right) => {
+  if (left instanceof DemoTimestamp && right instanceof DemoTimestamp) {
+    return left.toMillis() === right.toMillis();
+  }
+
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return left.length === right.length
+      && left.every((item, index) => writeValuesEqual(item, right[index]));
+  }
+
+  if (isPlainObject(left) && isPlainObject(right)) {
+    const leftEntries = Object.entries(left);
+    const rightKeys = Object.keys(right);
+
+    return leftEntries.length === rightKeys.length
+      && leftEntries.every(([key, childValue]) => (
+        Object.prototype.hasOwnProperty.call(right, key)
+        && writeValuesEqual(childValue, right[key])
+      ));
+  }
+
+  return Object.is(left, right);
+};
+
+const resolveWriteValue = (value, currentValue) => {
   if (value === SERVER_TIMESTAMP_SENTINEL) {
     return DemoTimestamp.now();
+  }
+
+  if (
+    isPlainObject(value)
+    && Object.prototype.hasOwnProperty.call(value, ARRAY_UNION_SENTINEL)
+  ) {
+    const result = Array.isArray(currentValue)
+      ? currentValue.map(cloneValue)
+      : [];
+
+    value[ARRAY_UNION_SENTINEL].forEach((item) => {
+      const resolvedItem = resolveWriteValue(item);
+
+      if (!result.some((existingItem) => writeValuesEqual(existingItem, resolvedItem))) {
+        result.push(resolvedItem);
+      }
+    });
+
+    return result;
   }
 
   if (value instanceof Date) {
@@ -465,7 +639,10 @@ const resolveWriteValue = (value) => {
 
   if (isPlainObject(value)) {
     return Object.fromEntries(
-      Object.entries(value).map(([key, childValue]) => [key, resolveWriteValue(childValue)]),
+      Object.entries(value).map(([key, childValue]) => [
+        key,
+        resolveWriteValue(childValue, currentValue?.[key]),
+      ]),
     );
   }
 
@@ -649,6 +826,11 @@ const applySet = (state, ref, data) => {
   collectionData[ref.id] = resolveWriteValue(data);
 };
 
+const applyDelete = (state, ref) => {
+  const collectionData = ensureCollection(state, ref.collectionName);
+  delete collectionData[ref.id];
+};
+
 const applyUpdate = (state, ref, data) => {
   const collectionData = ensureCollection(state, ref.collectionName);
 
@@ -658,7 +840,7 @@ const applyUpdate = (state, ref, data) => {
 
   collectionData[ref.id] = {
     ...collectionData[ref.id],
-    ...resolveWriteValue(data),
+    ...resolveWriteValue(data, collectionData[ref.id]),
   };
 };
 
@@ -941,6 +1123,12 @@ export const updateDemoDoc = async (ref, data) => {
   });
 };
 
+export const deleteDemoDoc = async (ref) => {
+  mutateState((state) => {
+    applyDelete(state, ref);
+  });
+};
+
 export const onDemoSnapshot = (target, onData, onError) => {
   const id = firestoreListenerId;
   firestoreListenerId += 1;
@@ -969,11 +1157,19 @@ export const createDemoBatch = () => {
     update(ref, data) {
       operations.push({ data, ref, type: 'update' });
     },
+    delete(ref) {
+      operations.push({ ref, type: 'delete' });
+    },
     async commit() {
       mutateState((state) => {
         operations.forEach((operation) => {
           if (operation.type === 'set') {
             applySet(state, operation.ref, operation.data);
+            return;
+          }
+
+          if (operation.type === 'delete') {
+            applyDelete(state, operation.ref);
             return;
           }
 
@@ -1030,6 +1226,10 @@ export const callDemoFunction = async (name, data) => {
 };
 
 export const demoServerTimestamp = () => SERVER_TIMESTAMP_SENTINEL;
+
+export const demoArrayUnion = (...elements) => Object.freeze({
+  [ARRAY_UNION_SENTINEL]: elements,
+});
 
 export const createExtraHoursLogPayload = ({ enteredBy, requestData, studentData, timeLogDocRef }) => ({
   [timeLogConfig.createdAtField]: demoServerTimestamp(),
