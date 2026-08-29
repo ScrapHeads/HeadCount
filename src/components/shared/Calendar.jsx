@@ -483,7 +483,7 @@ const Calendar = ({
                 }}
                 type="button"
               >
-                Show all meetings
+                End search
               </button>
             </div>
           </div>
