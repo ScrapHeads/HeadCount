@@ -10,7 +10,7 @@ import { DEMO_CREDENTIALS, DEMO_STATE_STORAGE_KEY } from '../../config/demoMode'
 import { MINUTES_PER_HOUR } from '../../lib/constants';
 
 const DEFAULT_APP_NAME = '[DEFAULT]';
-const DEMO_STATE_VERSION = 2;
+const DEMO_STATE_VERSION = 3;
 const SERVER_TIMESTAMP_SENTINEL = Object.freeze({ __demoServerTimestamp: true });
 const ARRAY_UNION_SENTINEL = Symbol('demoArrayUnion');
 
@@ -226,6 +226,7 @@ const createInitialState = () => {
       [studentAuthConfig.collectionName]: {
         'student-ada': {
           [studentAuthConfig.activeTimeLogIdField]: null,
+          createdAt: makeTimestamp(addDays(today, -120)),
           [studentAuthConfig.currentMemberField]: true,
           [studentAuthConfig.currentTaskField]: null,
           [studentAuthConfig.currentTaskIdField]: null,
@@ -234,22 +235,26 @@ const createInitialState = () => {
           [studentAuthConfig.previousStudentIdField]: [],
           [studentAuthConfig.signedInAtField]: null,
           [studentAuthConfig.signedInField]: false,
+          updatedAt: makeTimestamp(addDays(today, -120)),
           name: 'Ada Lovelace',
         },
         'student-grace': {
           [studentAuthConfig.activeTimeLogIdField]: 'time-log-active-grace',
+          createdAt: makeTimestamp(addDays(today, -110)),
           [studentAuthConfig.currentMemberField]: true,
-          [studentAuthConfig.currentTaskField]: 'Build',
-          [studentAuthConfig.currentTaskIdField]: 'task-build',
+          [studentAuthConfig.currentTaskField]: 'Drive Practice',
+          [studentAuthConfig.currentTaskIdField]: 'task-drive-practice',
           [studentAuthConfig.idField]: '1002',
           [studentAuthConfig.nfcCardIdField]: 'nfc-grace',
           [studentAuthConfig.previousStudentIdField]: ['902'],
           [studentAuthConfig.signedInAtField]: makeTimestamp(activeStartedAt),
           [studentAuthConfig.signedInField]: true,
+          updatedAt: makeTimestamp(addDays(today, -110)),
           name: 'Grace Hopper',
         },
         'student-katherine': {
           [studentAuthConfig.activeTimeLogIdField]: null,
+          createdAt: makeTimestamp(addDays(today, -100)),
           [studentAuthConfig.currentMemberField]: true,
           [studentAuthConfig.currentTaskField]: null,
           [studentAuthConfig.currentTaskIdField]: null,
@@ -258,10 +263,12 @@ const createInitialState = () => {
           [studentAuthConfig.previousStudentIdField]: [],
           [studentAuthConfig.signedInAtField]: null,
           [studentAuthConfig.signedInField]: false,
+          updatedAt: makeTimestamp(addDays(today, -100)),
           name: 'Katherine Johnson',
         },
         'student-miguel': {
           [studentAuthConfig.activeTimeLogIdField]: null,
+          createdAt: makeTimestamp(addDays(today, -180)),
           [studentAuthConfig.currentMemberField]: false,
           [studentAuthConfig.currentTaskField]: null,
           [studentAuthConfig.currentTaskIdField]: null,
@@ -270,13 +277,14 @@ const createInitialState = () => {
           [studentAuthConfig.previousStudentIdField]: [],
           [studentAuthConfig.signedInAtField]: null,
           [studentAuthConfig.signedInField]: false,
+          updatedAt: makeTimestamp(addDays(today, -45)),
           name: 'Miguel Santos',
         },
       },
       [taskConfig.collectionName]: {
         'task-build': {
           [taskConfig.nameField]: 'Build',
-          [taskConfig.scheduledField]: false,
+          [taskConfig.scheduledField]: true,
         },
         'task-cad': {
           [taskConfig.nameField]: 'CAD',
@@ -298,22 +306,32 @@ const createInitialState = () => {
       [scheduleConfig.collectionName]: {
         'schedule-drive-now': {
           [scheduleConfig.countsForAttendanceField]: true,
+          [scheduleConfig.countsForOutreachField]: false,
           [scheduleConfig.dayOfMonthField]: null,
           [scheduleConfig.dayOfWeekField]: null,
           [scheduleConfig.endTimeField]: makeTimestamp(activeScheduleEnd),
+          [scheduleConfig.excludedDatesField]: [],
           [scheduleConfig.isRecurringField]: false,
           [scheduleConfig.monthOfYearField]: null,
+          [scheduleConfig.noteRequirementField]: scheduleConfig.noteRequirements.both,
+          [scheduleConfig.recurrenceEndsBeforeField]: null,
+          [scheduleConfig.recurrenceStartsOnField]: null,
           [scheduleConfig.recurrenceTypeField]: scheduleConfig.recurrenceTypes.oneTime,
           [scheduleConfig.startTimeField]: makeTimestamp(activeScheduleStart),
           [scheduleConfig.taskIdField]: 'task-drive-practice',
         },
         'schedule-weekly-build': {
           [scheduleConfig.countsForAttendanceField]: true,
+          [scheduleConfig.countsForOutreachField]: false,
           [scheduleConfig.dayOfMonthField]: null,
           [scheduleConfig.dayOfWeekField]: lastWeek.getDay(),
           [scheduleConfig.endTimeField]: makeTimestamp(new Date(2000, 0, 2, 20, 0)),
+          [scheduleConfig.excludedDatesField]: [],
           [scheduleConfig.isRecurringField]: true,
           [scheduleConfig.monthOfYearField]: null,
+          [scheduleConfig.noteRequirementField]: scheduleConfig.noteRequirements.both,
+          [scheduleConfig.recurrenceEndsBeforeField]: toLocalDateKey(addDays(today, 42)),
+          [scheduleConfig.recurrenceStartsOnField]: toLocalDateKey(threeWeeksAgo),
           [scheduleConfig.recurrenceTypeField]: scheduleConfig.recurrenceTypes.weekly,
           [scheduleConfig.startTimeField]: makeTimestamp(new Date(2000, 0, 2, 18, 0)),
           [scheduleConfig.taskIdField]: 'task-build',
@@ -331,8 +349,8 @@ const createInitialState = () => {
           [timeLogConfig.studentDocIdField]: 'student-grace',
           [timeLogConfig.studentIdField]: '1002',
           [timeLogConfig.studentNameField]: 'Grace Hopper',
-          [timeLogConfig.taskIdField]: 'task-build',
-          [timeLogConfig.taskNameField]: 'Build',
+          [timeLogConfig.taskIdField]: 'task-drive-practice',
+          [timeLogConfig.taskNameField]: 'Drive Practice',
           [timeLogConfig.updatedAtField]: makeTimestamp(activeStartedAt),
         },
         'time-log-ada-cad': {
@@ -391,6 +409,18 @@ const createInitialState = () => {
           [timeLogConfig.studentNameField]: 'Ada Lovelace',
           [timeLogConfig.taskNameField]: timeLogConfig.extraTimeTaskName,
           [timeLogConfig.updatedAtField]: makeTimestamp(addDays(today, -3)),
+        },
+        'time-log-grace-approved-extra': {
+          [timeLogConfig.createdAtField]: makeTimestamp(addDays(today, -8)),
+          [timeLogConfig.durationMinutesField]: 75,
+          [timeLogConfig.enteredByField]: DEMO_CREDENTIALS.coachEmail,
+          [timeLogConfig.reasonField]: 'Driver practice setup.',
+          [timeLogConfig.statusField]: timeLogConfig.completedStatus,
+          [timeLogConfig.studentDocIdField]: 'student-grace',
+          [timeLogConfig.studentIdField]: '1002',
+          [timeLogConfig.studentNameField]: 'Grace Hopper',
+          [timeLogConfig.taskNameField]: timeLogConfig.extraTimeTaskName,
+          [timeLogConfig.updatedAtField]: makeTimestamp(addDays(today, -8)),
         },
       },
       [extraTimeRequestConfig.collectionName]: {
@@ -454,6 +484,17 @@ const refreshDemoFixtureDates = (state) => {
     activeSchedule[scheduleConfig.endTimeField] = makeTimestamp(dates.activeScheduleEnd);
   }
 
+  const weeklyBuildSchedule = schedules['schedule-weekly-build'];
+  if (weeklyBuildSchedule) {
+    weeklyBuildSchedule[scheduleConfig.dayOfWeekField] = dates.today.getDay();
+    weeklyBuildSchedule[scheduleConfig.recurrenceStartsOnField] = toLocalDateKey(
+      dates.threeWeeksAgo,
+    );
+    weeklyBuildSchedule[scheduleConfig.recurrenceEndsBeforeField] = toLocalDateKey(
+      addDays(dates.today, 42),
+    );
+  }
+
   const completedLogDates = [
     {
       end: addMinutes(dates.lastWeek, 19 * 60 + 58),
@@ -490,6 +531,17 @@ const refreshDemoFixtureDates = (state) => {
     const extraHoursDate = addDays(dates.today, -3);
     extraHoursLog[timeLogConfig.createdAtField] = makeTimestamp(extraHoursDate);
     extraHoursLog[timeLogConfig.updatedAtField] = makeTimestamp(extraHoursDate);
+  }
+
+  const approvedExtraHoursLog = timeLogs['time-log-grace-approved-extra'];
+  if (approvedExtraHoursLog) {
+    const approvedExtraHoursDate = addDays(dates.today, -8);
+    approvedExtraHoursLog[timeLogConfig.createdAtField] = makeTimestamp(
+      approvedExtraHoursDate,
+    );
+    approvedExtraHoursLog[timeLogConfig.updatedAtField] = makeTimestamp(
+      approvedExtraHoursDate,
+    );
   }
 
   const pendingRequest = extraTimeRequests['request-ada-pending'];
