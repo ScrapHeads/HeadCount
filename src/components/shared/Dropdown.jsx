@@ -8,14 +8,25 @@ const Dropdown = ({
   onChange,
   options,
   placeholder = 'Select an option',
+  searchable = true,
+  searchPlaceholder = 'Search options',
   value,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef(null);
+  const triggerRef = useRef(null);
   const generatedId = useId();
   const labelId = `${generatedId}-label`;
   const listboxId = `${generatedId}-listbox`;
   const selectedOption = options.find((option) => option.value === value) ?? null;
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const filteredOptions = searchable && normalizedSearchTerm
+    ? options.filter((option) => (
+        String(option.label ?? '').toLowerCase().includes(normalizedSearchTerm)
+        || String(option.value ?? '').toLowerCase().includes(normalizedSearchTerm)
+      ))
+    : options;
 
   useEffect(() => {
     if (!isOpen) {
@@ -25,12 +36,15 @@ const Dropdown = ({
     const handlePointerDown = (event) => {
       if (!dropdownRef.current?.contains(event.target)) {
         setIsOpen(false);
+        setSearchTerm('');
       }
     };
 
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
         setIsOpen(false);
+        setSearchTerm('');
+        triggerRef.current?.focus();
       }
     };
 
@@ -48,13 +62,20 @@ const Dropdown = ({
   useEffect(() => {
     if (disabled) {
       setIsOpen(false);
+      setSearchTerm('');
     }
   }, [disabled]);
 
   const toggleDropdown = () => {
-    if (!disabled) {
-      setIsOpen((currentValue) => !currentValue);
+    if (disabled) {
+      return;
     }
+
+    if (isOpen) {
+      setSearchTerm('');
+    }
+
+    setIsOpen(!isOpen);
   };
 
   return (
@@ -79,6 +100,7 @@ const Dropdown = ({
               setIsOpen(true);
             }
           }}
+          ref={triggerRef}
           type="button"
         >
           <span className={`truncate ${selectedOption ? '' : 'text-on-secondary/90'}`}>
@@ -102,40 +124,61 @@ const Dropdown = ({
 
         {isOpen && (
           <div
-            aria-labelledby={label ? labelId : undefined}
-            className="absolute left-0 right-0 top-full z-40 mt-2 max-h-64 overflow-y-auto rounded-2xl border border-on-primary/15 bg-primary p-2 shadow-2xl shadow-primary/30"
-            id={listboxId}
-            role="listbox"
+            className="absolute left-0 right-0 top-full z-40 mt-2 flex max-h-64 flex-col rounded-2xl border border-on-primary/15 bg-primary p-2 shadow-2xl shadow-primary/30"
           >
-            {options.length === 0 ? (
-              <p className="rounded-xl px-4 py-3 text-sm text-on-primary/70">
-                No options available
-              </p>
-            ) : (
-              options.map((option) => {
-                const isSelected = option.value === value;
-
-                return (
-                  <button
-                    aria-selected={isSelected}
-                    className={`flex w-full rounded-xl px-4 py-3 text-left text-sm font-semibold outline-none transition ${
-                      isSelected
-                        ? 'bg-secondary text-on-secondary'
-                        : 'text-on-primary hover:bg-accent hover:text-on-primary focus:bg-accent focus:text-on-primary'
-                    }`}
-                    key={option.value}
-                    onClick={() => {
-                      onChange(option.value);
-                      setIsOpen(false);
-                    }}
-                    role="option"
-                    type="button"
-                  >
-                    {option.label}
-                  </button>
-                );
-              })
+            {searchable && options.length > 0 && (
+              <input
+                aria-label={searchPlaceholder}
+                autoFocus
+                className="w-full rounded-xl border border-border bg-secondary px-4 py-2.5 text-sm text-on-secondary outline-none transition placeholder:text-on-secondary/70 focus:border-primary focus:ring-4 focus:ring-primary/15"
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder={searchPlaceholder}
+                type="search"
+                value={searchTerm}
+              />
             )}
+
+            <div
+              aria-labelledby={label ? labelId : undefined}
+              className={`${searchable && options.length > 0 ? 'mt-2' : ''} min-h-0 overflow-y-auto`}
+              id={listboxId}
+              role="listbox"
+            >
+              {options.length === 0 ? (
+                <p className="rounded-xl px-4 py-3 text-sm text-on-primary/70">
+                  No options available
+                </p>
+              ) : filteredOptions.length === 0 ? (
+                <p className="rounded-xl px-4 py-3 text-sm text-on-primary/70">
+                  No matching options
+                </p>
+              ) : (
+                filteredOptions.map((option) => {
+                  const isSelected = option.value === value;
+
+                  return (
+                    <button
+                      aria-selected={isSelected}
+                      className={`flex w-full rounded-xl px-4 py-3 text-left text-sm font-semibold outline-none transition ${
+                        isSelected
+                          ? 'bg-secondary text-on-secondary'
+                          : 'text-on-primary hover:bg-accent hover:text-on-primary focus:bg-accent focus:text-on-primary'
+                      }`}
+                      key={option.value}
+                      onClick={() => {
+                        onChange(option.value);
+                        setIsOpen(false);
+                        setSearchTerm('');
+                      }}
+                      role="option"
+                      type="button"
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
         )}
       </div>

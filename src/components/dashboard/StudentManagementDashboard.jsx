@@ -15,7 +15,10 @@ import {
   updateStudent,
 } from '../../features/students/studentService';
 import { useStudents } from '../../features/students/useStudents';
-import { getAvailableSignInTasks } from '../../features/tasks/taskUtils';
+import {
+  getAvailableSignInTasks,
+  isTaskNoteRequired,
+} from '../../features/tasks/taskUtils';
 import { useTasks } from '../../features/tasks/useTasks';
 import { useCompletedTimeLogs } from '../../features/timeLogs/useCompletedTimeLogs';
 import {
@@ -32,6 +35,7 @@ import {
 import { MISSING_VALUE_LABEL } from '../../lib/constants';
 import { toDate } from '../../lib/dateUtils';
 import { getStudentIdHistory, isCurrentMember } from '../../lib/studentUtils';
+import { useCurrentTime } from '../../hooks/useCurrentTime';
 import {
   getMinimumLengthMessage,
   nullableString,
@@ -48,6 +52,7 @@ import Dropdown from '../shared/Dropdown';
 import TimeLogEditorDialog from './TimeLogEditorDialog';
 
 const tableCellClassName = 'border-y border-border bg-transparent px-4 py-3 text-sm text-on-primary';
+const activeRosterPreviewSize = 5;
 const timeLogsPageSize = 10;
 
 const emptyCreateForm = {
@@ -190,6 +195,8 @@ const StudentDropdown = ({
       value: student.id,
     }))}
     placeholder="Select a student"
+    searchable
+    searchPlaceholder="Search by student name or ID"
     value={value}
   />
 );
@@ -361,67 +368,96 @@ const ActiveRosterCard = ({
   isLoading,
   rosterStudents,
   totalRosterHours,
-}) => (
-  <article className={cardClassName}>
-    <div className="border-b border-border pb-5">
-      <h3 className="text-lg font-semibold text-on-primary">Active Team Roster</h3>
-      <p className="mt-2 text-sm leading-6 text-on-primary/90">
-        Current members with their all-time completed hours.
-      </p>
-    </div>
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasAdditionalStudents = rosterStudents.length > activeRosterPreviewSize;
+  const visibleRosterStudents = isExpanded
+    ? rosterStudents
+    : rosterStudents.slice(0, activeRosterPreviewSize);
 
-    <div className="mt-5 grid gap-3 sm:grid-cols-2">
-      <div className="flex min-h-[104px] flex-col items-center justify-center rounded-2xl border border-border bg-secondary px-4 py-4 text-center shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary/90">Current Members</p>
-        <p className="mt-2 text-2xl font-semibold text-on-secondary">{rosterStudents.length}</p>
+  return (
+    <article className={cardClassName}>
+      <div className="border-b border-border pb-5">
+        <h3 className="text-lg font-semibold text-on-primary">Active Team Roster</h3>
+        <p className="mt-2 text-sm leading-6 text-on-primary/90">
+          Current members with their all-time completed hours.
+        </p>
       </div>
-      <div className="flex min-h-[104px] flex-col items-center justify-center rounded-2xl border border-border bg-secondary px-4 py-4 text-center shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary/90">Total Hours</p>
-        <p className="mt-2 text-2xl font-semibold text-on-secondary">{totalRosterHours.toFixed(1)}</p>
-      </div>
-    </div>
 
-    {isLoading ? (
-      <CardMessage>Loading roster...</CardMessage>
-    ) : error ? (
-      <CardMessage tone="error">{error}</CardMessage>
-    ) : rosterStudents.length === 0 ? (
-      <CardMessage>No current members found.</CardMessage>
-    ) : (
-      <div className="mt-5 overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-y-2">
-          <thead>
-            <tr>
-              <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Name</th>
-              <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student ID</th>
-              <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} text-right`}>Total Hours</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rosterStudents.map((student) => (
-              <tr key={student.id}>
-                <td className={`${tableCellClassName} rounded-l-xl border-l font-semibold`}>
-                  {getStudentName(student)}
-                </td>
-                <td className={tableCellClassName}>
-                  {getStudentId(student) || MISSING_VALUE_LABEL}
-                </td>
-                <td className={`${tableCellClassName} rounded-r-xl border-r text-right font-semibold`}>
-                  {student.totalHours.toFixed(1)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="flex min-h-[104px] flex-col items-center justify-center rounded-2xl border border-border bg-secondary px-4 py-4 text-center shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary/90">Current Members</p>
+          <p className="mt-2 text-2xl font-semibold text-on-secondary">{rosterStudents.length}</p>
+        </div>
+        <div className="flex min-h-[104px] flex-col items-center justify-center rounded-2xl border border-border bg-secondary px-4 py-4 text-center shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-secondary/90">Total Hours</p>
+          <p className="mt-2 text-2xl font-semibold text-on-secondary">{totalRosterHours.toFixed(1)}</p>
+        </div>
       </div>
-    )}
-  </article>
-);
+
+      {isLoading ? (
+        <CardMessage>Loading roster...</CardMessage>
+      ) : error ? (
+        <CardMessage tone="error">{error}</CardMessage>
+      ) : rosterStudents.length === 0 ? (
+        <CardMessage>No current members found.</CardMessage>
+      ) : (
+        <>
+          <div className="mt-5 overflow-x-auto">
+            <table
+              className="min-w-full border-separate border-spacing-y-2"
+              id="active-team-roster-table"
+            >
+              <thead>
+                <tr>
+                  <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Name</th>
+                  <th className={DASHBOARD_TABLE_HEADER_CLASS_NAME}>Student ID</th>
+                  <th className={`${DASHBOARD_TABLE_HEADER_CLASS_NAME} text-right`}>Total Hours</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleRosterStudents.map((student) => (
+                  <tr key={student.id}>
+                    <td className={`${tableCellClassName} rounded-l-xl border-l font-semibold`}>
+                      {getStudentName(student)}
+                    </td>
+                    <td className={tableCellClassName}>
+                      {getStudentId(student) || MISSING_VALUE_LABEL}
+                    </td>
+                    <td className={`${tableCellClassName} rounded-r-xl border-r text-right font-semibold`}>
+                      {student.totalHours.toFixed(1)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {hasAdditionalStudents && (
+            <Button
+              aria-controls="active-team-roster-table"
+              aria-expanded={isExpanded}
+              className="mt-3 bg-secondary"
+              onClick={() => setIsExpanded((currentValue) => !currentValue)}
+              type="button"
+            >
+              {isExpanded
+                ? 'Collapse roster'
+                : `Expand roster (${rosterStudents.length - activeRosterPreviewSize} more)`}
+            </Button>
+          )}
+        </>
+      )}
+    </article>
+  );
+};
 
 const SignInStudentCard = ({
   cardClassName,
   error,
   isLoading,
+  currentTime,
+  schedules,
   students,
   tasks,
 }) => {
@@ -443,6 +479,12 @@ const SignInStudentCard = ({
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, tasks],
   );
+  const isNoteRequired = useMemo(() => isTaskNoteRequired({
+    currentTime,
+    mode: 'sign-in',
+    schedules,
+    task: selectedTask,
+  }), [currentTime, schedules, selectedTask]);
 
   useEffect(() => {
     if (availableStudents.length === 0) {
@@ -458,6 +500,11 @@ const SignInStudentCard = ({
   }, [availableStudents, selectedStudentId]);
 
   useEffect(() => {
+    if (tasks.length === 1) {
+      setSelectedTaskId(tasks[0].id);
+      return;
+    }
+
     if (selectedTaskId && !tasks.some((task) => task.id === selectedTaskId)) {
       setSelectedTaskId('');
     }
@@ -480,7 +527,7 @@ const SignInStudentCard = ({
 
     const trimmedNotes = notes.trim();
 
-    if (!trimmedNotes) {
+    if (isNoteRequired && !trimmedNotes) {
       setStatus({ message: 'A goal note is required to sign in a student.', tone: 'error' });
       return;
     }
@@ -573,6 +620,7 @@ const SignInStudentCard = ({
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-on-primary">
               Goal for {selectedTask?.[taskConfig.nameField] ?? 'task'}
+              {isNoteRequired ? ' (required)' : ' (optional)'}
             </span>
             <textarea
               className={`${FORM_TEXTAREA_CLASS_NAME} min-h-28`}
@@ -580,8 +628,8 @@ const SignInStudentCard = ({
                 setNotes(event.target.value);
                 clearStatus();
               }}
-              placeholder={`Required goal for ${selectedTask?.[taskConfig.nameField] ?? 'task'}`}
-              required
+              placeholder={`${isNoteRequired ? 'Required' : 'Optional'} goal for ${selectedTask?.[taskConfig.nameField] ?? 'task'}`}
+              required={isNoteRequired}
               value={notes}
             />
           </label>
@@ -1398,12 +1446,13 @@ const StudentManagementDashboard = ({
     ? providedSchedulesError
     : internalSchedulesState.error;
   const enteredBy = coachUser?.email ?? coachUser?.displayName ?? 'Coach';
+  const currentTime = useCurrentTime();
 
   // These subscriptions feed every card below. Memoized derived lists keep the
   // cards in agreement about current students, available tasks, and totals.
   const signInTasks = useMemo(
-    () => getAvailableSignInTasks(tasks, schedules),
-    [schedules, tasks],
+    () => getAvailableSignInTasks(tasks, schedules, currentTime),
+    [currentTime, schedules, tasks],
   );
   const currentStudents = useMemo(
     () => students.filter(isCurrentMember),
@@ -1441,8 +1490,10 @@ const StudentManagementDashboard = ({
         />
         <SignInStudentCard
           cardClassName={cardClassName}
+          currentTime={currentTime}
           error={studentsError || tasksError || schedulesError}
           isLoading={isLoadingStudents || isLoadingTasks || isLoadingSchedules}
+          schedules={schedules}
           students={currentStudents}
           tasks={signInTasks}
         />

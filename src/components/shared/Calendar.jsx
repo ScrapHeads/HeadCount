@@ -6,7 +6,8 @@ import {
   isAttendanceSchedule,
   isOutreachSchedule,
 } from '../../features/schedules/scheduleUtils';
-import { toDateInputValue } from '../../lib/dateUtils';
+import { toDate, toDateInputValue } from '../../lib/dateUtils';
+import Dropdown from './Dropdown';
 
 const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -33,6 +34,12 @@ const timeFormatter = new Intl.DateTimeFormat('en-US', {
   minute: '2-digit',
 });
 
+const occurrenceDateFormatter = new Intl.DateTimeFormat('en-GB', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+});
+
 const meetingTypeOptions = [
   { label: 'All meetings', value: 'all' },
   { label: 'Attendance', value: 'attendance' },
@@ -49,6 +56,63 @@ const addDays = (value, amount) => {
   const date = new Date(value);
   date.setDate(date.getDate() + amount);
   return date;
+};
+
+const parseLocalDateKey = (value) => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+
+  return (
+    date.getFullYear() === year
+    && date.getMonth() === month - 1
+    && date.getDate() === day
+  ) ? date : null;
+};
+
+const scheduleMatchesMeetingType = (schedule, meetingType) => (
+  meetingType === 'all'
+  || (meetingType === 'attendance' && isAttendanceSchedule(schedule))
+  || (meetingType === 'outreach' && isOutreachSchedule(schedule))
+);
+
+const getOccurrenceRange = (matchingSchedules) => {
+  let rangeStart = null;
+  let rangeEnd = null;
+
+  matchingSchedules.forEach((schedule) => {
+    const baseStart = toDate(schedule?.[scheduleConfig.startTimeField]);
+    const baseEnd = toDate(schedule?.[scheduleConfig.endTimeField]);
+
+    if (!baseStart) {
+      return;
+    }
+
+    const isRecurring = Boolean(schedule[scheduleConfig.isRecurringField]);
+    const recurrenceStart = isRecurring
+      ? parseLocalDateKey(schedule[scheduleConfig.recurrenceStartsOnField])
+      : null;
+    const recurrenceEndBefore = isRecurring
+      ? parseLocalDateKey(schedule[scheduleConfig.recurrenceEndsBeforeField])
+      : null;
+    const scheduleStart = recurrenceStart ?? baseStart;
+    const scheduleEnd = recurrenceEndBefore
+      ? addDays(recurrenceEndBefore, -1)
+      : baseEnd ?? baseStart;
+
+    if (!rangeStart || scheduleStart < rangeStart) {
+      rangeStart = scheduleStart;
+    }
+
+    if (!rangeEnd || scheduleEnd > rangeEnd) {
+      rangeEnd = scheduleEnd;
+    }
+  });
+
+  return rangeStart && rangeEnd ? { rangeEnd, rangeStart } : null;
 };
 
 const getVisibleDates = (anchorDate, viewMode) => {
@@ -115,7 +179,7 @@ const Calendar = ({
   const [actionError, setActionError] = useState('');
   const [actionMessage, setActionMessage] = useState('');
   const [meetingType, setMeetingType] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMeetingId, setSelectedMeetingId] = useState('');
   const visibleDates = useMemo(
     () => getVisibleDates(anchorDate, viewMode),
     [anchorDate, viewMode],
@@ -124,31 +188,71 @@ const Calendar = ({
     () => new Map(tasks.map((task) => [task.id, task])),
     [tasks],
   );
-  const occurrences = useMemo(() => {
-    const normalizedSearchTerm = searchTerm.trim().toLocaleLowerCase();
+  const meetingOptions = useMemo(() => {
+    const meetingsByTaskId = new Map();
 
+    schedules.forEach((schedule) => {
+      if (!scheduleMatchesMeetingType(schedule, meetingType)) {
+        return;
+      }
+
+      const taskId = schedule?.[scheduleConfig.taskIdField];
+
+      if (!taskId || meetingsByTaskId.has(taskId)) {
+        return;
+      }
+
+      meetingsByTaskId.set(taskId, {
+        label: tasksById.get(taskId)?.[taskConfig.nameField] ?? String(taskId),
+        value: taskId,
+      });
+    });
+
+    return [...meetingsByTaskId.values()].sort((left, right) => (
+      left.label.localeCompare(right.label)
+      || String(left.value).localeCompare(String(right.value))
+    ));
+  }, [meetingType, schedules, tasksById]);
+  const selectedMeeting = meetingOptions.find((option) => (
+    option.value === selectedMeetingId
+  )) ?? null;
+  const selectedMeetingSchedules = useMemo(() => (
+    selectedMeeting
+      ? schedules.filter((schedule) => (
+          schedule?.[scheduleConfig.taskIdField] === selectedMeeting.value
+          && scheduleMatchesMeetingType(schedule, meetingType)
+        ))
+      : []
+  ), [meetingType, schedules, selectedMeeting]);
+  const selectedMeetingOccurrences = useMemo(() => {
+    const occurrenceRange = getOccurrenceRange(selectedMeetingSchedules);
+
+    if (!occurrenceRange) {
+      return [];
+    }
+
+    return getScheduleOccurrencesInRange(
+      selectedMeetingSchedules,
+      occurrenceRange.rangeStart,
+      occurrenceRange.rangeEnd,
+    ).sort((left, right) => (
+      right.startTime - left.startTime
+      || String(right.schedule.id ?? '').localeCompare(String(left.schedule.id ?? ''))
+    ));
+  }, [selectedMeetingSchedules]);
+  const occurrences = useMemo(() => {
     return getScheduleOccurrencesInRange(
       schedules,
       visibleDates[0],
       visibleDates[visibleDates.length - 1],
     ).filter((occurrence) => {
       const schedule = occurrence.schedule;
-      const matchesMeetingType = meetingType === 'all'
-        || (
-          meetingType === 'attendance'
-          && isAttendanceSchedule(schedule)
-        )
-        || (
-          meetingType === 'outreach'
-          && isOutreachSchedule(schedule)
-        );
       const taskId = schedule[scheduleConfig.taskIdField];
-      const taskName = tasksById.get(taskId)?.[taskConfig.nameField] ?? taskId ?? 'Meeting';
 
-      return matchesMeetingType
-        && (!normalizedSearchTerm || String(taskName).toLocaleLowerCase().includes(normalizedSearchTerm));
+      return scheduleMatchesMeetingType(schedule, meetingType)
+        && (!selectedMeeting || taskId === selectedMeeting.value);
     });
-  }, [meetingType, schedules, searchTerm, tasksById, visibleDates]);
+  }, [meetingType, schedules, selectedMeeting, visibleDates]);
   const occurrencesByDate = useMemo(() => {
     const groupedOccurrences = new Map();
 
@@ -306,19 +410,20 @@ const Calendar = ({
       </div>
 
       <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-on-primary">Search meetings</span>
-          <input
-            className="rounded-xl border border-border bg-secondary px-4 py-2.5 text-sm text-on-secondary outline-none transition placeholder:text-on-secondary/60 focus:border-accent focus:ring-2 focus:ring-accent/25"
-            onChange={(event) => {
-              setSearchTerm(event.target.value);
-              setSelectedOccurrenceKey('');
-            }}
-            placeholder="Search by task name"
-            type="search"
-            value={searchTerm}
-          />
-        </label>
+        <Dropdown
+          label="Search meetings"
+          onChange={(meetingId) => {
+            setSelectedMeetingId(meetingId);
+            setSelectedOccurrenceKey('');
+            setActionError('');
+            setActionMessage('');
+          }}
+          options={meetingOptions}
+          placeholder="Select a meeting"
+          searchable
+          searchPlaceholder="Search by meeting name"
+          value={selectedMeeting?.value ?? ''}
+        />
 
         <div
           aria-label="Meeting type filter"
@@ -336,6 +441,7 @@ const Calendar = ({
               key={option.value}
               onClick={() => {
                 setMeetingType(option.value);
+                setSelectedMeetingId('');
                 setSelectedOccurrenceKey('');
               }}
               type="button"
@@ -356,6 +462,79 @@ const Calendar = ({
         <p className="mt-5 rounded-xl border border-border bg-primary/35 px-4 py-3 text-sm text-on-primary">
           {actionMessage}
         </p>
+      )}
+
+      {selectedMeeting && (
+        <section className="mt-5 rounded-2xl border border-border bg-primary/25 p-4">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-base font-semibold text-on-primary">{selectedMeeting.label}</p>
+              <p className="mt-1 text-sm text-on-primary/75">Meeting dates, newest first</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <p className="text-sm font-semibold text-on-primary/75">
+                {selectedMeetingOccurrences.length} {selectedMeetingOccurrences.length === 1 ? 'date' : 'dates'}
+              </p>
+              <button
+                className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-semibold text-on-secondary transition hover:opacity-90"
+                onClick={() => {
+                  setSelectedMeetingId('');
+                  setSelectedOccurrenceKey('');
+                }}
+                type="button"
+              >
+                Show all meetings
+              </button>
+            </div>
+          </div>
+
+          {selectedMeetingOccurrences.length === 0 ? (
+            <p className="mt-4 rounded-xl border border-border bg-primary/35 px-4 py-4 text-sm text-on-primary/80">
+              No scheduled dates are available for this meeting.
+            </p>
+          ) : (
+            <div
+              aria-label={`${selectedMeeting.label} meeting dates`}
+              className="mt-4 max-h-[22.5rem] divide-y divide-border overflow-y-auto rounded-xl border border-border bg-primary/35"
+            >
+              {selectedMeetingOccurrences.map((occurrence) => {
+                const occurrenceKey = `${occurrence.schedule.id}:${occurrence.dateKey}`;
+                const isSelected = occurrenceKey === selectedOccurrenceKey;
+
+                return (
+                  <button
+                    aria-pressed={isSelected}
+                    className={`flex min-h-[4.5rem] w-full items-center justify-between gap-4 px-4 py-3 text-left transition ${
+                      isSelected
+                        ? 'bg-accent text-on-accent'
+                        : 'text-on-primary hover:bg-accent/15'
+                    }`}
+                    key={occurrenceKey}
+                    onClick={() => {
+                      setAnchorDate(new Date(occurrence.startTime));
+                      setSelectedOccurrenceKey(occurrenceKey);
+                      setActionError('');
+                      setActionMessage('');
+                    }}
+                    type="button"
+                  >
+                    <span>
+                      <span className="block font-semibold">
+                        {occurrenceDateFormatter.format(occurrence.startTime)}
+                      </span>
+                      <span className="mt-1 block text-sm opacity-80">
+                        {dayDetailFormatter.format(occurrence.startTime)}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-sm font-semibold">
+                      {timeFormatter.format(occurrence.startTime)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </section>
       )}
 
       <div className="mt-5 flex items-center justify-between gap-4">
@@ -468,7 +647,7 @@ const Calendar = ({
 
       {!isLoading && occurrences.length === 0 && (
         <p className="mt-4 rounded-xl border border-border bg-primary/35 px-4 py-4 text-sm text-on-primary/80">
-          No meetings match the current search and filter in this {viewMode}.
+          No meetings match the current selection and filter in this {viewMode}.
         </p>
       )}
 
