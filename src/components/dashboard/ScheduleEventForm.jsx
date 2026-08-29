@@ -77,10 +77,10 @@ const meetingCountingOptions = [
 ];
 
 const noteRequirementOptions = [
-  { value: scheduleConfig.noteRequirements.both, label: 'Sign in and sign out' },
-  { value: scheduleConfig.noteRequirements.signIn, label: 'Sign in only' },
-  { value: scheduleConfig.noteRequirements.signOut, label: 'Sign out only' },
-  { value: scheduleConfig.noteRequirements.none, label: 'No notes needed' },
+  { value: scheduleConfig.noteRequirements.both, title: 'Sign in and sign out' },
+  { value: scheduleConfig.noteRequirements.signIn, title: 'Sign in only' },
+  { value: scheduleConfig.noteRequirements.signOut, title: 'Sign out only' },
+  { value: scheduleConfig.noteRequirements.none, title: 'No notes needed' },
 ];
 
 const ScheduleEventForm = ({
@@ -197,13 +197,32 @@ const ScheduleEventForm = ({
       </div>
     </div>
 
-    <Dropdown
-      className="md:col-span-2"
-      label="Notes required"
-      onChange={(value) => onFieldChange('noteRequirement', value)}
-      options={noteRequirementOptions}
-      value={form.noteRequirement}
-    />
+    <div className="md:col-span-2">
+      <span className="text-sm font-medium text-on-primary">Notes required</span>
+      <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {noteRequirementOptions.map((option) => {
+          const isActive = form.noteRequirement === option.value;
+
+          return (
+            <button
+              key={option.value}
+              aria-pressed={isActive}
+              className={`rounded-[1.5rem] border p-4 text-left transition ${
+                isActive
+                  ? 'border-accent bg-accent/12 shadow-sm'
+                  : 'border-border bg-secondary hover:bg-accent/10'
+              }`}
+              onClick={() => onFieldChange('noteRequirement', option.value)}
+              type="button"
+            >
+              <p className={`text-base font-semibold ${isActive ? 'text-on-primary' : 'text-on-secondary'}`}>
+                {option.title}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
 
     {form.scheduleMode === scheduleConfig.recurrenceTypes.weekly && (
       <Dropdown

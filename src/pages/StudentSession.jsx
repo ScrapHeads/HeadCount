@@ -87,6 +87,28 @@ const StudentSession = () => {
   }, [studentSession]);
 
   useEffect(() => {
+    if (formMode !== 'sign-in') {
+      if (selectedTaskId) {
+        setSelectedTaskId('');
+      }
+
+      return;
+    }
+
+    if (availableTasks.length === 1) {
+      setSelectedTaskId(availableTasks[0].id);
+      return;
+    }
+
+    if (
+      selectedTaskId
+      && !availableTasks.some((task) => task.id === selectedTaskId)
+    ) {
+      setSelectedTaskId('');
+    }
+  }, [availableTasks, formMode, selectedTaskId]);
+
+  useEffect(() => {
     setStatusMessage('');
   }, [formMode, selectedTaskId, notes]);
 

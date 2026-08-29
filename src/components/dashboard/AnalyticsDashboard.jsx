@@ -446,6 +446,8 @@ const StudentCategoryBreakdownCard = ({
           label: `${student.studentName} (${student.studentId})`,
           value: student.studentKey,
         }))}
+        searchable
+        searchPlaceholder="Search by student name or ID"
         value={selectedStudentKey}
       />
 
